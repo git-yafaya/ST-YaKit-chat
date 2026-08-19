@@ -3674,3 +3674,23 @@ body.stce-secondary-modal-open {
 .stce-secondary-scrollbar-thumb.is-dragging {
     cursor: grabbing;
 }
+
+/* YaKit toast isolation: avoid SillyTavern global toast font inheritance */
+#yakit-root .toast,
+#yakit-root .toastify,
+.stce-root .toast {
+    font-size: 14px !important;
+    line-height: 1.5;
+    max-width: 360px;
+}
+
+#yakit-root .toast .toast-title,
+.stce-root .toast .toast-title {
+    font-size: 16px !important;
+    font-weight: 650;
+}
+
+#yakit-root .toast .toast-message,
+.stce-root .toast .toast-message {
+    font-size: 14px !important;
+}

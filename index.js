@@ -2953,7 +2953,15 @@ function createExporterContent() {
 
         saveSettings();
 
+        // YaKit 副 API profile 仅用于内部请求路由，不应改变用户当前主 API。
+        // 创建/更新 Connection Manager profile 前后保留当前选择状态。
+        const connectionManager = getConnectionManagerSettings();
+        const previousSelectedProfile = connectionManager.selectedProfile;
+
         const profileId = ensureSharedConnectionProfile(connection);
+
+        connectionManager.selectedProfile = previousSelectedProfile;
+        saveSettings();
 
         renderSecondaryConnectionSelect();
         aiSecondaryConnection.value = connection.id;
