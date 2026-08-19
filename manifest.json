@@ -1,0 +1,9 @@
+{
+  "display_name": "Chat-output",
+  "loading_order": 20,
+  "js": "index.js",
+  "css": "style.css",
+  "author": "yafaya",
+  "version": "0.1.0",
+  "auto_update": false
+}

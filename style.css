@@ -1,0 +1,445 @@
+/* =========================
+   ST Chat Exporter
+   v0.1.1 - Large rounded popup
+   ========================= */
+
+/* 只影响正文导出器自己的 Popup */
+dialog.popup:has(.stce-root) {
+    width: min(1180px, calc(100vw - 36px)) !important;
+    max-width: min(1180px, calc(100vw - 36px)) !important;
+    height: min(860px, calc(100vh - 36px)) !important;
+    max-height: min(860px, calc(100vh - 36px)) !important;
+
+    padding: 0 !important;
+    margin: auto !important;
+
+    border-radius: 28px !important;
+    overflow: hidden !important;
+
+    box-sizing: border-box !important;
+}
+
+/* ST Popup 内层全部允许真正撑满 */
+dialog.popup:has(.stce-root) .popup-body {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+dialog.popup:has(.stce-root) .popup-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+
+    padding: 0 !important;
+    overflow: hidden !important;
+
+    box-sizing: border-box !important;
+    text-align: left !important;
+}
+
+/* DISPLAY Popup 不需要底部系统按钮区 */
+dialog.popup:has(.stce-root) .popup-controls {
+    display: none !important;
+}
+
+/* 右上角关闭按钮 */
+dialog.popup:has(.stce-root) .popup-button-close {
+    top: 14px !important;
+    right: 14px !important;
+
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 999px !important;
+
+    z-index: 20;
+}
+
+/* =========================
+   App shell
+   ========================= */
+
+.stce-root {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    box-sizing: border-box;
+    padding: 26px 28px 24px;
+
+    color: var(--SmartThemeBodyColor);
+    overflow: hidden;
+}
+
+.stce-header {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+    padding-right: 46px;
+}
+
+.stce-title {
+    font-size: 1.38rem;
+    font-weight: 750;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+}
+
+.stce-subtitle {
+    margin-top: 5px;
+
+    font-size: 0.88rem;
+    line-height: 1.4;
+    opacity: 0.6;
+}
+
+.stce-count {
+    flex: 0 0 auto;
+    white-space: nowrap;
+
+    margin-top: 4px;
+    padding: 6px 10px;
+
+    border-radius: 999px;
+    background: rgb(127 127 127 / 0.10);
+
+    font-size: 0.82rem;
+    opacity: 0.75;
+}
+
+/* =========================
+   Tabs
+   ========================= */
+
+.stce-tabs {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    margin-top: 18px;
+    padding: 4px;
+
+    width: fit-content;
+    max-width: 100%;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 14px;
+
+    background: rgb(127 127 127 / 0.06);
+}
+
+.stce-tab {
+    appearance: none;
+    border: 0;
+    outline: none;
+
+    min-width: 96px;
+    padding: 9px 16px;
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    color: var(--SmartThemeBodyColor);
+    background: transparent;
+
+    font: inherit;
+    font-weight: 500;
+
+    transition:
+        background 0.15s ease,
+        transform 0.15s ease;
+}
+
+.stce-tab:hover {
+    background: rgb(127 127 127 / 0.10);
+}
+
+.stce-tab.is-active {
+    background: rgb(127 127 127 / 0.17);
+    font-weight: 700;
+}
+
+/* =========================
+   Panels
+   ========================= */
+
+.stce-panel {
+    display: none;
+
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+
+    margin-top: 18px;
+}
+
+.stce-panel.is-active {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* =========================
+   Export options
+   ========================= */
+
+.stce-grid {
+    flex: 0 0 auto;
+
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.stce-option {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+    padding: 11px 13px;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 14px;
+
+    background: rgb(127 127 127 / 0.045);
+
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.stce-option:hover {
+    background: rgb(127 127 127 / 0.08);
+}
+
+.stce-option input {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.stce-option span {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stce-section-title {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-top: 2px;
+
+    font-weight: 700;
+}
+
+.stce-meta {
+    font-size: 0.84rem;
+    font-weight: 500;
+    opacity: 0.64;
+}
+
+/* =========================
+   Preview
+   ========================= */
+
+.stce-preview {
+    flex: 1 1 auto;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+
+    resize: none;
+    box-sizing: border-box;
+
+    padding: 20px 22px;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 18px;
+
+    outline: none;
+
+    color: var(--SmartThemeBodyColor);
+    background: rgb(127 127 127 / 0.045);
+
+    font-family: inherit;
+    font-size: 0.98rem;
+    line-height: 1.8;
+
+    overflow: auto;
+}
+
+/* =========================
+   Bottom action bar
+   ========================= */
+
+.stce-actions {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+    min-height: 42px;
+}
+
+.stce-actions .menu_button {
+    flex: 0 0 auto;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    min-width: 120px;
+    min-height: 40px;
+
+    padding: 8px 14px;
+    border-radius: 12px;
+
+    white-space: nowrap;
+}
+
+.stce-action-spacer {
+    flex: 1 1 auto;
+}
+
+/* =========================
+   Empty / future tabs
+   ========================= */
+
+.stce-placeholder {
+    flex: 1 1 auto;
+
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 10px;
+    padding: 32px;
+
+    text-align: center;
+
+    border: 1px dashed var(--SmartThemeBorderColor);
+    border-radius: 18px;
+
+    background: rgb(127 127 127 / 0.025);
+    opacity: 0.75;
+}
+
+.stce-placeholder > i {
+    font-size: 2rem;
+}
+
+/* =========================
+   Responsive
+   ========================= */
+
+/* 中等宽度：不要硬挤成四列 */
+@media (max-width: 980px) {
+    dialog.popup:has(.stce-root) {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        height: calc(100vh - 24px) !important;
+        max-height: calc(100vh - 24px) !important;
+
+        border-radius: 26px !important;
+    }
+
+    .stce-root {
+        padding: 22px 22px 20px;
+    }
+
+    .stce-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stce-option span {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+}
+
+/* 手机宽度：单列 */
+@media (max-width: 560px) {
+    dialog.popup:has(.stce-root) {
+        width: calc(100vw - 12px) !important;
+        max-width: calc(100vw - 12px) !important;
+        height: calc(100vh - 12px) !important;
+        max-height: calc(100vh - 12px) !important;
+
+        border-radius: 22px !important;
+    }
+
+    .stce-root {
+        padding: 18px 14px 14px;
+    }
+
+    .stce-header {
+        gap: 10px;
+    }
+
+    .stce-subtitle {
+        display: none;
+    }
+
+    .stce-tabs {
+        width: 100%;
+    }
+
+    .stce-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-inline: 8px;
+    }
+
+    .stce-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stce-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .stce-actions #stce_refresh {
+        grid-column: 1 / -1;
+    }
+
+    .stce-action-spacer {
+        display: none;
+    }
+
+    .stce-actions .menu_button {
+        width: 100%;
+        min-width: 0;
+    }
+}
