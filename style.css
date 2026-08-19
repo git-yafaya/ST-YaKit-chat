@@ -3343,3 +3343,67 @@ body.stce-secondary-modal-open {
         max-width: 72vw;
     }
 }
+
+
+/* =========================
+   v0.7.0 - Simplified AI drawers
+   ========================= */
+
+/* Drawer headers are title-only. */
+.stce-ai-drawer-title-group {
+    gap: 0 !important;
+}
+
+/* No transition animation when opening/closing drawers. */
+.stce-ai-drawer-chevron {
+    transition: none !important;
+}
+
+/* Footer: Close on the left, Delete + Save on the right. */
+.stce-secondary-modal-footer {
+    justify-content: space-between !important;
+}
+
+.stce-secondary-modal-footer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    margin-left: auto;
+}
+
+.stce-secondary-modal-delete {
+    min-width: 104px !important;
+
+    border:
+        1px solid rgb(210 70 70 / 0.36) !important;
+
+    color: rgb(200 70 70) !important;
+    background: transparent !important;
+}
+
+.stce-secondary-modal-delete:hover:not(:disabled) {
+    border-color:
+        rgb(210 70 70 / 0.58) !important;
+
+    background:
+        rgb(210 70 70 / 0.07) !important;
+}
+
+.stce-secondary-modal-delete:disabled {
+    opacity: 0.34 !important;
+    cursor: default !important;
+}
+
+@media (max-width: 560px) {
+    .stce-secondary-modal-footer-actions {
+        gap: 8px;
+    }
+
+    .stce-secondary-modal-delete,
+    .stce-secondary-modal-save {
+        min-width: 0 !important;
+    }
+}

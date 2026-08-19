@@ -1954,7 +1954,6 @@ function createExporterContent() {
                     <button class="stce-ai-drawer-trigger" type="button" aria-expanded="false">
                         <span class="stce-ai-drawer-title-group">
                             <span class="stce-ai-drawer-title">副 API</span>
-                            <span class="stce-ai-drawer-subtitle">管理 YaKit 共用的独立 AI 连接</span>
                         </span>
 
                         <i class="fa-solid fa-chevron-down stce-ai-drawer-chevron"></i>
@@ -1985,7 +1984,6 @@ function createExporterContent() {
                     <button class="stce-ai-drawer-trigger" type="button" aria-expanded="true">
                         <span class="stce-ai-drawer-title-group">
                             <span class="stce-ai-drawer-title">正则助手</span>
-                            <span class="stce-ai-drawer-subtitle">抽样聊天并生成可确认的清洗规则</span>
                         </span>
 
                         <i class="fa-solid fa-chevron-down stce-ai-drawer-chevron"></i>
@@ -2100,15 +2098,6 @@ function createExporterContent() {
 
                                 <div class="stce-shared-api-head-actions">
                                     <span class="stce-shared-api-status" id="stce_shared_api_status">未配置</span>
-
-                                    <button id="stce_secondary_duplicate" type="button"
-                                        class="stce-head-action" title="复制当前副 API">
-                                        <i class="fa-regular fa-copy"></i>
-                                    </button>
-                                    <button id="stce_secondary_delete" type="button"
-                                        class="stce-head-action stce-danger" title="删除当前副 API">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
                                 </div>
                             </div>
 
@@ -2164,11 +2153,19 @@ function createExporterContent() {
                                 关闭
                             </button>
 
-                            <button id="stce_secondary_modal_save" type="button"
-                                class="menu_button stce-secondary-modal-save">
-                                <i class="fa-solid fa-check"></i>
-                                保存配置
-                            </button>
+                            <div class="stce-secondary-modal-footer-actions">
+                                <button id="stce_secondary_delete" type="button"
+                                    class="menu_button stce-secondary-modal-delete">
+                                    <i class="fa-solid fa-trash"></i>
+                                    删除
+                                </button>
+
+                                <button id="stce_secondary_modal_save" type="button"
+                                    class="menu_button stce-secondary-modal-save">
+                                    <i class="fa-solid fa-check"></i>
+                                    保存配置
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2203,7 +2200,6 @@ function createExporterContent() {
     const aiSecondaryConnection = root.querySelector('#stce_ai_secondary_connection');
     const secondaryList = root.querySelector('#stce_secondary_list');
     const secondaryNewButton = root.querySelector('#stce_secondary_new');
-    const secondaryDuplicateButton = root.querySelector('#stce_secondary_duplicate');
     const secondaryDeleteButton = root.querySelector('#stce_secondary_delete');
     const sharedApiCard = root.querySelector('#stce_shared_api_card');
     const secondaryModal = root.querySelector('#stce_secondary_modal');
@@ -2761,40 +2757,6 @@ function createExporterContent() {
         });
     }
 
-    function duplicateSecondaryConnection() {
-        const source = getSelectedSecondaryConnection();
-        const store = getSharedSecondaryApiSettings();
-
-        const copy = {
-            ...deepClone(source),
-            id: createId('secondary'),
-            name: `${source.name} 副本`,
-            profileId: '',
-        };
-
-        store.connections.push(copy);
-        store.activeConnectionId = copy.id;
-        settings.ai.secondaryConnectionId = copy.id;
-
-        saveSettings();
-
-        ensureSharedConnectionProfile(copy);
-
-        renderSecondaryConnectionSelect();
-        aiSecondaryConnection.value = copy.id;
-        loadSharedApiUi();
-
-        requestAnimationFrame(() => {
-            sharedApiName.focus({ preventScroll: true });
-            sharedApiName.select();
-        });
-
-        toastr.success(
-            '已复制当前副 API，可直接修改名称后保存',
-            'YaKit 副 API',
-        );
-    }
-
     async function deleteSecondaryConnection() {
         const store = getSharedSecondaryApiSettings();
 
@@ -2877,7 +2839,7 @@ function createExporterContent() {
                 root.querySelector(
                     '[data-ai-drawer="secondary"]',
                 )?.scrollIntoView({
-                    behavior: 'smooth',
+                    behavior: 'auto',
                     block: 'nearest',
                 });
             });
@@ -3599,11 +3561,6 @@ function createExporterContent() {
         createSecondaryConnection,
     );
 
-    secondaryDuplicateButton.addEventListener(
-        'click',
-        duplicateSecondaryConnection,
-    );
-
     secondaryDeleteButton.addEventListener(
         'click',
         deleteSecondaryConnection,
@@ -3804,7 +3761,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.6.9');
+    console.info('[YaKit-纪实] initialized v0.7.0');
 }
 
 jQuery(() => {
