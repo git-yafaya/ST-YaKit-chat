@@ -74,6 +74,12 @@ function getSettings() {
         }
     }
 
+    // v0.6.2: the fallback routing option was removed from the UI.
+    // Preserve intent by migrating an old fallback selection to secondary API.
+    if (settings.ai.apiMode === 'fallback') {
+        settings.ai.apiMode = 'secondary';
+    }
+
     // v0.2.x -> v0.3.0 migration:
     // move the old global rules array into a default preset.
     const legacyRules = Array.isArray(settings.rules)
@@ -1784,7 +1790,6 @@ async function requestAiRuleSuggestions(args, apiConfig = {}) {
         const modeLabel = {
             primary: '主 API',
             secondary: '副 API',
-            fallback: '主 API（失败后转副 API）',
         }[mode] || 'AI';
 
         loadingHandle = loader?.show?.({
@@ -1794,24 +1799,6 @@ async function requestAiRuleSuggestions(args, apiConfig = {}) {
 
         if (mode === 'secondary') {
             return await requestSecondaryAiRuleSuggestions(args, secondaryProfileId);
-        }
-
-        if (mode === 'fallback') {
-            try {
-                return await requestPrimaryAiRuleSuggestions(args);
-            } catch (primaryError) {
-                console.warn(
-                    '[ST Chat Exporter] Primary AI request failed, trying secondary profile.',
-                    primaryError,
-                );
-
-                if (!secondaryProfileId) {
-                    throw new Error(`主 API 失败，且尚未配置副 API：${primaryError?.message || primaryError}`);
-                }
-
-                toastr.warning('主 API 分析失败，正在切换到副 API', 'YaKit-纪实');
-                return await requestSecondaryAiRuleSuggestions(args, secondaryProfileId);
-            }
         }
 
         return await requestPrimaryAiRuleSuggestions(args);
@@ -1845,7 +1832,7 @@ function createExporterContent() {
     root.innerHTML = `
         <div class="stce-header">
             <div>
-                <div class="stce-title">📖 YaKit-纪实</div>
+                <div class="stce-title">YaKit-纪实</div>
                 <div class="stce-subtitle">清洗聊天记录并导出为 TXT / Markdown</div>
             </div>
             <div class="stce-count" id="stce_message_count">0 条消息</div>
@@ -2003,7 +1990,6 @@ function createExporterContent() {
                         <select id="stce_ai_api_mode">
                             <option value="primary">主 API（当前聊天）</option>
                             <option value="secondary">副 API（独立连接）</option>
-                            <option value="fallback">主 API失败 → 副 API</option>
                         </select>
                     </label>
 
@@ -2717,8 +2703,7 @@ function createExporterContent() {
         const mode = aiApiMode.value;
 
         const needsSecondary =
-            mode === 'secondary'
-            || mode === 'fallback';
+            mode === 'secondary';
 
         sharedApiCard.hidden = !needsSecondary;
 
@@ -2881,8 +2866,7 @@ function createExporterContent() {
         }
 
         const needsSecondary =
-            aiApiMode.value === 'secondary'
-            || aiApiMode.value === 'fallback';
+            aiApiMode.value === 'secondary';
 
         let secondaryRequestProfileId = '';
 
@@ -3399,8 +3383,7 @@ function createExporterContent() {
 
         updateAiApiState({
             scrollIntoView:
-                aiApiMode.value === 'secondary'
-                || aiApiMode.value === 'fallback',
+                aiApiMode.value === 'secondary',
         });
     });
 
@@ -3597,7 +3580,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.6.0');
+    console.info('[YaKit-纪实] initialized v0.6.2');
 }
 
 jQuery(() => {

@@ -2212,3 +2212,88 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
         padding: 16px !important;
     }
 }
+
+
+/* =========================
+   v0.6.1 - Cleaner main title
+   ========================= */
+
+.stce-title {
+    font-size: 1.5rem !important;
+    font-weight: 750 !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.01em;
+}
+
+
+/* =========================
+   v0.6.2 - AI vertical layout
+   ========================= */
+
+.stce-ai-options {
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: 100%;
+    gap: 14px !important;
+}
+
+.stce-ai-options > .stce-field {
+    width: 100%;
+    min-width: 0;
+}
+
+.stce-ai-options .stce-select-trigger {
+    width: 100%;
+}
+
+/* =========================
+   v0.6.2 - Secondary API typography
+   ========================= */
+
+/* Field labels should lead the eye instead of looking like tiny captions. */
+.stce-shared-api-card .stce-field > span:first-child,
+.stce-shared-model-action > span {
+    font-size: 0.92rem !important;
+    font-weight: 650 !important;
+    line-height: 1.35 !important;
+    opacity: 0.82 !important;
+}
+
+/* Connection name is the section title. */
+.stce-shared-api-head > div:first-child > strong {
+    font-size: 1.12rem !important;
+    font-weight: 720 !important;
+    line-height: 1.25 !important;
+}
+
+/* Supporting copy should stay secondary. */
+.stce-shared-api-head > div:first-child > span {
+    font-size: 0.82rem !important;
+    line-height: 1.5 !important;
+    opacity: 0.56 !important;
+}
+
+/* Bring field contents back below the heading level. */
+.stce-shared-api-card input[type="text"],
+.stce-shared-api-card input[type="password"],
+.stce-shared-api-card .stce-select-trigger {
+    font-size: 0.94rem !important;
+    font-weight: 500 !important;
+}
+
+/* The connection picker itself remains slightly stronger than ordinary fields. */
+.stce-secondary-picker .stce-select-trigger {
+    font-size: 0.98rem !important;
+    font-weight: 650 !important;
+}
+
+.stce-secondary-label {
+    font-size: 0.92rem !important;
+    font-weight: 680 !important;
+}
+
+.stce-shared-model-action .menu_button {
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+}
