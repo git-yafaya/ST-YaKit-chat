@@ -3410,24 +3410,79 @@ body.stce-secondary-modal-open {
 
 
 /* =========================
-   v0.7.1 - Disable drawer motion
+   v0.7.2 - Drawer click feedback cleanup
    ========================= */
 
-.stce-ai-drawer,
-.stce-ai-drawer-trigger,
-.stce-ai-drawer-body,
-.stce-ai-drawer-title-group,
-.stce-ai-drawer-chevron,
-.stce-ai-drawer.is-open .stce-ai-drawer-chevron {
+/* Keep the arrow state change, but make it instantaneous. */
+.stce-ai-drawer-chevron {
     transition: none !important;
     animation: none !important;
 }
 
 .stce-ai-drawer.is-open .stce-ai-drawer-chevron {
-    transform: none !important;
+    transform: rotate(180deg) !important;
 }
 
-/* Keep the chevron static instead of rotating on open. */
-.stce-ai-drawer-chevron {
+/* Remove browser / SillyTavern click focus ring and pressed feedback. */
+.stce-ai-drawer-trigger,
+.stce-ai-drawer-trigger:focus,
+.stce-ai-drawer-trigger:focus-visible,
+.stce-ai-drawer-trigger:active {
+    outline: none !important;
+    box-shadow: none !important;
     transform: none !important;
+    transition: none !important;
+    animation: none !important;
+
+    -webkit-tap-highlight-color: transparent;
+}
+
+.stce-ai-drawer-trigger:focus,
+.stce-ai-drawer-trigger:focus-visible,
+.stce-ai-drawer-trigger:active {
+    background: transparent !important;
+}
+
+/* Some global themes style the parent through :focus-within. */
+.stce-ai-drawer:focus,
+.stce-ai-drawer:focus-visible,
+.stce-ai-drawer:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+
+    border-color:
+        rgb(127 127 127 / 0.12) !important;
+}
+
+
+/* =========================
+   v0.7.3 - Natural drawer transition
+   ========================= */
+
+/* Restore a short, natural arrow transition. */
+.stce-ai-drawer-chevron {
+    transition:
+        transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 170ms ease !important;
+}
+
+.stce-ai-drawer.is-open .stce-ai-drawer-chevron {
+    transform: rotate(180deg) !important;
+}
+
+/* Body motion is driven by Web Animations API.
+   Keep CSS itself from adding a second transition. */
+.stce-ai-drawer-body {
+    transition: none !important;
+    will-change: height, opacity;
+}
+
+/* Keep click/focus feedback clean while preserving drawer animation. */
+.stce-ai-drawer-trigger,
+.stce-ai-drawer-trigger:focus,
+.stce-ai-drawer-trigger:focus-visible,
+.stce-ai-drawer-trigger:active {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
 }

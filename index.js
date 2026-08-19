@@ -2232,10 +2232,108 @@ function createExporterContent() {
     let aiSuggestions = [];
     const sharedSecondaryModels = new Map();
 
+    function animateAiDrawerBody(body, open) {
+        body.getAnimations().forEach(
+            (animation) => animation.cancel(),
+        );
+
+        const resetInlineStyles = () => {
+            body.style.height = '';
+            body.style.opacity = '';
+            body.style.overflow = '';
+        };
+
+        if (open) {
+            body.hidden = false;
+            body.style.overflow = 'hidden';
+
+            const targetHeight = body.scrollHeight;
+
+            const animation = body.animate(
+                [
+                    {
+                        height: '0px',
+                        opacity: 0.62,
+                    },
+                    {
+                        height: `${targetHeight}px`,
+                        opacity: 1,
+                    },
+                ],
+                {
+                    duration: 190,
+                    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                    fill: 'both',
+                },
+            );
+
+            animation.addEventListener(
+                'finish',
+                resetInlineStyles,
+                { once: true },
+            );
+
+            animation.addEventListener(
+                'cancel',
+                resetInlineStyles,
+                { once: true },
+            );
+
+            return;
+        }
+
+        if (body.hidden) {
+            return;
+        }
+
+        body.style.overflow = 'hidden';
+
+        const startHeight = body.getBoundingClientRect().height;
+
+        const animation = body.animate(
+            [
+                {
+                    height: `${startHeight}px`,
+                    opacity: 1,
+                },
+                {
+                    height: '0px',
+                    opacity: 0.62,
+                },
+            ],
+            {
+                duration: 155,
+                easing: 'cubic-bezier(0.4, 0, 1, 1)',
+                fill: 'both',
+            },
+        );
+
+        animation.addEventListener(
+            'finish',
+            () => {
+                body.hidden = true;
+                resetInlineStyles();
+            },
+            { once: true },
+        );
+
+        animation.addEventListener(
+            'cancel',
+            resetInlineStyles,
+            { once: true },
+        );
+    }
+
     function setAiDrawerState(targetDrawer, shouldOpen) {
         aiDrawers.forEach((drawer) => {
             const isTarget = drawer === targetDrawer;
             const open = isTarget && shouldOpen;
+            const wasOpen =
+                drawer.classList.contains('is-open');
+
+            if (open === wasOpen) {
+                return;
+            }
 
             drawer.classList.toggle('is-open', open);
 
@@ -2252,7 +2350,7 @@ function createExporterContent() {
             );
 
             if (body) {
-                body.hidden = !open;
+                animateAiDrawerBody(body, open);
             }
         });
     }
@@ -3761,7 +3859,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.7.1');
+    console.info('[YaKit-纪实] initialized v0.7.3');
 }
 
 jQuery(() => {
