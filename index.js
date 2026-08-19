@@ -2,14 +2,21 @@ const EXTENSION_ID = 'st-chat-exporter';
 const WAND_BUTTON_ID = 'st_chat_exporter_wand_button';
 
 const DEFAULT_SETTINGS = Object.freeze({
-    version: 2,
+    version: 3,
     export: {
         includeUser: true,
         includeAssistant: true,
         includeSystem: false,
         keepSenderName: false,
     },
-    rules: [],
+    activePresetId: 'default',
+    presets: [
+        {
+            id: 'default',
+            name: '默认',
+            rules: [],
+        },
+    ],
 });
 
 let initialized = false;
@@ -44,11 +51,45 @@ function getSettings() {
         }
     }
 
-    if (!Array.isArray(settings.rules)) {
-        settings.rules = [];
+    // v0.2.x -> v0.3.0 migration:
+    // move the old global rules array into a default preset.
+    const legacyRules = Array.isArray(settings.rules)
+        ? deepClone(settings.rules)
+        : [];
+
+    if (!Array.isArray(settings.presets) || settings.presets.length === 0) {
+        settings.presets = [
+            {
+                id: 'default',
+                name: '默认',
+                rules: legacyRules,
+            },
+        ];
     }
 
-    settings.version = 2;
+    for (const preset of settings.presets) {
+        if (!preset.id) {
+            preset.id = createId('preset');
+        }
+
+        if (!preset.name) {
+            preset.name = '未命名预设';
+        }
+
+        if (!Array.isArray(preset.rules)) {
+            preset.rules = [];
+        }
+    }
+
+    if (!settings.activePresetId
+        || !settings.presets.some((preset) => preset.id === settings.activePresetId)) {
+        settings.activePresetId = settings.presets[0].id;
+    }
+
+    // Legacy field is no longer used after migration.
+    delete settings.rules;
+
+    settings.version = 3;
 
     return settings;
 }
@@ -509,6 +550,10 @@ function enhanceSelect(select) {
 
     select._stceSync = sync;
     select._stceClose = close;
+    select._stceRender = () => {
+        renderOptions();
+        sync();
+    };
 
     renderOptions();
     sync();
@@ -881,6 +926,32 @@ function createExporterContent() {
         </section>
 
         <section class="stce-panel" data-panel="rules">
+            <div class="stce-preset-bar">
+                <div class="stce-preset-picker">
+                    <span class="stce-preset-label">清洗预设</span>
+                    <select id="stce_preset_select" aria-label="清洗预设"></select>
+                </div>
+
+                <div class="stce-preset-actions">
+                    <button id="stce_new_preset" type="button" class="stce-preset-button" title="新建预设">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>新建</span>
+                    </button>
+                    <button id="stce_duplicate_preset" type="button" class="stce-preset-button" title="复制当前预设">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>复制</span>
+                    </button>
+                    <button id="stce_rename_preset" type="button" class="stce-preset-button" title="重命名当前预设">
+                        <i class="fa-solid fa-pen"></i>
+                        <span>重命名</span>
+                    </button>
+                    <button id="stce_delete_preset" type="button" class="stce-preset-button stce-danger" title="删除当前预设">
+                        <i class="fa-solid fa-trash"></i>
+                        <span>删除</span>
+                    </button>
+                </div>
+            </div>
+
             <div class="stce-rules-toolbar">
                 <div>
                     <strong>清洗规则</strong>
@@ -922,6 +993,11 @@ function createExporterContent() {
     const messageCount = root.querySelector('#stce_message_count');
     const rulesList = root.querySelector('#stce_rules_list');
     const rulesMeta = root.querySelector('#stce_rules_meta');
+    const presetSelect = root.querySelector('#stce_preset_select');
+    const newPresetButton = root.querySelector('#stce_new_preset');
+    const duplicatePresetButton = root.querySelector('#stce_duplicate_preset');
+    const renamePresetButton = root.querySelector('#stce_rename_preset');
+    const deletePresetButton = root.querySelector('#stce_delete_preset');
 
     includeUser.checked = Boolean(settings.export.includeUser);
     includeAssistant.checked = Boolean(settings.export.includeAssistant);
@@ -930,6 +1006,147 @@ function createExporterContent() {
 
     let currentMessages = [];
     let draggedRuleId = null;
+
+    function getActivePreset() {
+        let preset = settings.presets.find(
+            (item) => item.id === settings.activePresetId,
+        );
+
+        if (!preset) {
+            preset = settings.presets[0];
+            settings.activePresetId = preset.id;
+        }
+
+        return preset;
+    }
+
+    function getRules() {
+        return getActivePreset().rules;
+    }
+
+    function renderPresetSelect() {
+        presetSelect.innerHTML = settings.presets
+            .map((preset) => `
+                <option value="${escapeHtml(preset.id)}">
+                    ${escapeHtml(preset.name)}
+                </option>
+            `)
+            .join('');
+
+        presetSelect.value = settings.activePresetId;
+        presetSelect._stceRender?.();
+
+        deletePresetButton.disabled = settings.presets.length <= 1;
+    }
+
+    async function requestPresetName(title, defaultValue = '') {
+        const { Popup } = getContext();
+        const value = await Popup.show.input(
+            title,
+            '输入清洗预设名称。',
+            defaultValue,
+            {
+                okButton: '确定',
+                cancelButton: '取消',
+            },
+        );
+
+        if (value === null) return null;
+
+        const name = String(value).trim();
+
+        if (!name) {
+            toastr.warning('预设名称不能为空', '正文导出器');
+            return null;
+        }
+
+        return name;
+    }
+
+    async function createPreset() {
+        const name = await requestPresetName('新建清洗预设', '新预设');
+        if (!name) return;
+
+        const preset = {
+            id: createId('preset'),
+            name,
+            rules: [],
+        };
+
+        settings.presets.push(preset);
+        settings.activePresetId = preset.id;
+
+        saveSettings();
+        renderPresetSelect();
+        renderRules();
+        renderPreview();
+
+        toastr.success(`已创建预设“${name}”`, '正文导出器');
+    }
+
+    function duplicatePreset() {
+        const source = getActivePreset();
+        const copy = {
+            id: createId('preset'),
+            name: `${source.name} 副本`,
+            rules: deepClone(source.rules),
+        };
+
+        settings.presets.push(copy);
+        settings.activePresetId = copy.id;
+
+        saveSettings();
+        renderPresetSelect();
+        renderRules();
+        renderPreview();
+
+        toastr.success('已复制当前预设', '正文导出器');
+    }
+
+    async function renamePreset() {
+        const preset = getActivePreset();
+        const name = await requestPresetName('重命名清洗预设', preset.name);
+        if (!name || name === preset.name) return;
+
+        preset.name = name;
+
+        saveSettings();
+        renderPresetSelect();
+        renderPreview();
+
+        toastr.success('预设已重命名', '正文导出器');
+    }
+
+    async function deletePreset() {
+        if (settings.presets.length <= 1) {
+            toastr.warning('至少需要保留一个清洗预设', '正文导出器');
+            return;
+        }
+
+        const preset = getActivePreset();
+        const { Popup, POPUP_RESULT } = getContext();
+
+        const result = await Popup.show.confirm(
+            '删除清洗预设',
+            `确定删除“${preset.name}”及其中的 ${preset.rules.length} 条规则吗？`,
+        );
+
+        if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+
+        settings.presets = settings.presets.filter(
+            (item) => item.id !== preset.id,
+        );
+        settings.activePresetId = settings.presets[0].id;
+
+        getContext().extensionSettings[EXTENSION_ID].presets = settings.presets;
+
+        saveSettings();
+        renderPresetSelect();
+        renderRules();
+        renderPreview();
+
+        toastr.success('预设已删除', '正文导出器');
+    }
 
     function getOptions() {
         return {
@@ -947,12 +1164,12 @@ function createExporterContent() {
 
     function renderPreview() {
         const options = getOptions();
-        const result = processChat(currentMessages, options, settings.rules);
-        const activeRules = settings.rules.filter((rule) => rule.enabled).length;
+        const result = processChat(currentMessages, options, getRules());
+        const activeRules = getRules().filter((rule) => rule.enabled).length;
 
         preview.value = result.text;
         previewMeta.textContent =
-            `${result.text.length.toLocaleString()} 字 · ${result.keptCount} 条 · ${activeRules} 条规则`;
+            `${result.text.length.toLocaleString()} 字 · ${result.keptCount} 条 · ${activeRules} 条规则 · ${getActivePreset().name}`;
     }
 
     function refreshChat() {
@@ -962,14 +1179,14 @@ function createExporterContent() {
     }
 
     function moveRule(id, direction) {
-        const index = settings.rules.findIndex((rule) => rule.id === id);
+        const index = getRules().findIndex((rule) => rule.id === id);
         if (index < 0) return;
 
         const target = index + direction;
-        if (target < 0 || target >= settings.rules.length) return;
+        if (target < 0 || target >= getRules().length) return;
 
-        const [item] = settings.rules.splice(index, 1);
-        settings.rules.splice(target, 0, item);
+        const [item] = getRules().splice(index, 1);
+        getRules().splice(target, 0, item);
 
         saveSettings();
         renderRules();
@@ -979,13 +1196,13 @@ function createExporterContent() {
     function reorderRule(draggedId, targetId) {
         if (!draggedId || !targetId || draggedId === targetId) return;
 
-        const from = settings.rules.findIndex((rule) => rule.id === draggedId);
-        const to = settings.rules.findIndex((rule) => rule.id === targetId);
+        const from = getRules().findIndex((rule) => rule.id === draggedId);
+        const to = getRules().findIndex((rule) => rule.id === targetId);
 
         if (from < 0 || to < 0) return;
 
-        const [item] = settings.rules.splice(from, 1);
-        settings.rules.splice(to, 0, item);
+        const [item] = getRules().splice(from, 1);
+        getRules().splice(to, 0, item);
 
         saveSettings();
         renderRules();
@@ -994,18 +1211,18 @@ function createExporterContent() {
 
     async function editRule(ruleId = null) {
         const original = ruleId
-            ? settings.rules.find((item) => item.id === ruleId)
+            ? getRules().find((item) => item.id === ruleId)
             : null;
 
         const edited = await openRuleEditor(original, currentMessages, getOptions);
         if (!edited) return;
 
         if (original) {
-            const index = settings.rules.findIndex((item) => item.id === ruleId);
-            settings.rules[index] = edited;
+            const index = getRules().findIndex((item) => item.id === ruleId);
+            getRules()[index] = edited;
             toastr.success('规则已更新', '正文导出器');
         } else {
-            settings.rules.push(edited);
+            getRules().push(edited);
             toastr.success('规则已添加', '正文导出器');
         }
 
@@ -1015,7 +1232,7 @@ function createExporterContent() {
     }
 
     async function deleteRule(ruleId) {
-        const rule = settings.rules.find((item) => item.id === ruleId);
+        const rule = getRules().find((item) => item.id === ruleId);
         if (!rule) return;
 
         const { Popup, POPUP_RESULT } = getContext();
@@ -1026,10 +1243,8 @@ function createExporterContent() {
 
         if (result !== POPUP_RESULT.AFFIRMATIVE) return;
 
-        settings.rules = settings.rules.filter((item) => item.id !== ruleId);
-
-        // extensionSettings 持有同一个对象，重新赋值后仍需回写当前设置引用。
-        getContext().extensionSettings[EXTENSION_ID].rules = settings.rules;
+        const preset = getActivePreset();
+        preset.rules = preset.rules.filter((item) => item.id !== ruleId);
 
         saveSettings();
         renderRules();
@@ -1038,7 +1253,7 @@ function createExporterContent() {
     }
 
     function duplicateRule(ruleId) {
-        const rule = settings.rules.find((item) => item.id === ruleId);
+        const rule = getRules().find((item) => item.id === ruleId);
         if (!rule) return;
 
         const copy = deepClone(rule);
@@ -1046,8 +1261,8 @@ function createExporterContent() {
         copy.name = `${copy.name} 副本`;
         copy.source = 'manual';
 
-        const index = settings.rules.findIndex((item) => item.id === ruleId);
-        settings.rules.splice(index + 1, 0, copy);
+        const index = getRules().findIndex((item) => item.id === ruleId);
+        getRules().splice(index + 1, 0, copy);
 
         saveSettings();
         renderRules();
@@ -1056,20 +1271,20 @@ function createExporterContent() {
     }
 
     function renderRules() {
-        rulesMeta.textContent = `${settings.rules.length} 条`;
+        rulesMeta.textContent = `${getRules().length} 条`;
 
-        if (!settings.rules.length) {
+        if (!getRules().length) {
             rulesList.innerHTML = `
                 <div class="stce-rules-empty">
                     <i class="fa-solid fa-filter-circle-xmark"></i>
                     <strong>还没有清洗规则</strong>
-                    <span>点击“添加规则”，可以从标签、固定文本或正则表达式开始。</span>
+                    <span>当前预设还没有规则。点击“添加规则”，可以从标签、固定文本或正则表达式开始。</span>
                 </div>
             `;
             return;
         }
 
-        rulesList.innerHTML = settings.rules.map((rule, index) => `
+        rulesList.innerHTML = getRules().map((rule, index) => `
             <div class="stce-rule-card ${rule.enabled ? '' : 'is-disabled'}"
                  data-rule-id="${escapeHtml(rule.id)}"
                  draggable="true">
@@ -1108,7 +1323,7 @@ function createExporterContent() {
                     </button>
 
                     <button type="button" data-action="down" class="stce-icon-button"
-                            title="下移" ${index === settings.rules.length - 1 ? 'disabled' : ''}>
+                            title="下移" ${index === getRules().length - 1 ? 'disabled' : ''}>
                         <i class="fa-solid fa-arrow-down"></i>
                     </button>
 
@@ -1162,7 +1377,7 @@ function createExporterContent() {
                 const action = button.dataset.action;
 
                 if (action === 'toggle') {
-                    const rule = settings.rules.find((item) => item.id === id);
+                    const rule = getRules().find((item) => item.id === id);
                     if (!rule) return;
 
                     rule.enabled = Boolean(button.checked);
@@ -1213,6 +1428,21 @@ function createExporterContent() {
         });
     }
 
+    enhanceSelect(presetSelect);
+    renderPresetSelect();
+
+    presetSelect.addEventListener('change', () => {
+        settings.activePresetId = presetSelect.value;
+        saveSettings();
+        renderRules();
+        renderPreview();
+    });
+
+    newPresetButton.addEventListener('click', createPreset);
+    duplicatePresetButton.addEventListener('click', duplicatePreset);
+    renamePresetButton.addEventListener('click', renamePreset);
+    deletePresetButton.addEventListener('click', deletePreset);
+
     root.querySelector('#stce_add_rule').addEventListener('click', () => editRule());
 
     root.querySelector('#stce_refresh').addEventListener('click', () => {
@@ -1221,7 +1451,7 @@ function createExporterContent() {
     });
 
     root.querySelector('#stce_export_txt').addEventListener('click', () => {
-        const result = processChat(currentMessages, getOptions(), settings.rules);
+        const result = processChat(currentMessages, getOptions(), getRules());
 
         if (!result.text.trim()) {
             toastr.warning('没有可导出的正文', '正文导出器');
@@ -1233,7 +1463,7 @@ function createExporterContent() {
     });
 
     root.querySelector('#stce_export_md').addEventListener('click', () => {
-        const result = processChat(currentMessages, getOptions(), settings.rules);
+        const result = processChat(currentMessages, getOptions(), getRules());
 
         if (!result.text.trim()) {
             toastr.warning('没有可导出的正文', '正文导出器');
@@ -1321,7 +1551,7 @@ function init() {
     getSettings();
     createWandButton();
 
-    console.info('[ST Chat Exporter] initialized v0.2.4');
+    console.info('[ST Chat Exporter] initialized v0.3.0');
 }
 
 jQuery(() => {
