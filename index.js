@@ -3580,7 +3580,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.6.2');
+    console.info('[YaKit-纪实] initialized v0.6.3');
 }
 
 jQuery(() => {

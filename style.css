@@ -2297,3 +2297,46 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
     font-size: 0.9rem !important;
     font-weight: 600 !important;
 }
+
+
+/* =========================
+   v0.6.3 - AI panel scrolling
+   ========================= */
+
+/*
+ * The AI settings area can become taller than the popup after switching
+ * to a vertical layout and expanding secondary API configuration.
+ * Scroll the whole AI panel instead of letting .stce-root clip it.
+ */
+.stce-panel[data-panel="ai"].is-active {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding-right: 5px;
+    padding-bottom: 8px;
+
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+/* Let the result area participate in the page flow.
+   The AI panel itself now owns the vertical scrollbar. */
+.stce-panel[data-panel="ai"] .stce-ai-results {
+    flex: 0 0 auto !important;
+    overflow: visible !important;
+    min-height: 300px;
+}
+
+/* Keep long secondary API configuration from forcing horizontal overflow. */
+.stce-panel[data-panel="ai"] .stce-ai-config,
+.stce-panel[data-panel="ai"] .stce-shared-api-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* A little breathing room at the end when scrolled to the bottom. */
+.stce-panel[data-panel="ai"]::after {
+    content: "";
+    flex: 0 0 4px;
+}
