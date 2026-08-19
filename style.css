@@ -1,6 +1,6 @@
 /* =========================
    ST Chat Exporter
-   v0.1.1 - Large rounded popup
+   v0.2.0 - Large rounded popup + cleaning rules
    ========================= */
 
 /* 只影响正文导出器自己的 Popup */
@@ -441,5 +441,537 @@ dialog.popup:has(.stce-root) .popup-button-close {
     .stce-actions .menu_button {
         width: 100%;
         min-width: 0;
+    }
+}
+/* =========================
+   v0.2.0 - Cleaning rules
+   ========================= */
+
+.stce-rules-toolbar {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+    box-sizing: border-box;
+}
+
+.stce-rules-toolbar > div:first-child {
+    min-width: 0;
+
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.stce-rules-toolbar > #stce_add_rule,
+.stce-rules-toolbar .menu_button {
+    flex: 0 0 auto !important;
+
+    width: auto !important;
+    min-width: 118px !important;
+    max-width: none !important;
+    min-height: 40px !important;
+
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 8px !important;
+    padding: 8px 14px !important;
+
+    border-radius: 12px !important;
+
+    white-space: nowrap !important;
+    writing-mode: horizontal-tb !important;
+    word-break: keep-all !important;
+}
+
+.stce-rules-toolbar > #stce_add_rule i {
+    flex: 0 0 auto;
+}
+
+.stce-rules-list {
+    flex: 1 1 auto;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+
+    overflow: auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    padding-right: 4px;
+    box-sizing: border-box;
+}
+
+.stce-rules-empty {
+    flex: 1 1 auto;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 260px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+    padding: 28px;
+
+    box-sizing: border-box;
+
+    text-align: center;
+
+    border: 1px dashed var(--SmartThemeBorderColor);
+    border-radius: 18px;
+
+    background: rgb(127 127 127 / 0.025);
+    opacity: 0.72;
+}
+
+.stce-rules-empty > i {
+    font-size: 1.8rem;
+}
+
+.stce-rules-empty > strong,
+.stce-rules-empty > span {
+    max-width: 680px;
+}
+
+.stce-rule-card {
+    flex: 0 0 auto;
+
+    width: 100%;
+    min-width: 0;
+
+    display: grid;
+    grid-template-columns: 28px 28px minmax(0, 1fr) auto;
+    align-items: center;
+
+    gap: 10px;
+    padding: 13px 14px;
+
+    box-sizing: border-box;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 16px;
+
+    background: rgb(127 127 127 / 0.045);
+
+    transition:
+        opacity 0.15s ease,
+        background 0.15s ease,
+        transform 0.15s ease;
+}
+
+.stce-rule-card:hover {
+    background: rgb(127 127 127 / 0.075);
+}
+
+.stce-rule-card.is-disabled {
+    opacity: 0.5;
+}
+
+.stce-rule-card.is-dragging {
+    opacity: 0.35;
+    transform: scale(0.995);
+}
+
+.stce-rule-drag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    opacity: 0.4;
+    cursor: grab;
+}
+
+.stce-rule-drag:active {
+    cursor: grabbing;
+}
+
+.stce-rule-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stce-rule-toggle input {
+    margin: 0;
+}
+
+.stce-rule-main {
+    min-width: 0;
+}
+
+.stce-rule-title-row {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+.stce-rule-title-row > strong {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stce-rule-badges {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 5px;
+}
+
+.stce-rule-badges > span {
+    padding: 3px 7px;
+
+    border-radius: 999px;
+
+    background: rgb(127 127 127 / 0.105);
+
+    font-size: 0.72rem;
+    line-height: 1.2;
+    opacity: 0.82;
+}
+
+.stce-rule-badges .stce-rule-source {
+    opacity: 0.6;
+}
+
+.stce-rule-summary {
+    margin-top: 5px;
+
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-size: 0.82rem;
+    opacity: 0.56;
+
+    font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        monospace;
+}
+
+.stce-rule-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 4px;
+}
+
+.stce-icon-button {
+    appearance: none;
+
+    width: 32px;
+    height: 32px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+    border-radius: 9px;
+    outline: 0;
+
+    color: var(--SmartThemeBodyColor);
+    background: transparent;
+
+    cursor: pointer;
+    opacity: 0.64;
+}
+
+.stce-icon-button:hover:not(:disabled) {
+    background: rgb(127 127 127 / 0.13);
+    opacity: 1;
+}
+
+.stce-icon-button:disabled {
+    cursor: default;
+    opacity: 0.18;
+}
+
+.stce-icon-button.stce-danger:hover:not(:disabled) {
+    background: rgb(220 60 60 / 0.12);
+}
+
+.stce-rules-hint {
+    flex: 0 0 auto;
+
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-start;
+
+    gap: 8px;
+    padding: 10px 12px;
+
+    box-sizing: border-box;
+
+    border-radius: 12px;
+
+    background: rgb(127 127 127 / 0.055);
+
+    font-size: 0.8rem;
+    line-height: 1.5;
+    opacity: 0.65;
+}
+
+/* =========================
+   Rule editor popup
+   ========================= */
+
+dialog.popup:has(.stce-rule-editor) {
+    width: min(880px, calc(100vw - 48px)) !important;
+    max-width: min(880px, calc(100vw - 48px)) !important;
+    max-height: min(860px, calc(100vh - 48px)) !important;
+
+    border-radius: 24px !important;
+}
+
+.stce-rule-editor {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 18px;
+    padding: 4px 2px;
+
+    box-sizing: border-box;
+
+    color: var(--SmartThemeBodyColor);
+}
+
+.stce-editor-title {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stce-editor-title > strong {
+    font-size: 1.15rem;
+}
+
+.stce-editor-title > span {
+    font-size: 0.82rem;
+    opacity: 0.58;
+}
+
+.stce-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+.stce-field {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+.stce-field > span:first-child {
+    font-size: 0.82rem;
+    font-weight: 600;
+    opacity: 0.78;
+}
+
+.stce-field-wide {
+    grid-column: 1 / -1;
+}
+
+.stce-field input[type="text"],
+.stce-field select,
+.stce-field textarea {
+    width: 100%;
+    min-width: 0;
+
+    box-sizing: border-box;
+
+    border-radius: 11px;
+}
+
+.stce-field textarea {
+    resize: vertical;
+    line-height: 1.55;
+}
+
+.stce-check-row {
+    min-height: 38px;
+
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center;
+
+    gap: 8px;
+
+    white-space: nowrap;
+    font-weight: 500 !important;
+}
+
+.stce-check-row input {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.stce-field.is-disabled {
+    opacity: 0.45;
+}
+
+.stce-rule-test {
+    display: flex;
+    flex-direction: column;
+
+    gap: 11px;
+    padding-top: 14px;
+
+    border-top: 1px solid var(--SmartThemeBorderColor);
+}
+
+.stce-rule-test-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+}
+
+.stce-rule-test-head > div:first-child {
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.stce-rule-test-head span {
+    font-size: 0.78rem;
+    opacity: 0.55;
+}
+
+.stce-rule-test-head .menu_button {
+    flex: 0 0 auto !important;
+
+    width: auto !important;
+    min-width: 96px !important;
+
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 7px !important;
+
+    border-radius: 11px !important;
+
+    white-space: nowrap !important;
+    writing-mode: horizontal-tb !important;
+}
+
+.stce-rule-test-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 10px;
+}
+
+.stce-rule-test-grid textarea {
+    min-height: 150px;
+
+    font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        monospace;
+
+    font-size: 0.82rem;
+}
+
+/* =========================
+   Rule responsive
+   ========================= */
+
+@media (max-width: 780px) {
+    .stce-rule-card {
+        grid-template-columns: 24px 28px minmax(0, 1fr);
+    }
+
+    .stce-rule-actions {
+        grid-column: 3;
+
+        justify-content: flex-end;
+        margin-top: 4px;
+    }
+
+    .stce-rule-title-row {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 6px;
+    }
+
+    .stce-editor-grid,
+    .stce-rule-test-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stce-field-wide {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 560px) {
+    dialog.popup:has(.stce-rule-editor) {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+        max-height: calc(100vh - 16px) !important;
+
+        border-radius: 20px !important;
+    }
+
+    .stce-rules-toolbar {
+        align-items: center;
+    }
+
+    .stce-rules-toolbar > #stce_add_rule,
+    .stce-rules-toolbar .menu_button {
+        min-width: 104px !important;
+        padding-inline: 11px !important;
+    }
+
+    .stce-rule-actions {
+        flex-wrap: wrap;
     }
 }
