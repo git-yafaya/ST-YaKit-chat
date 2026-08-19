@@ -3582,3 +3582,95 @@ body.stce-secondary-modal-open {
 .stce-secondary-row {
     flex: 0 0 auto !important;
 }
+
+
+/* =========================
+   v0.7.9 - YaKit custom secondary scrollbar
+   ========================= */
+
+.stce-secondary-list-wrap {
+    position: relative;
+
+    width: 100%;
+    min-height: 0;
+}
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-list {
+    box-sizing: border-box;
+
+    scrollbar-width: none !important;
+    -ms-overflow-style: none;
+
+    padding-right: 18px !important;
+}
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-list::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+
+    display: none !important;
+}
+
+.stce-secondary-scrollbar[hidden] {
+    display: none !important;
+}
+
+.stce-secondary-scrollbar {
+    position: absolute;
+
+    top: 4px;
+    right: 3px;
+    bottom: 4px;
+
+    width: 8px;
+
+    border-radius: 999px;
+
+    background:
+        rgb(127 127 127 / 0.08);
+
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+}
+
+.stce-secondary-scrollbar-thumb {
+    position: absolute;
+
+    top: 0;
+    left: 1px;
+
+    width: 6px;
+    min-height: 34px;
+
+    border-radius: 999px;
+
+    background:
+        rgb(127 127 127 / 0.42);
+
+    cursor: grab;
+
+    transition:
+        background 140ms ease,
+        width 140ms ease,
+        left 140ms ease;
+
+    touch-action: none;
+}
+
+.stce-secondary-scrollbar:hover
+.stce-secondary-scrollbar-thumb,
+.stce-secondary-scrollbar-thumb.is-dragging {
+    left: 0;
+
+    width: 8px;
+
+    background:
+        rgb(127 127 127 / 0.62);
+}
+
+.stce-secondary-scrollbar-thumb.is-dragging {
+    cursor: grabbing;
+}

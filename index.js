@@ -1972,7 +1972,15 @@ function createExporterContent() {
                         </div>
 
                         <select id="stce_ai_secondary_connection" hidden></select>
-                        <div class="stce-secondary-list" id="stce_secondary_list"></div>
+
+                        <div class="stce-secondary-list-wrap">
+                            <div class="stce-secondary-list" id="stce_secondary_list"></div>
+
+                            <div class="stce-secondary-scrollbar" id="stce_secondary_scrollbar" hidden>
+                                <div class="stce-secondary-scrollbar-thumb"
+                                    id="stce_secondary_scrollbar_thumb"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2198,6 +2206,8 @@ function createExporterContent() {
     const aiApiMode = root.querySelector('#stce_ai_api_mode');
     const aiSecondaryConnection = root.querySelector('#stce_ai_secondary_connection');
     const secondaryList = root.querySelector('#stce_secondary_list');
+    const secondaryScrollbar = root.querySelector('#stce_secondary_scrollbar');
+    const secondaryScrollbarThumb = root.querySelector('#stce_secondary_scrollbar_thumb');
     const secondaryNewButton = root.querySelector('#stce_secondary_new');
     const secondaryDeleteButton = root.querySelector('#stce_secondary_delete');
     const sharedApiCard = root.querySelector('#stce_shared_api_card');
@@ -2616,6 +2626,49 @@ function createExporterContent() {
         return `副 API ${ordinal}`;
     }
 
+    let secondaryScrollFrame = 0;
+
+    function updateSecondaryScrollbar() {
+        cancelAnimationFrame(secondaryScrollFrame);
+
+        secondaryScrollFrame = requestAnimationFrame(() => {
+            const clientHeight = secondaryList.clientHeight;
+            const scrollHeight = secondaryList.scrollHeight;
+
+            if (!clientHeight || scrollHeight <= clientHeight + 1) {
+                secondaryScrollbar.hidden = true;
+                secondaryScrollbarThumb.style.height = '';
+                secondaryScrollbarThumb.style.transform = '';
+                return;
+            }
+
+            secondaryScrollbar.hidden = false;
+
+            const trackHeight = secondaryScrollbar.clientHeight;
+            const ratio = clientHeight / scrollHeight;
+            const thumbHeight = Math.max(
+                34,
+                Math.round(trackHeight * ratio),
+            );
+
+            const maxScroll = scrollHeight - clientHeight;
+            const maxThumbTop = trackHeight - thumbHeight;
+
+            const thumbTop = maxScroll > 0
+                ? Math.round(
+                    (secondaryList.scrollTop / maxScroll)
+                    * maxThumbTop,
+                )
+                : 0;
+
+            secondaryScrollbarThumb.style.height =
+                `${thumbHeight}px`;
+
+            secondaryScrollbarThumb.style.transform =
+                `translateY(${thumbTop}px)`;
+        });
+    }
+
     function renderSecondaryConnectionSelect() {
         const store = getSharedSecondaryApiSettings();
         const connections = getSharedSecondaryConnections();
@@ -2686,6 +2739,8 @@ function createExporterContent() {
             secondaryDrawerBody.style.height = '';
             secondaryDrawerBody.style.overflow = '';
         }
+
+        updateSecondaryScrollbar();
     }
 
     function renderSharedModelSelect() {
@@ -3817,6 +3872,127 @@ function createExporterContent() {
         }
     });
 
+    secondaryList.addEventListener(
+        'scroll',
+        updateSecondaryScrollbar,
+        { passive: true },
+    );
+
+    let secondaryScrollbarDrag = null;
+
+    secondaryScrollbarThumb.addEventListener(
+        'pointerdown',
+        (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            secondaryScrollbarThumb.setPointerCapture(
+                event.pointerId,
+            );
+
+            secondaryScrollbarDrag = {
+                pointerId: event.pointerId,
+                startY: event.clientY,
+                startScrollTop: secondaryList.scrollTop,
+            };
+
+            secondaryScrollbarThumb.classList.add('is-dragging');
+        },
+    );
+
+    secondaryScrollbarThumb.addEventListener(
+        'pointermove',
+        (event) => {
+            if (!secondaryScrollbarDrag
+                || event.pointerId !== secondaryScrollbarDrag.pointerId) {
+                return;
+            }
+
+            const clientHeight = secondaryList.clientHeight;
+            const scrollHeight = secondaryList.scrollHeight;
+            const trackHeight = secondaryScrollbar.clientHeight;
+            const thumbHeight =
+                secondaryScrollbarThumb.offsetHeight;
+
+            const maxScroll = scrollHeight - clientHeight;
+            const maxThumbTop = trackHeight - thumbHeight;
+
+            if (maxScroll <= 0 || maxThumbTop <= 0) {
+                return;
+            }
+
+            const deltaY =
+                event.clientY - secondaryScrollbarDrag.startY;
+
+            secondaryList.scrollTop =
+                secondaryScrollbarDrag.startScrollTop
+                + (deltaY / maxThumbTop) * maxScroll;
+        },
+    );
+
+    const finishSecondaryScrollbarDrag = (event) => {
+        if (!secondaryScrollbarDrag
+            || event.pointerId !== secondaryScrollbarDrag.pointerId) {
+            return;
+        }
+
+        secondaryScrollbarDrag = null;
+        secondaryScrollbarThumb.classList.remove('is-dragging');
+    };
+
+    secondaryScrollbarThumb.addEventListener(
+        'pointerup',
+        finishSecondaryScrollbarDrag,
+    );
+
+    secondaryScrollbarThumb.addEventListener(
+        'pointercancel',
+        finishSecondaryScrollbarDrag,
+    );
+
+    secondaryScrollbar.addEventListener(
+        'pointerdown',
+        (event) => {
+            if (event.target === secondaryScrollbarThumb) {
+                return;
+            }
+
+            const rect =
+                secondaryScrollbar.getBoundingClientRect();
+
+            const thumbHeight =
+                secondaryScrollbarThumb.offsetHeight;
+
+            const targetTop = Math.max(
+                0,
+                Math.min(
+                    rect.height - thumbHeight,
+                    event.clientY - rect.top - thumbHeight / 2,
+                ),
+            );
+
+            const maxScroll =
+                secondaryList.scrollHeight
+                - secondaryList.clientHeight;
+
+            const maxThumbTop =
+                rect.height - thumbHeight;
+
+            secondaryList.scrollTop = maxThumbTop > 0
+                ? (targetTop / maxThumbTop) * maxScroll
+                : 0;
+        },
+    );
+
+    if (typeof ResizeObserver === 'function') {
+        const secondaryScrollbarResizeObserver =
+            new ResizeObserver(updateSecondaryScrollbar);
+
+        secondaryScrollbarResizeObserver.observe(
+            secondaryList,
+        );
+    }
+
     secondaryList.addEventListener('click', (event) => {
         const row = event.target.closest('[data-secondary-id]');
 
@@ -4046,7 +4222,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.7.8');
+    console.info('[YaKit-纪实] initialized v0.7.9');
 }
 
 jQuery(() => {
