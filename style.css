@@ -1,6 +1,6 @@
 /* =========================
    ST Chat Exporter
-   v0.3.0 - Large rounded popup + cleaning rules + presets
+   v0.4.0 - Large rounded popup + cleaning rules + presets + AI
    ========================= */
 
 /* 只影响正文导出器自己的 Popup */
@@ -1387,5 +1387,464 @@ dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok {
 
     .stce-preset-button {
         width: 100%;
+    }
+}
+
+
+/* =========================
+   v0.4.0 - AI regex assistant
+   ========================= */
+
+.stce-ai-config {
+    flex: 0 0 auto;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+    padding: 16px;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 18px;
+
+    background: rgb(127 127 127 / 0.035);
+}
+
+.stce-ai-config-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 18px;
+}
+
+.stce-ai-config-head > div:first-child {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+.stce-ai-config-head > div:first-child > span {
+    max-width: 760px;
+
+    font-size: 0.82rem;
+    line-height: 1.55;
+    opacity: 0.62;
+}
+
+.stce-ai-title-row {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    font-size: 1.02rem;
+}
+
+.stce-ai-title-row > i {
+    opacity: 0.78;
+}
+
+.stce-ai-preset-pill {
+    flex: 0 0 auto;
+
+    padding: 7px 11px;
+
+    border-radius: 999px;
+
+    background: rgb(127 127 127 / 0.08);
+
+    font-size: 0.78rem;
+    white-space: nowrap;
+    opacity: 0.78;
+}
+
+.stce-ai-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+.stce-ai-goal textarea {
+    min-height: 88px;
+
+    padding: 12px 14px;
+
+    border-radius: 13px;
+
+    line-height: 1.6;
+}
+
+.stce-ai-config-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+}
+
+.stce-ai-primary {
+    flex: 0 0 auto !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 8px !important;
+
+    min-width: 132px !important;
+    min-height: 42px !important;
+
+    border-radius: 12px !important;
+
+    white-space: nowrap !important;
+}
+
+.stce-ai-results {
+    flex: 1 1 auto;
+
+    min-width: 0;
+    min-height: 0;
+
+    overflow: auto;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+.stce-ai-empty,
+.stce-ai-no-suggestion {
+    flex: 1 1 auto;
+
+    min-height: 260px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+    padding: 28px;
+
+    text-align: center;
+
+    border: 1px dashed var(--SmartThemeBorderColor);
+    border-radius: 18px;
+
+    background: rgb(127 127 127 / 0.025);
+    opacity: 0.7;
+}
+
+.stce-ai-empty > i,
+.stce-ai-no-suggestion > i {
+    font-size: 1.8rem;
+}
+
+.stce-ai-result-head {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 16px;
+}
+
+.stce-ai-result-head > div:first-child {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+.stce-ai-result-head > div:first-child > span {
+    max-width: 860px;
+
+    font-size: 0.82rem;
+    line-height: 1.55;
+    opacity: 0.62;
+}
+
+.stce-ai-suggestion-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 9px;
+}
+
+.stce-ai-suggestion {
+    min-width: 0;
+
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: flex-start;
+
+    gap: 10px;
+    padding: 13px 14px;
+
+    box-sizing: border-box;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 15px;
+
+    background: rgb(127 127 127 / 0.04);
+
+    cursor: pointer;
+}
+
+.stce-ai-suggestion:hover {
+    background: rgb(127 127 127 / 0.065);
+}
+
+.stce-ai-suggestion > input {
+    margin: 4px 0 0;
+}
+
+.stce-ai-suggestion-main {
+    min-width: 0;
+}
+
+.stce-ai-suggestion-head {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+}
+
+.stce-ai-suggestion-head > strong {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stce-ai-suggestion-badges {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 5px;
+}
+
+.stce-ai-suggestion-badges > span {
+    padding: 3px 7px;
+
+    border-radius: 999px;
+
+    background: rgb(127 127 127 / 0.09);
+
+    font-size: 0.71rem;
+    opacity: 0.76;
+}
+
+.stce-ai-risk.is-medium {
+    background: rgb(210 150 50 / 0.13);
+}
+
+.stce-ai-risk.is-high {
+    background: rgb(210 70 70 / 0.13);
+}
+
+.stce-ai-suggestion-reason {
+    margin-top: 6px;
+
+    font-size: 0.82rem;
+    line-height: 1.5;
+    opacity: 0.68;
+}
+
+.stce-ai-pattern {
+    display: block;
+
+    margin-top: 8px;
+    padding: 8px 10px;
+
+    overflow-x: auto;
+
+    border-radius: 9px;
+
+    background: rgb(127 127 127 / 0.07);
+
+    font-size: 0.79rem;
+    line-height: 1.45;
+
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.stce-ai-suggestion-meta {
+    margin-top: 7px;
+
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
+.stce-ai-result-actions {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 9px;
+    padding-bottom: 2px;
+}
+
+.stce-ai-result-actions .menu_button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 7px !important;
+
+    min-height: 40px !important;
+
+    border-radius: 11px !important;
+
+    white-space: nowrap !important;
+}
+
+/* AI test popup */
+dialog.popup:has(.stce-ai-test-popup) {
+    width: min(1080px, calc(100vw - 48px)) !important;
+    max-width: min(1080px, calc(100vw - 48px)) !important;
+    height: min(760px, calc(100vh - 48px)) !important;
+    max-height: min(760px, calc(100vh - 48px)) !important;
+
+    border-radius: 24px !important;
+}
+
+dialog.popup:has(.stce-ai-test-popup) .popup-body,
+dialog.popup:has(.stce-ai-test-popup) .popup-content {
+    min-height: 0 !important;
+}
+
+.stce-ai-test-popup {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+}
+
+.stce-ai-test-summary {
+    flex: 0 0 auto;
+
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 10px;
+}
+
+.stce-ai-test-summary > div {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+    padding: 11px 13px;
+
+    border-radius: 12px;
+
+    background: rgb(127 127 127 / 0.055);
+}
+
+.stce-ai-test-summary span {
+    font-size: 0.76rem;
+    opacity: 0.58;
+}
+
+.stce-ai-test-columns {
+    flex: 1 1 auto;
+
+    min-height: 0;
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+.stce-ai-test-columns .stce-field {
+    min-height: 0;
+}
+
+.stce-ai-test-columns textarea {
+    flex: 1 1 auto;
+
+    min-height: 0;
+    height: 100%;
+
+    padding: 14px 16px;
+
+    border-radius: 14px;
+
+    font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        monospace;
+
+    font-size: 0.86rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 780px) {
+    .stce-ai-config-head,
+    .stce-ai-config-actions,
+    .stce-ai-result-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .stce-ai-preset-pill {
+        width: fit-content;
+    }
+
+    .stce-ai-options,
+    .stce-ai-test-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .stce-ai-suggestion-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .stce-ai-result-actions {
+        justify-content: stretch;
+    }
+
+    .stce-ai-result-actions .menu_button {
+        flex: 1 1 0 !important;
+    }
+}
+
+@media (max-width: 560px) {
+    .stce-ai-config {
+        padding: 13px;
+    }
+
+    .stce-ai-test-summary {
+        grid-template-columns: 1fr;
     }
 }
