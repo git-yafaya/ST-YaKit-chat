@@ -1392,7 +1392,7 @@ dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok {
 
 
 /* =========================
-   v0.4.0 - AI regex assistant
+   v0.4.1 - AI regex assistant
    ========================= */
 
 .stce-ai-config {
@@ -1847,4 +1847,24 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
     .stce-ai-test-summary {
         grid-template-columns: 1fr;
     }
+}
+
+/* =========================
+   v0.4.1 - AI API routing
+   ========================= */
+
+.stce-ai-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#stce_ai_secondary_field {
+    transition: opacity 0.15s ease;
+}
+
+#stce_ai_secondary_field.is-disabled {
+    opacity: 0.42;
+}
+
+#stce_ai_secondary_field.is-disabled .stce-select-trigger {
+    cursor: default;
 }
