@@ -1,9 +1,9 @@
 {
-  "display_name": "Chat-output",
+  "display_name": "YaKit-纪实",
   "loading_order": 20,
   "js": "index.js",
   "css": "style.css",
   "author": "yafaya",
-  "version": "0.4.1",
+  "version": "0.5.2",
   "auto_update": false
 }

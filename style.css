@@ -1392,7 +1392,7 @@ dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok {
 
 
 /* =========================
-   v0.4.1 - AI regex assistant
+   v0.5.0 - AI regex assistant
    ========================= */
 
 .stce-ai-config {
@@ -1850,7 +1850,7 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
 }
 
 /* =========================
-   v0.4.1 - AI API routing
+   v0.5.0 - AI API routing
    ========================= */
 
 .stce-ai-options {
@@ -1867,4 +1867,126 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
 
 #stce_ai_secondary_field.is-disabled .stce-select-trigger {
     cursor: default;
+}
+
+
+/* =========================
+   v0.5.0 - Shared secondary API
+   ========================= */
+
+.stce-shared-api-card[hidden],
+#stce_shared_custom_model_field[hidden] {
+    display: none !important;
+}
+
+.stce-shared-api-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 15px 16px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 16px;
+    background: rgb(127 127 127 / 0.025);
+}
+
+.stce-shared-api-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.stce-shared-api-head > div:first-child {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stce-shared-api-head > div:first-child > span {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    opacity: 0.56;
+}
+
+.stce-shared-api-status {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgb(127 127 127 / 0.08);
+    font-size: 0.74rem;
+    opacity: 0.66;
+}
+
+.stce-shared-api-status.is-ready {
+    background: rgb(60 150 90 / 0.12);
+    opacity: 0.9;
+}
+
+.stce-shared-api-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px;
+    gap: 12px;
+}
+
+.stce-shared-api-card input[type="text"],
+.stce-shared-api-card input[type="password"] {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    border-radius: 12px;
+}
+
+.stce-shared-model-action {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.stce-shared-model-action > span {
+    font-size: 0.82rem;
+    font-weight: 600;
+    opacity: 0.78;
+}
+
+.stce-shared-model-action .menu_button {
+    width: 100% !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    border-radius: 12px !important;
+    white-space: nowrap !important;
+}
+
+.stce-shared-api-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding-top: 2px;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    opacity: 0.52;
+}
+
+.stce-shared-api-note > i {
+    margin-top: 2px;
+}
+
+@media (max-width: 780px) {
+    .stce-shared-api-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stce-shared-api-head {
+        flex-direction: column;
+    }
+
+    .stce-shared-model-action .menu_button {
+        width: fit-content !important;
+        min-width: 126px !important;
+    }
 }

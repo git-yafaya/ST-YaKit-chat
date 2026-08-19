@@ -1,8 +1,19 @@
+import {
+    SECRET_KEYS,
+    rotateSecret,
+    secret_state,
+    writeSecret,
+} from '../../../secrets.js';
+
 const EXTENSION_ID = 'st-chat-exporter';
 const WAND_BUTTON_ID = 'st_chat_exporter_wand_button';
+const SHARED_SECONDARY_API_KEY = 'yakit-shared-secondary-api';
+const LEGACY_SHARED_SECONDARY_API_KEY = 'yafaya-shared-secondary-api';
+const CUSTOM_SECONDARY_VALUE = '__yafaya_shared_custom__';
+const SHARED_CONNECTION_PROFILE_NAME = 'YaKit Shared Secondary API';
 
 const DEFAULT_SETTINGS = Object.freeze({
-    version: 4,
+    version: 5,
     export: {
         includeUser: true,
         includeAssistant: true,
@@ -103,9 +114,230 @@ function getSettings() {
     // Legacy field is no longer used after migration.
     delete settings.rules;
 
-    settings.version = 4;
+    settings.version = 5;
 
     return settings;
+}
+
+
+function getSharedSecondaryApiSettings() {
+    const { extensionSettings } = getContext();
+
+    // Compatibility migration:
+    // move the old Yafaya shared namespace to the new YaKit namespace once.
+    if ((!extensionSettings[SHARED_SECONDARY_API_KEY]
+            || typeof extensionSettings[SHARED_SECONDARY_API_KEY] !== 'object')
+        && extensionSettings[LEGACY_SHARED_SECONDARY_API_KEY]
+        && typeof extensionSettings[LEGACY_SHARED_SECONDARY_API_KEY] === 'object') {
+        extensionSettings[SHARED_SECONDARY_API_KEY] =
+            deepClone(extensionSettings[LEGACY_SHARED_SECONDARY_API_KEY]);
+
+        delete extensionSettings[LEGACY_SHARED_SECONDARY_API_KEY];
+
+        getContext().saveSettingsDebounced?.();
+
+        console.info(
+            '[YaKit-纪实] migrated shared secondary API namespace:',
+            LEGACY_SHARED_SECONDARY_API_KEY,
+            '->',
+            SHARED_SECONDARY_API_KEY,
+        );
+    }
+
+    if (!extensionSettings[SHARED_SECONDARY_API_KEY]
+        || typeof extensionSettings[SHARED_SECONDARY_API_KEY] !== 'object') {
+        extensionSettings[SHARED_SECONDARY_API_KEY] = {
+            version: 1,
+            apiUrl: '',
+            model: '',
+            secretId: '',
+            profileId: '',
+        };
+    }
+
+    const cfg = extensionSettings[SHARED_SECONDARY_API_KEY];
+    cfg.version = 1;
+    cfg.apiUrl = typeof cfg.apiUrl === 'string' ? cfg.apiUrl : '';
+    cfg.model = typeof cfg.model === 'string' ? cfg.model : '';
+    cfg.secretId = typeof cfg.secretId === 'string' ? cfg.secretId : '';
+    cfg.profileId = typeof cfg.profileId === 'string' ? cfg.profileId : '';
+    return cfg;
+}
+
+function getConnectionManagerSettings() {
+    const { extensionSettings } = getContext();
+
+    if (!extensionSettings.connectionManager
+        || typeof extensionSettings.connectionManager !== 'object') {
+        extensionSettings.connectionManager = {
+            profiles: [],
+            selectedProfile: null,
+        };
+    }
+
+    if (!Array.isArray(extensionSettings.connectionManager.profiles)) {
+        extensionSettings.connectionManager.profiles = [];
+    }
+
+    return extensionSettings.connectionManager;
+}
+
+function getActiveCustomSecretId() {
+    const state = secret_state?.[SECRET_KEYS.CUSTOM];
+    return Array.isArray(state)
+        ? (state.find((item) => item?.active)?.id || '')
+        : '';
+}
+
+async function writeSharedSecondaryApiSecret(value) {
+    const key = String(value || '').trim();
+    if (!key) return getSharedSecondaryApiSettings().secretId || '';
+
+    const cfg = getSharedSecondaryApiSettings();
+    const previousActiveId = getActiveCustomSecretId();
+
+    const secretId = await writeSecret(
+        SECRET_KEYS.CUSTOM,
+        key,
+        SHARED_CONNECTION_PROFILE_NAME,
+    );
+
+    if (!secretId) throw new Error('API Key 保存失败');
+
+    cfg.secretId = secretId;
+
+    if (previousActiveId && previousActiveId !== secretId) {
+        try {
+            await rotateSecret(SECRET_KEYS.CUSTOM, previousActiveId);
+        } catch (error) {
+            console.warn('[ST Chat Exporter] Failed to restore previous Custom secret.', error);
+        }
+    }
+
+    saveSettings();
+    return secretId;
+}
+
+function normalizeOpenAiCompatibleUrl(value) {
+    return String(value || '').trim().replace(/\/+$/, '');
+}
+
+function ensureSharedConnectionProfile() {
+    const cfg = getSharedSecondaryApiSettings();
+    const manager = getConnectionManagerSettings();
+
+    if (!cfg.apiUrl || !cfg.model || !cfg.secretId) return '';
+
+    let profile = cfg.profileId
+        ? manager.profiles.find((item) => item.id === cfg.profileId)
+        : null;
+
+    if (!profile) {
+        profile = {
+            id: createId('shared_api'),
+            name: SHARED_CONNECTION_PROFILE_NAME,
+            mode: 'cc',
+            exclude: [],
+        };
+        manager.profiles.push(profile);
+        cfg.profileId = profile.id;
+    }
+
+    profile.name = SHARED_CONNECTION_PROFILE_NAME;
+    profile.mode = 'cc';
+    profile.api = 'custom';
+    profile['api-url'] = cfg.apiUrl;
+    profile.model = cfg.model;
+    profile['secret-id'] = cfg.secretId;
+    profile.exclude = Array.isArray(profile.exclude) ? profile.exclude : [];
+
+    saveSettings();
+    return profile.id;
+}
+
+function getSharedConnectionProfile() {
+    const cfg = getSharedSecondaryApiSettings();
+    if (!cfg.profileId) return null;
+
+    return getConnectionManagerSettings().profiles
+        .find((item) => item.id === cfg.profileId) || null;
+}
+
+async function withSharedCustomSecret(callback) {
+    const cfg = getSharedSecondaryApiSettings();
+    if (!cfg.secretId) throw new Error('请先填写并保存副 API Key');
+
+    const previousActiveId = getActiveCustomSecretId();
+
+    try {
+        if (previousActiveId !== cfg.secretId) {
+            await rotateSecret(SECRET_KEYS.CUSTOM, cfg.secretId);
+        }
+        return await callback();
+    } finally {
+        if (previousActiveId && previousActiveId !== cfg.secretId) {
+            try {
+                await rotateSecret(SECRET_KEYS.CUSTOM, previousActiveId);
+            } catch (error) {
+                console.warn('[ST Chat Exporter] Failed to restore previous Custom secret.', error);
+            }
+        }
+    }
+}
+
+async function fetchSharedSecondaryApiModels() {
+    const cfg = getSharedSecondaryApiSettings();
+    const apiUrl = normalizeOpenAiCompatibleUrl(cfg.apiUrl);
+
+    if (!apiUrl) throw new Error('请先填写 API URL');
+    cfg.apiUrl = apiUrl;
+
+    const data = await withSharedCustomSecret(async () => {
+        const response = await fetch('/api/backends/chat-completions/status', {
+            method: 'POST',
+            headers: getContext().getRequestHeaders(),
+            body: JSON.stringify({
+                reverse_proxy: '',
+                proxy_password: '',
+                chat_completion_source: 'custom',
+                custom_url: apiUrl,
+                custom_include_headers: '',
+            }),
+            cache: 'no-cache',
+        });
+
+        const body = await response.json().catch(() => ({}));
+
+        if (!response.ok || body?.error) {
+            const msg = body?.error?.message || body?.message || `HTTP ${response.status}`;
+            throw new Error(`获取模型失败：${msg}`);
+        }
+
+        return body;
+    });
+
+    const models = Array.isArray(data?.data)
+        ? data.data
+            .map((item) => typeof item === 'string' ? item : item?.id)
+            .filter((item) => typeof item === 'string' && item.trim())
+        : [];
+
+    const unique = [...new Set(models)].sort((a, b) => a.localeCompare(b));
+
+    if (!unique.length) {
+        throw new Error('接口没有返回可用模型；可以选择“自定义模型”手动填写');
+    }
+
+    return unique;
+}
+
+function exposeSharedSecondaryApi() {
+    window.YaKitSharedSecondaryApi = {
+        settingsKey: SHARED_SECONDARY_API_KEY,
+        getConfig: () => deepClone(getSharedSecondaryApiSettings()),
+        getProfileId: () => getSharedSecondaryApiSettings().profileId || '',
+        getProfile: () => deepClone(getSharedConnectionProfile()),
+    };
 }
 
 function saveSettings() {
@@ -880,7 +1112,7 @@ async function openRuleEditor(rule, currentMessages, getOptions) {
     const error = validateRule(finalRule);
 
     if (error) {
-        toastr.error(`${error}。规则未保存。`, '正文导出器');
+        toastr.error(`${error}。规则未保存。`, 'YaKit-纪实');
         return null;
     }
 
@@ -1215,7 +1447,7 @@ function buildAiRulePrompt({
     );
 
     return `
-你正在为 SillyTavern 聊天正文导出器分析聊天格式。
+你正在为 SillyTavern 聊天YaKit-纪实分析聊天格式。
 
 当前清洗预设：${presetName}
 
@@ -1412,7 +1644,7 @@ async function requestAiRuleSuggestions(args, apiConfig = {}) {
                     throw new Error(`主 API 失败，且尚未配置副 API：${primaryError?.message || primaryError}`);
                 }
 
-                toastr.warning('主 API 分析失败，正在切换到副 API', '正文导出器');
+                toastr.warning('主 API 分析失败，正在切换到副 API', 'YaKit-纪实');
                 return await requestSecondaryAiRuleSuggestions(args, secondaryProfileId);
             }
         }
@@ -1448,7 +1680,7 @@ function createExporterContent() {
     root.innerHTML = `
         <div class="stce-header">
             <div>
-                <div class="stce-title">📖 正文导出器</div>
+                <div class="stce-title">📖 YaKit-纪实</div>
                 <div class="stce-subtitle">清洗聊天记录并导出为 TXT / Markdown</div>
             </div>
             <div class="stce-count" id="stce_message_count">0 条消息</div>
@@ -1616,6 +1848,56 @@ function createExporterContent() {
                     </label>
                 </div>
 
+                <div class="stce-shared-api-card" id="stce_shared_api_card" hidden>
+                    <div class="stce-shared-api-head">
+                        <div>
+                            <strong>共享副 API</strong>
+                            <span>这套设置使用固定共享命名空间，未来其他 YaKit 插件可以直接复用。</span>
+                        </div>
+                        <span class="stce-shared-api-status" id="stce_shared_api_status">未配置</span>
+                    </div>
+
+                    <div class="stce-shared-api-grid">
+                        <label class="stce-field stce-field-wide">
+                            <span>API URL</span>
+                            <input id="stce_shared_api_url" type="text" spellcheck="false"
+                                placeholder="例如：https://api.example.com/v1">
+                        </label>
+
+                        <label class="stce-field stce-field-wide">
+                            <span>API Key</span>
+                            <input id="stce_shared_api_key" type="password"
+                                autocomplete="new-password" spellcheck="false"
+                                placeholder="输入后会保存到 SillyTavern Secrets">
+                        </label>
+
+                        <label class="stce-field">
+                            <span>模型</span>
+                            <select id="stce_shared_api_model"></select>
+                        </label>
+
+                        <div class="stce-shared-model-action">
+                            <span>模型列表</span>
+                            <button id="stce_shared_fetch_models" type="button" class="menu_button">
+                                <i class="fa-solid fa-rotate"></i>
+                                获取模型
+                            </button>
+                        </div>
+
+                        <label class="stce-field stce-field-wide"
+                            id="stce_shared_custom_model_field" hidden>
+                            <span>自定义模型 ID</span>
+                            <input id="stce_shared_custom_model" type="text" spellcheck="false"
+                                placeholder="例如：gpt-5.4、claude-sonnet-4-6 或接口要求的模型 ID">
+                        </label>
+                    </div>
+
+                    <div class="stce-shared-api-note">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>普通设置只保存 URL、模型和 Secret/Profile ID，不保存 API Key 明文。</span>
+                    </div>
+                </div>
+
                 <label class="stce-field stce-ai-goal">
                     <span>清洗目标</span>
                     <textarea
@@ -1670,6 +1952,14 @@ function createExporterContent() {
     const aiApiMode = root.querySelector('#stce_ai_api_mode');
     const aiSecondaryProfile = root.querySelector('#stce_ai_secondary_profile');
     const aiSecondaryField = root.querySelector('#stce_ai_secondary_field');
+    const sharedApiCard = root.querySelector('#stce_shared_api_card');
+    const sharedApiStatus = root.querySelector('#stce_shared_api_status');
+    const sharedApiUrl = root.querySelector('#stce_shared_api_url');
+    const sharedApiKey = root.querySelector('#stce_shared_api_key');
+    const sharedApiModel = root.querySelector('#stce_shared_api_model');
+    const sharedFetchModels = root.querySelector('#stce_shared_fetch_models');
+    const sharedCustomModelField = root.querySelector('#stce_shared_custom_model_field');
+    const sharedCustomModel = root.querySelector('#stce_shared_custom_model');
     const aiGoal = root.querySelector('#stce_ai_goal');
     const aiAnalyzeButton = root.querySelector('#stce_ai_analyze');
     const aiSampleMeta = root.querySelector('#stce_ai_sample_meta');
@@ -1685,6 +1975,7 @@ function createExporterContent() {
     let aiSamples = [];
     let aiSummary = '';
     let aiSuggestions = [];
+    let sharedSecondaryModels = [];
 
     function getActivePreset() {
         let preset = settings.presets.find(
@@ -1739,7 +2030,7 @@ function createExporterContent() {
         const name = String(value).trim();
 
         if (!name) {
-            toastr.warning('预设名称不能为空', '正文导出器');
+            toastr.warning('预设名称不能为空', 'YaKit-纪实');
             return null;
         }
 
@@ -1764,7 +2055,7 @@ function createExporterContent() {
         renderRules();
         renderPreview();
 
-        toastr.success(`已创建预设“${name}”`, '正文导出器');
+        toastr.success(`已创建预设“${name}”`, 'YaKit-纪实');
     }
 
     function duplicatePreset() {
@@ -1783,7 +2074,7 @@ function createExporterContent() {
         renderRules();
         renderPreview();
 
-        toastr.success('已复制当前预设', '正文导出器');
+        toastr.success('已复制当前预设', 'YaKit-纪实');
     }
 
     async function renamePreset() {
@@ -1797,12 +2088,12 @@ function createExporterContent() {
         renderPresetSelect();
         renderPreview();
 
-        toastr.success('预设已重命名', '正文导出器');
+        toastr.success('预设已重命名', 'YaKit-纪实');
     }
 
     async function deletePreset() {
         if (settings.presets.length <= 1) {
-            toastr.warning('至少需要保留一个清洗预设', '正文导出器');
+            toastr.warning('至少需要保留一个清洗预设', 'YaKit-纪实');
             return;
         }
 
@@ -1828,43 +2119,167 @@ function createExporterContent() {
         renderRules();
         renderPreview();
 
-        toastr.success('预设已删除', '正文导出器');
+        toastr.success('预设已删除', 'YaKit-纪实');
     }
 
 
-    function renderSecondaryApiProfiles() {
-        const profiles = getSecondaryApiProfiles();
+    function renderSharedModelSelect() {
+        const cfg = getSharedSecondaryApiSettings();
+        const models = [...sharedSecondaryModels];
 
-        aiSecondaryProfile.innerHTML = profiles.length
-            ? profiles.map((profile) => {
+        if (cfg.model && !models.includes(cfg.model)) {
+            models.unshift(cfg.model);
+        }
+
+        sharedApiModel.innerHTML = [
+            ...models.map((model) => `
+                <option value="${escapeHtml(model)}">${escapeHtml(model)}</option>
+            `),
+            '<option value="__custom_model__">自定义模型…</option>',
+        ].join('');
+
+        if (cfg.model && models.includes(cfg.model)) {
+            sharedApiModel.value = cfg.model;
+            sharedCustomModelField.hidden = true;
+        } else {
+            sharedApiModel.value = '__custom_model__';
+            sharedCustomModel.value = cfg.model || '';
+            sharedCustomModelField.hidden = false;
+        }
+
+        sharedApiModel._stceRender?.();
+    }
+
+    function updateSharedApiStatus() {
+        const cfg = getSharedSecondaryApiSettings();
+        const ready = Boolean(
+            cfg.apiUrl && cfg.model && cfg.secretId && cfg.profileId,
+        );
+
+        sharedApiStatus.textContent = ready ? '已配置' : '未配置';
+        sharedApiStatus.classList.toggle('is-ready', ready);
+        sharedApiKey.placeholder = cfg.secretId
+            ? 'API Key 已安全保存；留空表示不修改'
+            : '输入后会保存到 SillyTavern Secrets';
+    }
+
+    function loadSharedApiUi() {
+        const cfg = getSharedSecondaryApiSettings();
+        sharedApiUrl.value = cfg.apiUrl || '';
+        sharedApiKey.value = '';
+        sharedCustomModel.value = cfg.model || '';
+        renderSharedModelSelect();
+        updateSharedApiStatus();
+    }
+
+    async function persistSharedApiFromUi({ requireReady = false } = {}) {
+        const cfg = getSharedSecondaryApiSettings();
+
+        cfg.apiUrl = normalizeOpenAiCompatibleUrl(sharedApiUrl.value);
+
+        if (sharedApiKey.value.trim()) {
+            await writeSharedSecondaryApiSecret(sharedApiKey.value);
+            sharedApiKey.value = '';
+        }
+
+        cfg.model = sharedApiModel.value === '__custom_model__'
+            ? sharedCustomModel.value.trim()
+            : sharedApiModel.value;
+
+        saveSettings();
+
+        const profileId = ensureSharedConnectionProfile();
+        loadSharedApiUi();
+
+        if (requireReady && !profileId) {
+            if (!cfg.apiUrl) throw new Error('请填写共享副 API URL');
+            if (!cfg.secretId) throw new Error('请填写共享副 API Key');
+            if (!cfg.model) throw new Error('请选择模型，或填写自定义模型 ID');
+            throw new Error('共享副 API 配置尚未完成');
+        }
+
+        return profileId;
+    }
+
+    async function handleFetchSharedModels() {
+        sharedFetchModels.disabled = true;
+        const originalHtml = sharedFetchModels.innerHTML;
+        sharedFetchModels.innerHTML =
+            '<i class="fa-solid fa-spinner fa-spin"></i> 获取中…';
+
+        try {
+            await persistSharedApiFromUi();
+            sharedSecondaryModels = await fetchSharedSecondaryApiModels();
+
+            const cfg = getSharedSecondaryApiSettings();
+            if (!cfg.model || !sharedSecondaryModels.includes(cfg.model)) {
+                cfg.model = sharedSecondaryModels[0] || cfg.model;
+            }
+
+            saveSettings();
+            ensureSharedConnectionProfile();
+            renderSharedModelSelect();
+            updateSharedApiStatus();
+
+            toastr.success(
+                `已获取 ${sharedSecondaryModels.length} 个模型`,
+                '共享副 API',
+            );
+        } catch (error) {
+            console.error('[ST Chat Exporter] Failed to fetch shared API models:', error);
+            toastr.error(error?.message || String(error), '共享副 API');
+        } finally {
+            sharedFetchModels.disabled = false;
+            sharedFetchModels.innerHTML = originalHtml;
+        }
+    }
+
+    function renderSecondaryApiProfiles() {
+        const cfg = getSharedSecondaryApiSettings();
+        const profiles = getSecondaryApiProfiles()
+            .filter((profile) => profile.id !== cfg.profileId);
+
+        aiSecondaryProfile.innerHTML = [
+            ...profiles.map((profile) => {
                 const mode = profile.mode === 'tc' ? 'Text' : 'Chat';
+                const model = profile.model ? ` · ${profile.model}` : '';
                 return `
                     <option value="${escapeHtml(profile.id)}">
-                        ${escapeHtml(profile.name)} · ${mode}
+                        ${escapeHtml(profile.name)} · ${mode}${escapeHtml(model)}
                     </option>
                 `;
-            }).join('')
-            : '<option value="">没有可用的 Connection Profile</option>';
+            }),
+            `<option value="${CUSTOM_SECONDARY_VALUE}">自定义（共享副 API）</option>`,
+        ].join('');
 
         const savedId = settings.ai.secondaryProfileId;
-        aiSecondaryProfile.value = profiles.some((profile) => profile.id === savedId)
-            ? savedId
-            : (profiles[0]?.id || '');
+
+        if (savedId === CUSTOM_SECONDARY_VALUE) {
+            aiSecondaryProfile.value = CUSTOM_SECONDARY_VALUE;
+        } else {
+            aiSecondaryProfile.value = profiles.some((profile) => profile.id === savedId)
+                ? savedId
+                : (profiles[0]?.id || CUSTOM_SECONDARY_VALUE);
+        }
 
         settings.ai.secondaryProfileId = aiSecondaryProfile.value;
         aiSecondaryProfile._stceRender?.();
-
+        loadSharedApiUi();
         updateAiApiState();
     }
 
     function updateAiApiState() {
         const mode = aiApiMode.value;
         const needsSecondary = mode === 'secondary' || mode === 'fallback';
-        const hasProfiles = getSecondaryApiProfiles().length > 0;
 
-        aiSecondaryProfile.disabled = !needsSecondary || !hasProfiles;
-        aiSecondaryField.classList.toggle('is-disabled', !needsSecondary || !hasProfiles);
+        aiSecondaryProfile.disabled = !needsSecondary;
+        aiSecondaryField.classList.toggle('is-disabled', !needsSecondary);
         aiSecondaryProfile._stceSync?.();
+
+        sharedApiCard.hidden = !(
+            needsSecondary
+            && aiSecondaryProfile.value === CUSTOM_SECONDARY_VALUE
+        );
     }
 
     function getSelectedAiSuggestions() {
@@ -2006,14 +2421,31 @@ function createExporterContent() {
         );
 
         if (!aiSamples.length) {
-            toastr.warning('当前聊天没有可供 AI 分析的消息', '正文导出器');
+            toastr.warning('当前聊天没有可供 AI 分析的消息', 'YaKit-纪实');
             return;
         }
 
-        if ((aiApiMode.value === 'secondary' || aiApiMode.value === 'fallback')
-            && !aiSecondaryProfile.value) {
-            toastr.warning('请先在 SillyTavern Connection Manager 中配置可用的副 API', '正文导出器');
+        const needsSecondary =
+            aiApiMode.value === 'secondary'
+            || aiApiMode.value === 'fallback';
+
+        if (needsSecondary && !aiSecondaryProfile.value) {
+            toastr.warning('请选择副 API 连接', 'YaKit-纪实');
             return;
+        }
+
+        let secondaryRequestProfileId = aiSecondaryProfile.value;
+
+        if (needsSecondary
+            && aiSecondaryProfile.value === CUSTOM_SECONDARY_VALUE) {
+            try {
+                secondaryRequestProfileId = await persistSharedApiFromUi({
+                    requireReady: true,
+                });
+            } catch (error) {
+                toastr.warning(error?.message || String(error), '共享副 API');
+                return;
+            }
         }
 
         aiSampleMeta.textContent =
@@ -2029,7 +2461,7 @@ function createExporterContent() {
                 presetName: getActivePreset().name,
             }, {
                 mode: aiApiMode.value,
-                secondaryProfileId: aiSecondaryProfile.value,
+                secondaryProfileId: secondaryRequestProfileId,
             });
 
             aiSummary = result.summary || '分析完成';
@@ -2048,12 +2480,12 @@ function createExporterContent() {
             if (aiSuggestions.length) {
                 toastr.success(
                     `AI 生成了 ${aiSuggestions.length} 条规则建议`,
-                    '正文导出器',
+                    'YaKit-纪实',
                 );
             } else {
                 toastr.info(
                     'AI 没有发现可靠的新规则',
-                    '正文导出器',
+                    'YaKit-纪实',
                 );
             }
         } catch (error) {
@@ -2065,7 +2497,7 @@ function createExporterContent() {
 
             toastr.error(
                 error?.message || 'AI 分析失败',
-                '正文导出器',
+                'YaKit-纪实',
             );
         } finally {
             aiAnalyzeButton.disabled = false;
@@ -2076,7 +2508,7 @@ function createExporterContent() {
         const selected = getSelectedAiSuggestions();
 
         if (!selected.length) {
-            toastr.warning('请先选择至少一条 AI 建议', '正文导出器');
+            toastr.warning('请先选择至少一条 AI 建议', 'YaKit-纪实');
             return;
         }
 
@@ -2147,7 +2579,7 @@ function createExporterContent() {
         const selected = getSelectedAiSuggestions();
 
         if (!selected.length) {
-            toastr.warning('请先选择至少一条 AI 建议', '正文导出器');
+            toastr.warning('请先选择至少一条 AI 建议', 'YaKit-纪实');
             return;
         }
 
@@ -2172,7 +2604,7 @@ function createExporterContent() {
         if (!added) {
             toastr.info(
                 '选中的建议已经存在于当前预设中',
-                '正文导出器',
+                'YaKit-纪实',
             );
             return;
         }
@@ -2191,7 +2623,7 @@ function createExporterContent() {
 
         toastr.success(
             `已向“${getActivePreset().name}”加入 ${added} 条 AI 规则`,
-            '正文导出器',
+            'YaKit-纪实',
         );
     }
 
@@ -2268,10 +2700,10 @@ function createExporterContent() {
         if (original) {
             const index = getRules().findIndex((item) => item.id === ruleId);
             getRules()[index] = edited;
-            toastr.success('规则已更新', '正文导出器');
+            toastr.success('规则已更新', 'YaKit-纪实');
         } else {
             getRules().push(edited);
-            toastr.success('规则已添加', '正文导出器');
+            toastr.success('规则已添加', 'YaKit-纪实');
         }
 
         saveSettings();
@@ -2297,7 +2729,7 @@ function createExporterContent() {
         saveSettings();
         renderRules();
         renderPreview();
-        toastr.success('规则已删除', '正文导出器');
+        toastr.success('规则已删除', 'YaKit-纪实');
     }
 
     function duplicateRule(ruleId) {
@@ -2315,7 +2747,7 @@ function createExporterContent() {
         saveSettings();
         renderRules();
         renderPreview();
-        toastr.success('已复制规则', '正文导出器');
+        toastr.success('已复制规则', 'YaKit-纪实');
     }
 
     function renderRules() {
@@ -2504,6 +2936,7 @@ function createExporterContent() {
     enhanceSelect(aiSampleCount);
     enhanceSelect(aiApiMode);
     enhanceSelect(aiSecondaryProfile);
+    enhanceSelect(sharedApiModel);
 
     renderSecondaryApiProfiles();
 
@@ -2516,7 +2949,41 @@ function createExporterContent() {
     aiSecondaryProfile.addEventListener('change', () => {
         settings.ai.secondaryProfileId = aiSecondaryProfile.value;
         saveSettings();
+        updateAiApiState();
     });
+
+    sharedApiUrl.addEventListener('change', () => {
+        const cfg = getSharedSecondaryApiSettings();
+        cfg.apiUrl = normalizeOpenAiCompatibleUrl(sharedApiUrl.value);
+        saveSettings();
+        ensureSharedConnectionProfile();
+        updateSharedApiStatus();
+    });
+
+    sharedApiModel.addEventListener('change', () => {
+        const isCustom = sharedApiModel.value === '__custom_model__';
+        sharedCustomModelField.hidden = !isCustom;
+
+        if (!isCustom) {
+            const cfg = getSharedSecondaryApiSettings();
+            cfg.model = sharedApiModel.value;
+            saveSettings();
+            ensureSharedConnectionProfile();
+            updateSharedApiStatus();
+        }
+    });
+
+    sharedCustomModel.addEventListener('change', () => {
+        if (sharedApiModel.value !== '__custom_model__') return;
+
+        const cfg = getSharedSecondaryApiSettings();
+        cfg.model = sharedCustomModel.value.trim();
+        saveSettings();
+        ensureSharedConnectionProfile();
+        updateSharedApiStatus();
+    });
+
+    sharedFetchModels.addEventListener('click', handleFetchSharedModels);
 
     aiAnalyzeButton.addEventListener('click', analyzeWithAi);
     renderAiResults();
@@ -2525,26 +2992,26 @@ function createExporterContent() {
 
     root.querySelector('#stce_refresh').addEventListener('click', () => {
         refreshChat();
-        toastr.success('已重新读取当前聊天', '正文导出器');
+        toastr.success('已重新读取当前聊天', 'YaKit-纪实');
     });
 
     root.querySelector('#stce_export_txt').addEventListener('click', () => {
         const result = processChat(currentMessages, getOptions(), getRules());
 
         if (!result.text.trim()) {
-            toastr.warning('没有可导出的正文', '正文导出器');
+            toastr.warning('没有可导出的正文', 'YaKit-纪实');
             return;
         }
 
         downloadText(getDefaultFilename('txt'), result.text);
-        toastr.success('TXT 已导出', '正文导出器');
+        toastr.success('TXT 已导出', 'YaKit-纪实');
     });
 
     root.querySelector('#stce_export_md').addEventListener('click', () => {
         const result = processChat(currentMessages, getOptions(), getRules());
 
         if (!result.text.trim()) {
-            toastr.warning('没有可导出的正文', '正文导出器');
+            toastr.warning('没有可导出的正文', 'YaKit-纪实');
             return;
         }
 
@@ -2553,7 +3020,7 @@ function createExporterContent() {
             result.text,
             'text/markdown;charset=utf-8',
         );
-        toastr.success('Markdown 已导出', '正文导出器');
+        toastr.success('Markdown 已导出', 'YaKit-纪实');
     });
 
     renderRules();
@@ -2567,7 +3034,7 @@ async function openExporter() {
     const { Popup, POPUP_TYPE } = context;
 
     if (!Array.isArray(context.chat) || context.chat.length === 0) {
-        toastr.warning('当前没有可读取的聊天记录', '正文导出器');
+        toastr.warning('当前没有可读取的聊天记录', 'YaKit-纪实');
     }
 
     const content = createExporterContent();
@@ -2627,10 +3094,12 @@ function init() {
     initialized = true;
 
     getSettings();
+    getSharedSecondaryApiSettings();
+    exposeSharedSecondaryApi();
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[ST Chat Exporter] initialized v0.4.1');
+    console.info('[YaKit-纪实] initialized v0.5.2');
 }
 
 jQuery(() => {
