@@ -1997,29 +1997,17 @@ function createExporterContent() {
 
                 <div class="stce-shared-api-card" id="stce_shared_api_card" hidden>
                     <div class="stce-secondary-manager">
-                        <div class="stce-secondary-picker">
-                            <span class="stce-secondary-label">副 API 连接</span>
-                            <select id="stce_ai_secondary_connection"></select>
+                        <div class="stce-secondary-list-head">
+                            <strong>副 API</strong>
+
+                            <button id="stce_secondary_new" type="button" class="stce-secondary-add">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>添加副 API</span>
+                            </button>
                         </div>
 
-                        <div class="stce-secondary-actions">
-                            <button id="stce_secondary_new" type="button" class="stce-secondary-button">
-                                <i class="fa-solid fa-plus"></i>
-                                <span>新建</span>
-                            </button>
-                            <button id="stce_secondary_duplicate" type="button" class="stce-secondary-button">
-                                <i class="fa-regular fa-copy"></i>
-                                <span>复制</span>
-                            </button>
-                            <button id="stce_secondary_rename" type="button" class="stce-secondary-button">
-                                <i class="fa-solid fa-pen"></i>
-                                <span>重命名</span>
-                            </button>
-                            <button id="stce_secondary_delete" type="button" class="stce-secondary-button stce-danger">
-                                <i class="fa-solid fa-trash"></i>
-                                <span>删除</span>
-                            </button>
-                        </div>
+                        <select id="stce_ai_secondary_connection" hidden></select>
+                        <div class="stce-secondary-list" id="stce_secondary_list"></div>
                     </div>
 
                     <div class="stce-shared-api-head">
@@ -2027,7 +2015,20 @@ function createExporterContent() {
                             <strong id="stce_shared_api_title">副 API 设置</strong>
                             <span>多套副 API 共用 YaKit 共享层，未来其他 YaKit 插件可以直接复用。</span>
                         </div>
-                        <span class="stce-shared-api-status" id="stce_shared_api_status">未配置</span>
+
+                        <div class="stce-shared-api-head-actions">
+                            <span class="stce-shared-api-status" id="stce_shared_api_status">未配置</span>
+
+                            <button id="stce_secondary_duplicate" type="button" class="stce-head-action" title="复制当前副 API">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                            <button id="stce_secondary_rename" type="button" class="stce-head-action" title="重命名当前副 API">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button id="stce_secondary_delete" type="button" class="stce-head-action stce-danger" title="删除当前副 API">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="stce-shared-api-grid">
@@ -2124,6 +2125,7 @@ function createExporterContent() {
     const aiSampleCount = root.querySelector('#stce_ai_sample_count');
     const aiApiMode = root.querySelector('#stce_ai_api_mode');
     const aiSecondaryConnection = root.querySelector('#stce_ai_secondary_connection');
+    const secondaryList = root.querySelector('#stce_secondary_list');
     const secondaryNewButton = root.querySelector('#stce_secondary_new');
     const secondaryDuplicateButton = root.querySelector('#stce_secondary_duplicate');
     const secondaryRenameButton = root.querySelector('#stce_secondary_rename');
@@ -2325,7 +2327,6 @@ function createExporterContent() {
             .map((connection) => `
                 <option value="${escapeHtml(connection.id)}">
                     ${escapeHtml(connection.name)}
-                    ${connection.model ? ` · ${escapeHtml(connection.model)}` : ''}
                 </option>
             `)
             .join('');
@@ -2345,7 +2346,33 @@ function createExporterContent() {
         settings.ai.secondaryConnectionId = aiSecondaryConnection.value;
         store.activeConnectionId = aiSecondaryConnection.value;
 
-        aiSecondaryConnection._stceRender?.();
+        secondaryList.innerHTML = connections
+            .map((connection) => {
+                const active =
+                    connection.id === aiSecondaryConnection.value;
+
+                const modelText =
+                    connection.model
+                    || '未选择模型';
+
+                return `
+                    <button
+                        type="button"
+                        class="stce-secondary-row ${active ? 'is-active' : ''}"
+                        data-secondary-id="${escapeHtml(connection.id)}"
+                    >
+                        <span class="stce-secondary-row-name">
+                            ${escapeHtml(connection.name)}
+                        </span>
+
+                        <span class="stce-secondary-row-model">
+                            ${escapeHtml(modelText)}
+                        </span>
+                    </button>
+                `;
+            })
+            .join('');
+
         secondaryDeleteButton.disabled = connections.length <= 1;
     }
 
@@ -2436,7 +2463,6 @@ function createExporterContent() {
 
         renderSecondaryConnectionSelect();
         aiSecondaryConnection.value = connection.id;
-        aiSecondaryConnection._stceSync?.();
         loadSharedApiUi();
 
         if (requireReady && !profileId) {
@@ -2486,8 +2512,7 @@ function createExporterContent() {
 
             renderSecondaryConnectionSelect();
             aiSecondaryConnection.value = connection.id;
-            aiSecondaryConnection._stceSync?.();
-            renderSharedModelSelect();
+                renderSharedModelSelect();
             updateSharedApiStatus();
 
             toastr.success(
@@ -2569,7 +2594,6 @@ function createExporterContent() {
 
         renderSecondaryConnectionSelect();
         aiSecondaryConnection.value = connection.id;
-        aiSecondaryConnection._stceSync?.();
         loadSharedApiUi();
 
         toastr.success(
@@ -2599,7 +2623,6 @@ function createExporterContent() {
 
         renderSecondaryConnectionSelect();
         aiSecondaryConnection.value = copy.id;
-        aiSecondaryConnection._stceSync?.();
         loadSharedApiUi();
 
         toastr.success(
@@ -2627,7 +2650,6 @@ function createExporterContent() {
 
         renderSecondaryConnectionSelect();
         aiSecondaryConnection.value = connection.id;
-        aiSecondaryConnection._stceSync?.();
         updateSharedApiStatus();
 
         toastr.success(
@@ -3372,7 +3394,6 @@ function createExporterContent() {
     enhanceSelect(aiScope);
     enhanceSelect(aiSampleCount);
     enhanceSelect(aiApiMode);
-    enhanceSelect(aiSecondaryConnection);
     enhanceSelect(sharedApiModel);
 
     renderSecondaryApiConnections();
@@ -3396,7 +3417,28 @@ function createExporterContent() {
         );
 
         saveSettings();
+        renderSecondaryConnectionSelect();
         loadSharedApiUi();
+    });
+
+    secondaryList.addEventListener('click', (event) => {
+        const row = event.target.closest('[data-secondary-id]');
+
+        if (!row) {
+            return;
+        }
+
+        const connectionId = row.dataset.secondaryId;
+
+        if (!connectionId
+            || connectionId === aiSecondaryConnection.value) {
+            return;
+        }
+
+        aiSecondaryConnection.value = connectionId;
+        aiSecondaryConnection.dispatchEvent(
+            new Event('change', { bubbles: true }),
+        );
     });
 
     secondaryNewButton.addEventListener(
@@ -3444,8 +3486,7 @@ function createExporterContent() {
             ensureSharedConnectionProfile(connection);
             renderSecondaryConnectionSelect();
             aiSecondaryConnection.value = connection.id;
-            aiSecondaryConnection._stceSync?.();
-            updateSharedApiStatus();
+                updateSharedApiStatus();
         }
     });
 
@@ -3460,7 +3501,6 @@ function createExporterContent() {
         ensureSharedConnectionProfile(connection);
         renderSecondaryConnectionSelect();
         aiSecondaryConnection.value = connection.id;
-        aiSecondaryConnection._stceSync?.();
         updateSharedApiStatus();
     });
 
@@ -3580,7 +3620,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.6.3');
+    console.info('[YaKit-纪实] initialized v0.6.4');
 }
 
 jQuery(() => {
