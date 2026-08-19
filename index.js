@@ -892,40 +892,9 @@ function enhanceSelect(select) {
             || select.options[0];
     }
 
-    function resetMenuPlacement() {
-        wrapper.classList.remove('is-drop-up');
-        menu.style.maxHeight = '';
-    }
-
-    function positionMenu() {
-        if (!wrapper.classList.contains('is-open')) {
-            resetMenuPlacement();
-            return;
-        }
-
-        const modalScroll = wrapper.closest('.stce-secondary-modal-scroll');
-        if (!modalScroll) {
-            return;
-        }
-
-        const clipRect = modalScroll.getBoundingClientRect();
-        const triggerRect = trigger.getBoundingClientRect();
-        const spaceBelow = Math.max(0, clipRect.bottom - triggerRect.bottom - 8);
-        const spaceAbove = Math.max(0, triggerRect.top - clipRect.top - 8);
-        const wantedHeight = Math.min(menu.scrollHeight || 0, 320);
-        const shouldDropUp = spaceBelow < Math.min(wantedHeight, 180)
-            && spaceAbove > spaceBelow;
-
-        wrapper.classList.toggle('is-drop-up', shouldDropUp);
-
-        const available = shouldDropUp ? spaceAbove : spaceBelow;
-        menu.style.maxHeight = `${Math.max(120, Math.min(320, available))}px`;
-    }
-
     function close() {
         wrapper.classList.remove('is-open');
         trigger.setAttribute('aria-expanded', 'false');
-        resetMenuPlacement();
     }
 
     function sync() {
@@ -987,12 +956,6 @@ function enhanceSelect(select) {
 
         wrapper.classList.toggle('is-open', willOpen);
         trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-
-        if (willOpen) {
-            requestAnimationFrame(positionMenu);
-        } else {
-            resetMenuPlacement();
-        }
     });
 
     select.addEventListener('change', sync);
@@ -2802,7 +2765,10 @@ function createExporterContent() {
 
         if (connection.model && models.includes(connection.model)) {
             sharedApiModel.value = connection.model;
-            sharedCustomModelField.hidden = true;
+            // 保留自定义模型 ID 输入框。
+            // 获取模型只是提供快捷选择，不应该关闭手动覆盖能力。
+            sharedCustomModel.value = connection.model;
+            sharedCustomModelField.hidden = false;
         } else {
             sharedApiModel.value = '__custom_model__';
             sharedCustomModel.value = connection.model || '';
@@ -4112,18 +4078,20 @@ function createExporterContent() {
 
     sharedApiModel.addEventListener('change', () => {
         const isCustom = sharedApiModel.value === '__custom_model__';
-        sharedCustomModelField.hidden = !isCustom;
+        // 自定义模型 ID 永远保留显示，允许用户覆盖自动获取的模型。
+        sharedCustomModelField.hidden = false;
 
         if (!isCustom) {
             const connection = getSelectedSecondaryConnection();
 
             connection.model = sharedApiModel.value;
+            sharedCustomModel.value = sharedApiModel.value;
 
             saveSettings();
             ensureSharedConnectionProfile(connection);
             renderSecondaryConnectionSelect();
             aiSecondaryConnection.value = connection.id;
-                updateSharedApiStatus();
+            updateSharedApiStatus();
         }
     });
 
@@ -4260,7 +4228,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.8.2');
+    console.info('[YaKit-纪实] initialized v0.8.1');
 }
 
 jQuery(() => {
