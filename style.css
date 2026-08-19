@@ -3407,3 +3407,27 @@ body.stce-secondary-modal-open {
         min-width: 0 !important;
     }
 }
+
+
+/* =========================
+   v0.7.1 - Disable drawer motion
+   ========================= */
+
+.stce-ai-drawer,
+.stce-ai-drawer-trigger,
+.stce-ai-drawer-body,
+.stce-ai-drawer-title-group,
+.stce-ai-drawer-chevron,
+.stce-ai-drawer.is-open .stce-ai-drawer-chevron {
+    transition: none !important;
+    animation: none !important;
+}
+
+.stce-ai-drawer.is-open .stce-ai-drawer-chevron {
+    transform: none !important;
+}
+
+/* Keep the chevron static instead of rotating on open. */
+.stce-ai-drawer-chevron {
+    transform: none !important;
+}
