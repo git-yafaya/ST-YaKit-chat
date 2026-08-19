@@ -3486,3 +3486,36 @@ body.stce-secondary-modal-open {
     box-shadow: none !important;
     -webkit-tap-highlight-color: transparent;
 }
+
+
+/* =========================
+   v0.7.6 - Secondary API list scrolling
+   ========================= */
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-manager {
+    min-height: 0 !important;
+}
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-list {
+    max-height: min(52vh, 520px);
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding-right: 6px;
+    padding-bottom: 2px;
+
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-list-head {
+    flex: 0 0 auto;
+}
+
+.stce-secondary-modal-save {
+    white-space: nowrap;
+}

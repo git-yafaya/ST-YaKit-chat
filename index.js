@@ -2231,6 +2231,9 @@ function createExporterContent() {
     let aiSuggestions = [];
     const sharedSecondaryModels = new Map();
 
+    // New secondary APIs stay transient until the user confirms them.
+    let secondaryDraft = null;
+
     function animateAiDrawerBody(body, open) {
         body.getAnimations().forEach(
             (animation) => animation.cancel(),
@@ -2571,6 +2574,10 @@ function createExporterContent() {
     }
 
     function getSelectedSecondaryConnection() {
+        if (secondaryDraft) {
+            return secondaryDraft;
+        }
+
         const selectedId =
             aiSecondaryConnection.value
             || settings.ai.secondaryConnectionId
@@ -2702,10 +2709,18 @@ function createExporterContent() {
     }
 
     function closeSecondaryApiModal() {
+        const abandonedDraft = secondaryDraft;
+
         secondaryModal.hidden = true;
         document.body.classList.remove('stce-secondary-modal-open');
 
         sharedApiKey.value = '';
+
+        if (abandonedDraft) {
+            sharedSecondaryModels.delete(abandonedDraft.id);
+            secondaryDraft = null;
+        }
+
         loadSharedApiUi();
     }
 
@@ -2719,8 +2734,38 @@ function createExporterContent() {
         `;
 
         try {
+            const pendingDraft = secondaryDraft;
+
             await persistSharedApiFromUi();
-            toastr.success('副 API 配置已保存', 'YaKit 副 API');
+
+            if (pendingDraft) {
+                const store = getSharedSecondaryApiSettings();
+
+                // The new connection becomes real only after Confirm Add.
+                store.connections.push(pendingDraft);
+                store.activeConnectionId = pendingDraft.id;
+                settings.ai.secondaryConnectionId = pendingDraft.id;
+
+                secondaryDraft = null;
+
+                ensureSharedConnectionProfile(pendingDraft);
+                saveSettings();
+
+                renderSecondaryConnectionSelect();
+                aiSecondaryConnection.value = pendingDraft.id;
+                renderAiApiSelect();
+
+                toastr.success(
+                    `“${pendingDraft.name}”已添加`,
+                    'YaKit 副 API',
+                );
+            } else {
+                toastr.success(
+                    '副 API 配置已保存',
+                    'YaKit 副 API',
+                );
+            }
+
             closeSecondaryApiModal();
         } catch (error) {
             console.error(
@@ -2740,6 +2785,7 @@ function createExporterContent() {
 
     function updateSharedApiStatus() {
         const connection = getSelectedSecondaryConnection();
+        const isDraft = secondaryDraft === connection;
 
         const ready = Boolean(
             connection.apiUrl
@@ -2748,9 +2794,29 @@ function createExporterContent() {
             && connection.profileId,
         );
 
-        sharedApiTitle.textContent = connection.name;
-        sharedApiStatus.textContent = ready ? '已配置' : '未配置';
-        sharedApiStatus.classList.toggle('is-ready', ready);
+        if (isDraft) {
+            sharedApiTitle.textContent =
+                connection.name || '新建副 API';
+
+            sharedApiStatus.textContent = '未保存';
+            sharedApiStatus.classList.remove('is-ready');
+            secondaryDeleteButton.hidden = true;
+
+            secondaryModalSave.innerHTML = `
+                <i class="fa-solid fa-plus"></i>
+                确认添加
+            `;
+        } else {
+            sharedApiTitle.textContent = connection.name;
+            sharedApiStatus.textContent = ready ? '已配置' : '未配置';
+            sharedApiStatus.classList.toggle('is-ready', ready);
+            secondaryDeleteButton.hidden = false;
+
+            secondaryModalSave.innerHTML = `
+                <i class="fa-solid fa-check"></i>
+                保存配置
+            `;
+        }
 
         sharedApiKey.placeholder = connection.secretId
             ? 'API Key 已安全保存；留空表示不修改'
@@ -2796,6 +2862,14 @@ function createExporterContent() {
         connection.model = sharedApiModel.value === '__custom_model__'
             ? sharedCustomModel.value.trim()
             : sharedApiModel.value;
+
+        const isDraft = secondaryDraft === connection;
+
+        if (isDraft) {
+            renderSharedModelSelect();
+            updateSharedApiStatus();
+            return '';
+        }
 
         saveSettings();
 
@@ -2847,12 +2921,15 @@ function createExporterContent() {
                 connection.model = models[0] || connection.model;
             }
 
-            saveSettings();
-            ensureSharedConnectionProfile(connection);
+            if (secondaryDraft !== connection) {
+                saveSettings();
+                ensureSharedConnectionProfile(connection);
 
-            renderSecondaryConnectionSelect();
-            aiSecondaryConnection.value = connection.id;
-                renderSharedModelSelect();
+                renderSecondaryConnectionSelect();
+                aiSecondaryConnection.value = connection.id;
+            }
+
+            renderSharedModelSelect();
             updateSharedApiStatus();
 
             toastr.success(
@@ -2876,32 +2953,19 @@ function createExporterContent() {
     }
 
     function createSecondaryConnection() {
-        const store = getSharedSecondaryApiSettings();
-
         const baseName = getDefaultSecondaryConnectionName();
 
-        const connection = {
+        secondaryDraft = {
             id: createId('secondary'),
-            name: baseName,
+            name: '',
             apiUrl: '',
             model: '',
             secretId: '',
             profileId: '',
         };
 
-        store.connections.push(connection);
-        store.activeConnectionId = connection.id;
-        settings.ai.secondaryConnectionId = connection.id;
-
-        saveSettings();
-
-        renderSecondaryConnectionSelect();
-        aiSecondaryConnection.value = connection.id;
-        loadSharedApiUi();
         openSecondaryApiModal();
 
-        // New connections should invite the user to name them.
-        // The internal default is only used if the field is left blank.
         sharedApiName.value = '';
         sharedApiName.placeholder = `留空则使用：${baseName}`;
         sharedApiTitle.textContent = '新建副 API';
@@ -3791,7 +3855,8 @@ function createExporterContent() {
     sharedApiName.addEventListener('input', () => {
         const name = sharedApiName.value.trim();
 
-        sharedApiTitle.textContent = name || '副 API 设置';
+        sharedApiTitle.textContent = name
+            || (secondaryDraft ? '新建副 API' : '副 API 设置');
     });
 
     sharedApiUrl.addEventListener('change', () => {
@@ -3956,7 +4021,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.7.5');
+    console.info('[YaKit-纪实] initialized v0.7.6');
 }
 
 jQuery(() => {
