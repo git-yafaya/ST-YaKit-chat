@@ -1,6 +1,6 @@
 /* =========================
    ST Chat Exporter
-   v0.2.3 - Large rounded popup + cleaning rules
+   v0.2.4 - Large rounded popup + cleaning rules
    ========================= */
 
 /* 只影响正文导出器自己的 Popup */
@@ -1212,4 +1212,54 @@ dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok {
 
     font-size: 1.04rem !important;
     line-height: 1.35 !important;
+}
+
+
+/* =========================
+   v0.2.4 - Larger rule fields
+   ========================= */
+
+/* 标签名输入框与规则名称保持同一视觉体量 */
+.stce-rule-editor #stce_rule_tag {
+    min-height: 48px !important;
+    padding: 10px 14px !important;
+
+    border-radius: 13px !important;
+
+    font-size: 1.04rem !important;
+    line-height: 1.35 !important;
+}
+
+/* 规则测试区增加纵向空间 */
+.stce-rule-test-grid {
+    gap: 14px !important;
+}
+
+.stce-rule-test-grid textarea {
+    min-height: 230px !important;
+
+    padding: 14px 16px !important;
+
+    border-radius: 14px !important;
+
+    font-size: 0.92rem !important;
+    line-height: 1.65 !important;
+}
+
+/* 原始样本和处理结果标题稍微加重 */
+.stce-rule-test-grid .stce-field > span:first-child {
+    font-size: 0.86rem !important;
+    font-weight: 650 !important;
+}
+
+/* 给规则测试整体更多呼吸空间 */
+.stce-rule-test {
+    gap: 14px !important;
+    padding-top: 18px !important;
+}
+
+@media (max-width: 780px) {
+    .stce-rule-test-grid textarea {
+        min-height: 190px !important;
+    }
 }

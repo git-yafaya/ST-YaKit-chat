@@ -1321,7 +1321,7 @@ function init() {
     getSettings();
     createWandButton();
 
-    console.info('[ST Chat Exporter] initialized v0.2.3');
+    console.info('[ST Chat Exporter] initialized v0.2.4');
 }
 
 jQuery(() => {
