@@ -2768,3 +2768,367 @@ body.stce-secondary-modal-open {
         padding: 14px 18px 16px;
     }
 }
+
+
+/* =========================
+   v0.6.6 - Complete secondary API editor
+   ========================= */
+
+/* Name is now edited directly inside the secondary API modal. */
+.stce-secondary-modal #stce_shared_api_name {
+    font-weight: 650 !important;
+}
+
+/* Close on the far left, Save on the far right. */
+.stce-secondary-modal-footer {
+    justify-content: space-between !important;
+}
+
+.stce-secondary-modal-cancel {
+    margin-right: auto !important;
+}
+
+.stce-secondary-modal-save {
+    margin-left: auto !important;
+}
+
+
+/* =========================
+   v0.6.8 - Channel editor style
+   ========================= */
+
+/* Reference-style narrow, tall editor */
+.stce-secondary-modal {
+    padding: 18px !important;
+    background: rgb(0 0 0 / 0.32) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+.stce-secondary-modal-dialog {
+    position: relative;
+
+    width: min(720px, calc(100vw - 36px)) !important;
+    max-height: min(920px, calc(100vh - 36px)) !important;
+
+    border: 1px solid rgb(127 127 127 / 0.18) !important;
+    border-radius: 24px !important;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--SmartThemeBlurTintColor, #f7f8f8) 96%,
+            white 4%
+        ) !important;
+
+    box-shadow:
+        0 22px 64px rgb(0 0 0 / 0.22),
+        0 5px 18px rgb(0 0 0 / 0.10) !important;
+}
+
+/* Top bar */
+.stce-secondary-modal-topbar {
+    min-height: 92px;
+
+    padding: 26px 26px 22px !important;
+
+    border-bottom:
+        1px solid rgb(127 127 127 / 0.12) !important;
+}
+
+.stce-secondary-modal-topbar > div:first-child {
+    gap: 0 !important;
+}
+
+.stce-secondary-modal-kicker {
+    display: none !important;
+}
+
+.stce-secondary-modal-topbar #stce_shared_api_title {
+    font-size: 1.28rem !important;
+    font-weight: 780 !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0.01em;
+}
+
+/* Square close button, like the reference */
+.stce-secondary-modal-close {
+    width: 50px !important;
+    height: 50px !important;
+
+    border:
+        1px solid rgb(127 127 127 / 0.28) !important;
+    border-radius: 12px !important;
+
+    background: transparent !important;
+
+    font-size: 1rem !important;
+    opacity: 0.78;
+}
+
+.stce-secondary-modal-close:hover {
+    background: rgb(127 127 127 / 0.08) !important;
+    opacity: 1;
+}
+
+/* Main form */
+.stce-secondary-modal-scroll {
+    gap: 22px !important;
+    padding: 26px !important;
+}
+
+/* Hide the explanatory sentence to keep the form clean. */
+.stce-secondary-modal .stce-shared-api-head > div:first-child {
+    display: none !important;
+}
+
+/* Keep status/actions compact above the form */
+.stce-secondary-modal .stce-shared-api-head {
+    min-height: 0 !important;
+    justify-content: flex-end !important;
+    padding: 0 !important;
+    margin: -6px 0 -6px !important;
+}
+
+.stce-secondary-modal .stce-shared-api-head-actions {
+    gap: 8px !important;
+}
+
+.stce-secondary-modal .stce-shared-api-status {
+    min-height: 34px;
+    padding: 7px 12px !important;
+    border-radius: 999px !important;
+    font-size: 0.82rem !important;
+}
+
+.stce-secondary-modal .stce-head-action {
+    width: 36px !important;
+    height: 36px !important;
+
+    border:
+        1px solid transparent !important;
+    border-radius: 10px !important;
+
+    opacity: 0.62;
+}
+
+.stce-secondary-modal .stce-head-action:hover:not(:disabled) {
+    border-color:
+        rgb(127 127 127 / 0.16) !important;
+    background:
+        rgb(127 127 127 / 0.07) !important;
+}
+
+/* Vertical field layout */
+.stce-secondary-modal .stce-shared-api-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 58px !important;
+
+    gap: 20px 14px !important;
+    align-items: end;
+}
+
+/* Name / URL / Key / custom model span full width */
+.stce-secondary-modal .stce-field-wide {
+    grid-column: 1 / -1 !important;
+}
+
+/* Labels */
+.stce-secondary-modal .stce-field,
+.stce-secondary-modal .stce-shared-model-action {
+    gap: 8px !important;
+}
+
+.stce-secondary-modal .stce-field > span:first-child,
+.stce-secondary-modal .stce-shared-model-action > span {
+    font-size: 0.92rem !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+
+    opacity: 0.68 !important;
+}
+
+/* Inputs: simple outlined rectangles */
+.stce-secondary-modal input[type="text"],
+.stce-secondary-modal input[type="password"],
+.stce-secondary-modal .stce-select-trigger {
+    min-height: 54px !important;
+
+    padding: 0 16px !important;
+
+    border:
+        1px solid rgb(127 127 127 / 0.38) !important;
+    border-radius: 12px !important;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--SmartThemeBlurTintColor, #ffffff) 96%,
+            transparent
+        ) !important;
+
+    box-shadow: none !important;
+
+    font-size: 0.98rem !important;
+    font-weight: 500 !important;
+}
+
+.stce-secondary-modal input[type="text"]:focus,
+.stce-secondary-modal input[type="password"]:focus,
+.stce-secondary-modal .stce-select-trigger:focus-visible {
+    border-color:
+        color-mix(
+            in srgb,
+            #ff8f66 68%,
+            var(--SmartThemeBorderColor)
+        ) !important;
+
+    outline:
+        2px solid rgb(255 143 102 / 0.13) !important;
+    outline-offset: 1px;
+}
+
+/* Model occupies the long left column */
+.stce-secondary-modal .stce-field:not(.stce-field-wide) {
+    grid-column: 1 !important;
+}
+
+/* Fetch button becomes the square refresh button on the right */
+.stce-secondary-modal .stce-shared-model-action {
+    grid-column: 2 !important;
+
+    align-self: end;
+}
+
+.stce-secondary-modal .stce-shared-model-action > span {
+    display: none !important;
+}
+
+.stce-secondary-modal .stce-shared-model-action .menu_button {
+    width: 58px !important;
+    min-width: 58px !important;
+    height: 54px !important;
+    min-height: 54px !important;
+
+    padding: 0 !important;
+
+    border:
+        1px solid rgb(127 127 127 / 0.30) !important;
+    border-radius: 12px !important;
+
+    background: transparent !important;
+
+    font-size: 0 !important;
+}
+
+.stce-secondary-modal .stce-shared-model-action .menu_button i {
+    margin: 0 !important;
+    font-size: 1rem !important;
+}
+
+.stce-secondary-modal .stce-shared-model-action .menu_button:hover {
+    background: rgb(127 127 127 / 0.07) !important;
+}
+
+/* Security note */
+.stce-secondary-modal .stce-shared-api-note {
+    margin-top: 2px !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    background: transparent !important;
+
+    font-size: 0.82rem !important;
+    line-height: 1.45 !important;
+    opacity: 0.52 !important;
+}
+
+/* Footer stays visible like a settings editor */
+.stce-secondary-modal-footer {
+    min-height: 92px;
+
+    padding: 18px 26px 22px !important;
+
+    border-top:
+        1px solid rgb(127 127 127 / 0.12) !important;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--SmartThemeBlurTintColor, #f7f8f8) 97%,
+            white 3%
+        ) !important;
+}
+
+/* Bottom buttons: opposite sides */
+.stce-secondary-modal-footer .menu_button {
+    min-height: 50px !important;
+
+    padding: 11px 22px !important;
+
+    border-radius: 12px !important;
+
+    font-size: 0.94rem !important;
+    font-weight: 680 !important;
+}
+
+.stce-secondary-modal-cancel {
+    min-width: 94px !important;
+
+    border:
+        1px solid rgb(127 127 127 / 0.28) !important;
+
+    background: transparent !important;
+}
+
+.stce-secondary-modal-save {
+    min-width: 138px !important;
+
+    border:
+        1px solid transparent !important;
+
+    color: #ffffff !important;
+    background: #ff8f66 !important;
+
+    box-shadow: none !important;
+}
+
+.stce-secondary-modal-save:hover:not(:disabled) {
+    filter: brightness(0.97);
+}
+
+/* New API name field should feel like the first-class channel name */
+.stce-secondary-modal #stce_shared_api_name {
+    font-weight: 580 !important;
+}
+
+/* Prevent the custom dropdown from becoming wider than the modal. */
+.stce-secondary-modal .stce-custom-select,
+.stce-secondary-modal .stce-select-menu {
+    max-width: 100% !important;
+}
+
+@media (max-width: 760px) {
+    .stce-secondary-modal {
+        padding: 8px !important;
+    }
+
+    .stce-secondary-modal-dialog {
+        width: calc(100vw - 16px) !important;
+        max-height: calc(100vh - 16px) !important;
+        border-radius: 18px !important;
+    }
+
+    .stce-secondary-modal-topbar {
+        min-height: 78px;
+        padding: 20px 18px 16px !important;
+    }
+
+    .stce-secondary-modal-scroll {
+        padding: 20px 18px !important;
+    }
+
+    .stce-secondary-modal-footer {
+        min-height: 82px;
+        padding: 14px 18px 16px !important;
+    }
+}

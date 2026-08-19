@@ -2040,10 +2040,6 @@ function createExporterContent() {
                                         class="stce-head-action" title="复制当前副 API">
                                         <i class="fa-regular fa-copy"></i>
                                     </button>
-                                    <button id="stce_secondary_rename" type="button"
-                                        class="stce-head-action" title="重命名当前副 API">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
                                     <button id="stce_secondary_delete" type="button"
                                         class="stce-head-action stce-danger" title="删除当前副 API">
                                         <i class="fa-solid fa-trash"></i>
@@ -2052,6 +2048,11 @@ function createExporterContent() {
                             </div>
 
                             <div class="stce-shared-api-grid">
+                                <label class="stce-field stce-field-wide">
+                                    <span>名称</span>
+                                    <input id="stce_shared_api_name" type="text" spellcheck="false"
+                                        placeholder="例如：Gemini、OpenAI、备用线路">
+                                </label>
                                 <label class="stce-field stce-field-wide">
                                     <span>API URL</span>
                                     <input id="stce_shared_api_url" type="text" spellcheck="false"
@@ -2163,7 +2164,6 @@ function createExporterContent() {
     const secondaryList = root.querySelector('#stce_secondary_list');
     const secondaryNewButton = root.querySelector('#stce_secondary_new');
     const secondaryDuplicateButton = root.querySelector('#stce_secondary_duplicate');
-    const secondaryRenameButton = root.querySelector('#stce_secondary_rename');
     const secondaryDeleteButton = root.querySelector('#stce_secondary_delete');
     const sharedApiCard = root.querySelector('#stce_shared_api_card');
     const secondaryModal = root.querySelector('#stce_secondary_modal');
@@ -2172,6 +2172,7 @@ function createExporterContent() {
     const secondaryModalSave = root.querySelector('#stce_secondary_modal_save');
     const sharedApiTitle = root.querySelector('#stce_shared_api_title');
     const sharedApiStatus = root.querySelector('#stce_shared_api_status');
+    const sharedApiName = root.querySelector('#stce_shared_api_name');
     const sharedApiUrl = root.querySelector('#stce_shared_api_url');
     const sharedApiKey = root.querySelector('#stce_shared_api_key');
     const sharedApiModel = root.querySelector('#stce_shared_api_model');
@@ -2358,6 +2359,20 @@ function createExporterContent() {
         return sharedSecondaryModels.get(connectionId);
     }
 
+    function getDefaultSecondaryConnectionName(connection = null) {
+        const connections = getSharedSecondaryConnections();
+
+        const index = connection
+            ? connections.findIndex((item) => item.id === connection.id)
+            : -1;
+
+        const ordinal = index >= 0
+            ? index + 1
+            : connections.length + 1;
+
+        return `副 API ${ordinal}`;
+    }
+
     function renderSecondaryConnectionSelect() {
         const store = getSharedSecondaryApiSettings();
         const connections = getSharedSecondaryConnections();
@@ -2514,7 +2529,10 @@ function createExporterContent() {
 
     function loadSharedApiUi() {
         const connection = getSelectedSecondaryConnection();
+        const defaultName = getDefaultSecondaryConnectionName(connection);
 
+        sharedApiName.value = connection.name || '';
+        sharedApiName.placeholder = `留空则使用：${defaultName}`;
         sharedApiUrl.value = connection.apiUrl || '';
         sharedApiKey.value = '';
         sharedCustomModel.value = connection.model || '';
@@ -2525,6 +2543,12 @@ function createExporterContent() {
 
     async function persistSharedApiFromUi({ requireReady = false } = {}) {
         const connection = getSelectedSecondaryConnection();
+
+        const name = sharedApiName.value.trim();
+
+        connection.name =
+            name
+            || getDefaultSecondaryConnectionName(connection);
 
         connection.apiUrl = normalizeOpenAiCompatibleUrl(
             sharedApiUrl.value,
@@ -2621,51 +2645,14 @@ function createExporterContent() {
         }
     }
 
-    async function requestSecondaryConnectionName(
-        title,
-        defaultValue = '',
-    ) {
-        const { Popup } = getContext();
-
-        const value = await Popup.show.input(
-            title,
-            '输入副 API 名称。',
-            defaultValue,
-            {
-                okButton: '确定',
-                cancelButton: '取消',
-            },
-        );
-
-        if (value === null) {
-            return null;
-        }
-
-        const name = String(value).trim();
-
-        if (!name) {
-            toastr.warning('副 API 名称不能为空', 'YaKit-纪实');
-            return null;
-        }
-
-        return name;
-    }
-
-    async function createSecondaryConnection() {
-        const name = await requestSecondaryConnectionName(
-            '新建副 API',
-            `副 API ${getSharedSecondaryConnections().length + 1}`,
-        );
-
-        if (!name) {
-            return;
-        }
-
+    function createSecondaryConnection() {
         const store = getSharedSecondaryApiSettings();
+
+        const baseName = getDefaultSecondaryConnectionName();
 
         const connection = {
             id: createId('secondary'),
-            name,
+            name: baseName,
             apiUrl: '',
             model: '',
             secretId: '',
@@ -2683,10 +2670,15 @@ function createExporterContent() {
         loadSharedApiUi();
         openSecondaryApiModal();
 
-        toastr.success(
-            `已创建“${name}”`,
-            'YaKit 副 API',
-        );
+        // New connections should invite the user to name them.
+        // The internal default is only used if the field is left blank.
+        sharedApiName.value = '';
+        sharedApiName.placeholder = `留空则使用：${baseName}`;
+        sharedApiTitle.textContent = '新建副 API';
+
+        requestAnimationFrame(() => {
+            sharedApiName.focus({ preventScroll: true });
+        });
     }
 
     function duplicateSecondaryConnection() {
@@ -2712,35 +2704,13 @@ function createExporterContent() {
         aiSecondaryConnection.value = copy.id;
         loadSharedApiUi();
 
-        toastr.success(
-            '已复制当前副 API',
-            'YaKit 副 API',
-        );
-    }
-
-    async function renameSecondaryConnection() {
-        const connection = getSelectedSecondaryConnection();
-
-        const name = await requestSecondaryConnectionName(
-            '重命名副 API',
-            connection.name,
-        );
-
-        if (!name || name === connection.name) {
-            return;
-        }
-
-        connection.name = name;
-        ensureSharedConnectionProfile(connection);
-
-        saveSettings();
-
-        renderSecondaryConnectionSelect();
-        aiSecondaryConnection.value = connection.id;
-        updateSharedApiStatus();
+        requestAnimationFrame(() => {
+            sharedApiName.focus({ preventScroll: true });
+            sharedApiName.select();
+        });
 
         toastr.success(
-            '副 API 已重命名',
+            '已复制当前副 API，可直接修改名称后保存',
             'YaKit 副 API',
         );
     }
@@ -3546,11 +3516,6 @@ function createExporterContent() {
         duplicateSecondaryConnection,
     );
 
-    secondaryRenameButton.addEventListener(
-        'click',
-        renameSecondaryConnection,
-    );
-
     secondaryDeleteButton.addEventListener(
         'click',
         deleteSecondaryConnection,
@@ -3581,6 +3546,12 @@ function createExporterContent() {
         if (event.key === 'Escape' && !secondaryModal.hidden) {
             closeSecondaryApiModal();
         }
+    });
+
+    sharedApiName.addEventListener('input', () => {
+        const name = sharedApiName.value.trim();
+
+        sharedApiTitle.textContent = name || '副 API 设置';
     });
 
     sharedApiUrl.addEventListener('change', () => {
@@ -3742,7 +3713,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.6.5');
+    console.info('[YaKit-纪实] initialized v0.6.8');
 }
 
 jQuery(() => {
