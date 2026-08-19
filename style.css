@@ -1857,17 +1857,6 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-#stce_ai_secondary_field {
-    transition: opacity 0.15s ease;
-}
-
-#stce_ai_secondary_field.is-disabled {
-    opacity: 0.42;
-}
-
-#stce_ai_secondary_field.is-disabled .stce-select-trigger {
-    cursor: default;
-}
 
 
 /* =========================
@@ -1988,5 +1977,238 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
     .stce-shared-model-action .menu_button {
         width: fit-content !important;
         min-width: 126px !important;
+    }
+}
+
+
+/* =========================
+   v0.6.0 - Larger preset manager
+   ========================= */
+
+.stce-preset-bar {
+    gap: 22px !important;
+    padding: 20px 22px !important;
+    border-radius: 20px !important;
+}
+
+.stce-preset-picker {
+    min-width: 340px !important;
+    max-width: 620px !important;
+    flex-basis: 500px !important;
+    gap: 9px !important;
+}
+
+.stce-preset-label {
+    font-size: 0.96rem !important;
+    font-weight: 700 !important;
+    opacity: 0.82 !important;
+}
+
+.stce-preset-picker .stce-select-trigger {
+    min-height: 56px !important;
+    padding: 11px 16px !important;
+    border-radius: 15px !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+}
+
+.stce-preset-actions {
+    gap: 9px !important;
+}
+
+.stce-preset-button {
+    min-height: 50px !important;
+    gap: 9px !important;
+    padding: 11px 16px !important;
+    border-radius: 14px !important;
+    font-size: 0.96rem !important;
+    font-weight: 600 !important;
+}
+
+.stce-preset-button > i {
+    font-size: 1rem;
+}
+
+/* =========================
+   v0.6.0 - Multi secondary API manager
+   ========================= */
+
+.stce-shared-api-card {
+    gap: 20px !important;
+    padding: 20px 22px !important;
+    border-radius: 20px !important;
+    background: rgb(127 127 127 / 0.035) !important;
+}
+
+.stce-secondary-manager {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 18px;
+    padding-bottom: 18px;
+
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+}
+
+.stce-secondary-picker {
+    min-width: 320px;
+    max-width: 620px;
+    flex: 1 1 500px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.stce-secondary-label {
+    font-size: 0.94rem;
+    font-weight: 700;
+    opacity: 0.82;
+}
+
+.stce-secondary-picker .stce-select-trigger {
+    min-height: 54px !important;
+    padding: 10px 15px !important;
+
+    border-radius: 14px !important;
+
+    font-size: 1.02rem !important;
+    font-weight: 650 !important;
+}
+
+.stce-secondary-actions {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+.stce-secondary-button {
+    appearance: none;
+
+    min-height: 46px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+    padding: 9px 13px;
+
+    border: 0;
+    border-radius: 13px;
+
+    color: var(--SmartThemeBodyColor);
+    background: rgb(127 127 127 / 0.075);
+
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.stce-secondary-button:hover:not(:disabled) {
+    background: rgb(127 127 127 / 0.13);
+}
+
+.stce-secondary-button:disabled {
+    opacity: 0.28;
+    cursor: default;
+}
+
+.stce-secondary-button.stce-danger:hover:not(:disabled) {
+    background: rgb(220 60 60 / 0.12);
+}
+
+.stce-shared-api-head > div:first-child > strong {
+    font-size: 1.08rem;
+}
+
+.stce-shared-api-head > div:first-child > span {
+    font-size: 0.84rem !important;
+}
+
+.stce-shared-api-status {
+    padding: 6px 11px !important;
+    font-size: 0.8rem !important;
+}
+
+.stce-shared-api-grid {
+    grid-template-columns: minmax(0, 1fr) 170px !important;
+    gap: 15px !important;
+}
+
+.stce-shared-api-card input[type="text"],
+.stce-shared-api-card input[type="password"] {
+    min-height: 52px !important;
+    padding: 11px 14px !important;
+    border-radius: 14px !important;
+    font-size: 0.98rem !important;
+}
+
+.stce-shared-api-card .stce-select-trigger {
+    min-height: 52px !important;
+    border-radius: 14px !important;
+    font-size: 0.98rem !important;
+}
+
+.stce-shared-model-action .menu_button {
+    min-height: 52px !important;
+    border-radius: 14px !important;
+    font-size: 0.94rem !important;
+}
+
+.stce-shared-api-note {
+    font-size: 0.8rem !important;
+}
+
+@media (max-width: 900px) {
+    .stce-secondary-manager {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .stce-secondary-picker {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        flex-basis: auto;
+    }
+
+    .stce-secondary-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 560px) {
+    .stce-preset-bar {
+        padding: 16px !important;
+    }
+
+    .stce-preset-picker {
+        min-width: 0 !important;
+    }
+
+    .stce-secondary-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .stce-secondary-button {
+        width: 100%;
+    }
+
+    .stce-shared-api-card {
+        padding: 16px !important;
     }
 }
