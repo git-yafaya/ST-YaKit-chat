@@ -125,6 +125,49 @@ function getSettings() {
 }
 
 
+function cleanupLegacySharedConnectionProfiles(profileIds = []) {
+    const ids = new Set(
+        profileIds.filter((id) => typeof id === 'string' && id),
+    );
+
+    const { extensionSettings } = getContext();
+    const manager = extensionSettings.connectionManager;
+
+    if (!manager || !Array.isArray(manager.profiles)) {
+        return false;
+    }
+
+    const before = manager.profiles.length;
+    const removedIds = new Set();
+
+    manager.profiles = manager.profiles.filter((profile) => {
+        const isKnownLegacyId = ids.has(profile?.id);
+        const isYaKitLegacyProfile = typeof profile?.name === 'string'
+            && profile.name.startsWith('YaKit · ');
+        const remove = isKnownLegacyId || isYaKitLegacyProfile;
+
+        if (remove && profile?.id) {
+            removedIds.add(profile.id);
+        }
+
+        return !remove;
+    });
+
+    if (removedIds.has(manager.selectedProfile)) {
+        manager.selectedProfile = null;
+    }
+
+    if (manager.profiles.length !== before) {
+        console.info(
+            '[YaKit-纪实] removed legacy Connection Manager profiles:',
+            before - manager.profiles.length,
+        );
+        return true;
+    }
+
+    return false;
+}
+
 function getSharedSecondaryApiSettings() {
     const { extensionSettings } = getContext();
 
@@ -151,15 +194,16 @@ function getSharedSecondaryApiSettings() {
     if (!extensionSettings[SHARED_SECONDARY_API_KEY]
         || typeof extensionSettings[SHARED_SECONDARY_API_KEY] !== 'object') {
         extensionSettings[SHARED_SECONDARY_API_KEY] = {
-            version: 2,
+            version: 3,
             activeConnectionId: '',
             connections: [],
         };
     }
 
     const store = extensionSettings[SHARED_SECONDARY_API_KEY];
+    const legacyProfileIds = [];
 
-    // v1 -> v2 migration: single API config -> named API list.
+    // v1 -> v3 migration: single API config -> named API list.
     if (!Array.isArray(store.connections)) {
         const hasLegacyConfig = Boolean(
             store.apiUrl
@@ -168,6 +212,10 @@ function getSharedSecondaryApiSettings() {
             || store.profileId,
         );
 
+        if (typeof store.profileId === 'string' && store.profileId) {
+            legacyProfileIds.push(store.profileId);
+        }
+
         store.connections = [
             {
                 id: createId('secondary'),
@@ -175,7 +223,6 @@ function getSharedSecondaryApiSettings() {
                 apiUrl: typeof store.apiUrl === 'string' ? store.apiUrl : '',
                 model: typeof store.model === 'string' ? store.model : '',
                 secretId: typeof store.secretId === 'string' ? store.secretId : '',
-                profileId: typeof store.profileId === 'string' ? store.profileId : '',
             },
         ];
 
@@ -186,9 +233,7 @@ function getSharedSecondaryApiSettings() {
         delete store.secretId;
         delete store.profileId;
 
-        getContext().saveSettingsDebounced?.();
-
-        console.info('[YaKit-纪实] migrated shared secondary API store to v2');
+        console.info('[YaKit-纪实] migrated shared secondary API store to v3');
     }
 
     if (store.connections.length === 0) {
@@ -198,7 +243,6 @@ function getSharedSecondaryApiSettings() {
             apiUrl: '',
             model: '',
             secretId: '',
-            profileId: '',
         });
     }
 
@@ -223,9 +267,12 @@ function getSharedSecondaryApiSettings() {
             ? connection.secretId
             : '';
 
-        connection.profileId = typeof connection.profileId === 'string'
-            ? connection.profileId
-            : '';
+        // v2 used Connection Manager profiles for routing. v3 calls ST's backend
+        // directly with custom_url + secret_id, so remove the old profile link.
+        if (typeof connection.profileId === 'string' && connection.profileId) {
+            legacyProfileIds.push(connection.profileId);
+        }
+        delete connection.profileId;
     }
 
     if (!store.activeConnectionId
@@ -235,7 +282,21 @@ function getSharedSecondaryApiSettings() {
         store.activeConnectionId = store.connections[0].id;
     }
 
-    store.version = 2;
+    const needsLegacyProfileCleanup =
+        store.version !== 3 || legacyProfileIds.length > 0;
+    const removedProfiles = needsLegacyProfileCleanup
+        ? cleanupLegacySharedConnectionProfiles(
+            [...new Set(legacyProfileIds)],
+        )
+        : false;
+
+    if (store.version !== 3 || legacyProfileIds.length || removedProfiles) {
+        store.version = 3;
+        getContext().saveSettingsDebounced?.();
+    } else {
+        store.version = 3;
+    }
+
     return store;
 }
 
@@ -270,24 +331,6 @@ function setActiveSharedSecondaryConnection(connectionId) {
     return getSharedSecondaryConnection(store.activeConnectionId);
 }
 
-function getConnectionManagerSettings() {
-    const { extensionSettings } = getContext();
-
-    if (!extensionSettings.connectionManager
-        || typeof extensionSettings.connectionManager !== 'object') {
-        extensionSettings.connectionManager = {
-            profiles: [],
-            selectedProfile: null,
-        };
-    }
-
-    if (!Array.isArray(extensionSettings.connectionManager.profiles)) {
-        extensionSettings.connectionManager.profiles = [];
-    }
-
-    return extensionSettings.connectionManager;
-}
-
 function getActiveCustomSecretId() {
     const state = secret_state?.[SECRET_KEYS.CUSTOM];
 
@@ -307,6 +350,8 @@ async function writeSharedSecondaryApiSecret(connection, value) {
         throw new Error('没有选中的副 API');
     }
 
+    // writeSecret() may activate the newly written Custom secret. Preserve the
+    // user's current Custom secret and restore it immediately after saving.
     const previousActiveId = getActiveCustomSecretId();
 
     const secretId = await writeSecret(
@@ -337,101 +382,37 @@ async function writeSharedSecondaryApiSecret(connection, value) {
 }
 
 function normalizeOpenAiCompatibleUrl(value) {
-    return String(value || '').trim().replace(/\/+$/, '');
-}
+    const url = String(value || '').trim().replace(/\/+$/, '');
 
-function ensureSharedConnectionProfile(connection) {
-    if (!connection) {
+    if (!url) {
         return '';
     }
 
-    const manager = getConnectionManagerSettings();
-
-    if (!connection.apiUrl || !connection.model || !connection.secretId) {
-        return '';
+    if (/\/chat\/completions$/i.test(url)) {
+        return url.replace(/\/chat\/completions$/i, '');
     }
 
-    let profile = connection.profileId
-        ? manager.profiles.find((item) => item.id === connection.profileId)
-        : null;
-
-    if (!profile) {
-        profile = {
-            id: createId('shared_api'),
-            name: '',
-            mode: 'cc',
-            exclude: [],
-        };
-
-        manager.profiles.push(profile);
-        connection.profileId = profile.id;
+    if (/^https?:\/\/[^/?#]+$/i.test(url)) {
+        return `${url}/v1`;
     }
 
-    profile.name = `YaKit · ${connection.name}`;
-    profile.mode = 'cc';
-    profile.api = 'custom';
-    profile['api-url'] = connection.apiUrl;
-    profile.model = connection.model;
-    profile['secret-id'] = connection.secretId;
-    profile.exclude = Array.isArray(profile.exclude) ? profile.exclude : [];
-
-    saveSettings();
-    return profile.id;
+    return url;
 }
 
-function removeSharedConnectionProfile(connection) {
-    if (!connection?.profileId) {
-        return;
-    }
-
-    const manager = getConnectionManagerSettings();
-
-    manager.profiles = manager.profiles.filter(
-        (profile) => profile.id !== connection.profileId,
-    );
-
-    getContext().extensionSettings.connectionManager.profiles = manager.profiles;
-    connection.profileId = '';
-
-    saveSettings();
-}
-
-function getSharedConnectionProfile(connectionId = '') {
+function getSharedSecondaryRequestConfig(connectionId = '') {
     const connection = getSharedSecondaryConnection(connectionId);
 
-    if (!connection?.profileId) {
+    if (!connection) {
         return null;
     }
 
-    return getConnectionManagerSettings().profiles
-        .find((item) => item.id === connection.profileId) || null;
-}
-
-async function withSharedCustomSecret(connection, callback) {
-    if (!connection?.secretId) {
-        throw new Error('请先填写并保存副 API Key');
-    }
-
-    const previousActiveId = getActiveCustomSecretId();
-
-    try {
-        if (previousActiveId !== connection.secretId) {
-            await rotateSecret(SECRET_KEYS.CUSTOM, connection.secretId);
-        }
-
-        return await callback();
-    } finally {
-        if (previousActiveId && previousActiveId !== connection.secretId) {
-            try {
-                await rotateSecret(SECRET_KEYS.CUSTOM, previousActiveId);
-            } catch (error) {
-                console.warn(
-                    '[YaKit-纪实] Failed to restore previous Custom secret.',
-                    error,
-                );
-            }
-        }
-    }
+    return {
+        id: connection.id,
+        name: connection.name,
+        apiUrl: normalizeOpenAiCompatibleUrl(connection.apiUrl),
+        model: connection.model,
+        secretId: connection.secretId,
+    };
 }
 
 async function fetchSharedSecondaryApiModels(connection) {
@@ -445,38 +426,40 @@ async function fetchSharedSecondaryApiModels(connection) {
         throw new Error('请先填写 API URL');
     }
 
+    if (!connection.secretId) {
+        throw new Error('请先填写并保存副 API Key');
+    }
+
     connection.apiUrl = apiUrl;
 
-    const data = await withSharedCustomSecret(connection, async () => {
-        const response = await fetch('/api/backends/chat-completions/status', {
-            method: 'POST',
-            headers: getContext().getRequestHeaders(),
-            body: JSON.stringify({
-                reverse_proxy: '',
-                proxy_password: '',
-                chat_completion_source: 'custom',
-                custom_url: apiUrl,
-                custom_include_headers: '',
-            }),
-            cache: 'no-cache',
-        });
-
-        const body = await response.json().catch(() => ({}));
-
-        if (!response.ok || body?.error) {
-            const message =
-                body?.error?.message
-                || body?.message
-                || `HTTP ${response.status}`;
-
-            throw new Error(`获取模型失败：${message}`);
-        }
-
-        return body;
+    // SillyTavern's custom backend accepts secret_id directly. This lets YaKit
+    // use its own stored Secret without rotating the active Custom secret and
+    // without creating a Connection Manager profile.
+    const response = await fetch('/api/backends/chat-completions/status', {
+        method: 'POST',
+        headers: getContext().getRequestHeaders(),
+        body: JSON.stringify({
+            chat_completion_source: 'custom',
+            custom_url: apiUrl,
+            custom_include_headers: '',
+            secret_id: connection.secretId,
+        }),
+        cache: 'no-cache',
     });
 
-    const models = Array.isArray(data?.data)
-        ? data.data
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok || body?.error) {
+        const message =
+            body?.error?.message
+            || body?.message
+            || `HTTP ${response.status}`;
+
+        throw new Error(`获取模型失败：${message}`);
+    }
+
+    const models = Array.isArray(body?.data)
+        ? body.data
             .map((item) => typeof item === 'string' ? item : item?.id)
             .filter((item) => typeof item === 'string' && item.trim())
         : [];
@@ -496,7 +479,7 @@ async function fetchSharedSecondaryApiModels(connection) {
 
 function exposeSharedSecondaryApi() {
     window.YaKitSharedSecondaryApi = {
-        version: 2,
+        version: 3,
         settingsKey: SHARED_SECONDARY_API_KEY,
         listConnections: () => deepClone(getSharedSecondaryConnections()),
         getConnection: (connectionId = '') =>
@@ -505,10 +488,11 @@ function exposeSharedSecondaryApi() {
             deepClone(getSharedSecondaryConnection()),
         setActiveConnection: (connectionId) =>
             deepClone(setActiveSharedSecondaryConnection(connectionId)),
-        getProfileId: (connectionId = '') =>
-            getSharedSecondaryConnection(connectionId)?.profileId || '',
-        getProfile: (connectionId = '') =>
-            deepClone(getSharedConnectionProfile(connectionId)),
+        getRequestConfig: (connectionId = '') =>
+            deepClone(getSharedSecondaryRequestConfig(connectionId)),
+        // v2 compatibility: Connection Manager profiles are no longer used.
+        getProfileId: () => '',
+        getProfile: () => null,
     };
 }
 
@@ -1704,34 +1688,32 @@ async function requestPrimaryAiRuleSuggestions(args) {
     return parsed;
 }
 
-function getSecondaryApiProfiles() {
-    const service = getContext().ConnectionManagerRequestService;
-
-    if (!service || typeof service.getSupportedProfiles !== 'function') {
-        return [];
-    }
-
-    try {
-        return service.getSupportedProfiles()
-            .filter((profile) => profile?.id && profile?.name);
-    } catch (error) {
-        console.warn('[ST Chat Exporter] Failed to read connection profiles:', error);
-        return [];
-    }
+function extractChatCompletionText(payload) {
+    return (
+        payload?.choices?.[0]?.message?.content
+        ?? payload?.choices?.[0]?.text
+        ?? payload?.content
+        ?? ''
+    );
 }
 
-async function requestSecondaryAiRuleSuggestions(args, profileId) {
-    const service = getContext().ConnectionManagerRequestService;
+async function requestSecondaryAiRuleSuggestions(args, connectionId) {
+    const connection = getSharedSecondaryConnection(connectionId);
 
-    if (!service || typeof service.sendRequest !== 'function') {
-        throw new Error('当前 SillyTavern 未提供 Connection Manager 请求服务');
+    if (!connection) {
+        throw new Error('请选择一个可用的 YaKit 副 API');
     }
 
-    const profile = getSecondaryApiProfiles()
-        .find((item) => item.id === profileId);
+    if (!connection.apiUrl) {
+        throw new Error('当前副 API 尚未填写 API URL');
+    }
 
-    if (!profile) {
-        throw new Error('请选择一个可用的副 API Connection Profile');
+    if (!connection.secretId) {
+        throw new Error('当前副 API 尚未填写 API Key');
+    }
+
+    if (!connection.model) {
+        throw new Error('当前副 API 尚未选择模型');
     }
 
     const systemPrompt = [
@@ -1748,33 +1730,45 @@ async function requestSecondaryAiRuleSuggestions(args, profileId) {
         '{"summary":"...","suggestions":[{"name":"...","reason":"...","stage":"message","scope":"assistant","pattern":"...","replacement":"","flags":"gi"}]}',
     ].join('\n');
 
-    const response = await service.sendRequest(
-        profile.id,
-        [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt },
-        ],
-        2200,
-        {
+    const response = await fetch('/api/backends/chat-completions/generate', {
+        method: 'POST',
+        headers: getContext().getRequestHeaders(),
+        body: JSON.stringify({
+            chat_completion_source: 'custom',
+            custom_url: normalizeOpenAiCompatibleUrl(connection.apiUrl),
+            custom_include_headers: '',
+            custom_include_body: '',
+            custom_exclude_body: '',
+            secret_id: connection.secretId,
+            model: connection.model,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: prompt },
+            ],
+            temperature: 0.2,
+            max_tokens: 2200,
             stream: false,
-            extractData: true,
-            includePreset: true,
-            includeInstruct: true,
-        },
-    );
+            presence_penalty: 0,
+            frequency_penalty: 0,
+        }),
+        cache: 'no-cache',
+    });
 
-    if (typeof response === 'function') {
-        throw new Error('副 API 意外返回了流式响应');
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || payload?.error) {
+        const message =
+            payload?.error?.message
+            || payload?.message
+            || `HTTP ${response.status}`;
+        throw new Error(`副 API 请求失败：${message}`);
     }
 
-    const raw = typeof response === 'string'
-        ? response
-        : response?.content;
-
+    const raw = extractChatCompletionText(payload);
     const parsed = validateAiPayload(parseAiJson(raw));
 
     if (!parsed) {
-        throw new Error(`副 API“${profile.name}”没有返回可解析的规则 JSON`);
+        throw new Error(`副 API“${connection.name}”没有返回可解析的规则 JSON`);
     }
 
     return parsed;
@@ -1783,7 +1777,7 @@ async function requestSecondaryAiRuleSuggestions(args, profileId) {
 async function requestAiRuleSuggestions(args, apiConfig = {}) {
     const { loader } = getContext();
     const mode = apiConfig.mode || 'primary';
-    const secondaryProfileId = apiConfig.secondaryProfileId || '';
+    const secondaryConnectionId = apiConfig.secondaryConnectionId || '';
 
     let loadingHandle = null;
 
@@ -1799,7 +1793,7 @@ async function requestAiRuleSuggestions(args, apiConfig = {}) {
         });
 
         if (mode === 'secondary') {
-            return await requestSecondaryAiRuleSuggestions(args, secondaryProfileId);
+            return await requestSecondaryAiRuleSuggestions(args, secondaryConnectionId);
         }
 
         return await requestPrimaryAiRuleSuggestions(args);
@@ -1840,6 +1834,7 @@ function createExporterContent() {
         </div>
 
         <div class="stce-tabs" role="tablist">
+            <span class="stce-tab-glass" aria-hidden="true"></span>
             <button class="stce-tab is-active" data-tab="export">导出</button>
             <button class="stce-tab" data-tab="rules">清洗规则</button>
             <button class="stce-tab" data-tab="ai">AI 分析</button>
@@ -2151,7 +2146,7 @@ function createExporterContent() {
 
                             <div class="stce-shared-api-note">
                                 <i class="fa-solid fa-shield-halved"></i>
-                                <span>普通设置只保存 URL、模型和 Secret/Profile ID，不保存 API Key 明文。</span>
+                                <span>普通设置只保存 URL、模型和 Secret ID，不保存 API Key 明文。</span>
                             </div>
                         </div>
 
@@ -2184,6 +2179,9 @@ function createExporterContent() {
 
     const tabButtons = [...root.querySelectorAll('.stce-tab')];
     const panels = [...root.querySelectorAll('.stce-panel')];
+    const tabsRoot = root.querySelector('.stce-tabs');
+    const tabGlass = root.querySelector('.stce-tab-glass');
+    let tabGlassAnimation = null;
 
     const includeUser = root.querySelector('#stce_include_user');
     const includeAssistant = root.querySelector('#stce_include_assistant');
@@ -2828,7 +2826,6 @@ function createExporterContent() {
 
                 secondaryDraft = null;
 
-                ensureSharedConnectionProfile(pendingDraft);
                 saveSettings();
 
                 renderSecondaryConnectionSelect();
@@ -2870,8 +2867,7 @@ function createExporterContent() {
         const ready = Boolean(
             connection.apiUrl
             && connection.model
-            && connection.secretId
-            && connection.profileId,
+            && connection.secretId,
         );
 
         if (isDraft) {
@@ -2945,29 +2941,7 @@ function createExporterContent() {
 
         const isDraft = secondaryDraft === connection;
 
-        if (isDraft) {
-            renderSharedModelSelect();
-            updateSharedApiStatus();
-            return '';
-        }
-
-        saveSettings();
-
-        // YaKit 副 API profile 仅用于内部请求路由，不应改变用户当前主 API。
-        // 创建/更新 Connection Manager profile 前后保留当前选择状态。
-        const connectionManager = getConnectionManagerSettings();
-        const previousSelectedProfile = connectionManager.selectedProfile;
-
-        const profileId = ensureSharedConnectionProfile(connection);
-
-        connectionManager.selectedProfile = previousSelectedProfile;
-        saveSettings();
-
-        renderSecondaryConnectionSelect();
-        aiSecondaryConnection.value = connection.id;
-        loadSharedApiUi();
-
-        if (requireReady && !profileId) {
+        if (requireReady) {
             if (!connection.apiUrl) {
                 throw new Error('请填写副 API URL');
             }
@@ -2979,11 +2953,20 @@ function createExporterContent() {
             if (!connection.model) {
                 throw new Error('请选择模型，或填写自定义模型 ID');
             }
-
-            throw new Error('当前副 API 配置尚未完成');
         }
 
-        return profileId;
+        if (isDraft) {
+            renderSharedModelSelect();
+            updateSharedApiStatus();
+            return connection.id;
+        }
+
+        saveSettings();
+        renderSecondaryConnectionSelect();
+        aiSecondaryConnection.value = connection.id;
+        loadSharedApiUi();
+
+        return connection.id;
     }
 
     async function handleFetchSharedModels() {
@@ -3011,7 +2994,6 @@ function createExporterContent() {
 
             if (secondaryDraft !== connection) {
                 saveSettings();
-                ensureSharedConnectionProfile(connection);
 
                 renderSecondaryConnectionSelect();
                 aiSecondaryConnection.value = connection.id;
@@ -3049,7 +3031,6 @@ function createExporterContent() {
             apiUrl: '',
             model: '',
             secretId: '',
-            profileId: '',
         };
 
         openSecondaryApiModal();
@@ -3091,7 +3072,6 @@ function createExporterContent() {
             return;
         }
 
-        removeSharedConnectionProfile(connection);
 
         store.connections = store.connections.filter(
             (item) => item.id !== connection.id,
@@ -3302,7 +3282,7 @@ function createExporterContent() {
         const needsSecondary =
             apiSelection.mode === 'secondary';
 
-        let secondaryRequestProfileId = '';
+        let secondaryRequestConnectionId = '';
 
         if (needsSecondary) {
             try {
@@ -3326,13 +3306,7 @@ function createExporterContent() {
                     throw new Error('当前副 API 尚未选择模型');
                 }
 
-                secondaryRequestProfileId =
-                    connection.profileId
-                    || ensureSharedConnectionProfile(connection);
-
-                if (!secondaryRequestProfileId) {
-                    throw new Error('当前副 API 配置尚未完成');
-                }
+                secondaryRequestConnectionId = connection.id;
             } catch (error) {
                 toastr.warning(
                     error?.message || String(error),
@@ -3356,7 +3330,7 @@ function createExporterContent() {
                 presetName: getActivePreset().name,
             }, {
                 mode: apiSelection.mode,
-                secondaryProfileId: secondaryRequestProfileId,
+                secondaryConnectionId: secondaryRequestConnectionId,
             });
 
             aiSummary = result.summary || '分析完成';
@@ -3777,6 +3751,101 @@ function createExporterContent() {
         }
     }
 
+    function syncTabGlass(targetButton, animate = true) {
+        if (!tabsRoot || !tabGlass || !targetButton) {
+            return;
+        }
+
+        const tabsRect = tabsRoot.getBoundingClientRect();
+        const glassRect = tabGlass.getBoundingClientRect();
+        const targetX = targetButton.offsetLeft;
+        const targetWidth = targetButton.offsetWidth;
+
+        const currentX = glassRect.width
+            ? glassRect.left - tabsRect.left
+            : targetX;
+        const currentWidth = glassRect.width || targetWidth;
+
+        tabGlassAnimation?.cancel();
+        tabGlassAnimation = null;
+
+        tabGlass.style.width = `${targetWidth}px`;
+        tabGlass.style.transform = `translate3d(${targetX}px, 0, 0)`;
+        tabGlass.dataset.x = String(targetX);
+        tabGlass.dataset.width = String(targetWidth);
+
+        const reduceMotion = window.matchMedia?.(
+            '(prefers-reduced-motion: reduce)',
+        )?.matches;
+
+        if (!animate || reduceMotion || !tabsRoot.isConnected) {
+            tabsRoot.classList.remove('is-glass-moving');
+            return;
+        }
+
+        const direction = targetX >= currentX ? 1 : -1;
+        const distance = Math.abs(targetX - currentX);
+        const stretch = Math.min(20, Math.max(8, distance * 0.10));
+        const overshoot = Math.min(4, Math.max(1.5, distance * 0.025));
+        const stretchedX = targetX - direction * stretch * 0.38;
+        const compressedWidth = Math.max(20, targetWidth - 2);
+
+        tabGlass.style.transformOrigin = direction > 0
+            ? 'right center'
+            : 'left center';
+        tabsRoot.classList.add('is-glass-moving');
+
+        tabGlassAnimation = tabGlass.animate(
+            [
+                {
+                    transform: `translate3d(${currentX}px, 0, 0) scaleX(1)`,
+                    width: `${currentWidth}px`,
+                    offset: 0,
+                },
+                {
+                    transform: `translate3d(${stretchedX}px, 0, 0) scaleX(1.035)`,
+                    width: `${targetWidth + stretch}px`,
+                    offset: 0.46,
+                },
+                {
+                    transform: `translate3d(${targetX + direction * overshoot}px, 0, 0) scaleX(0.985)`,
+                    width: `${compressedWidth}px`,
+                    offset: 0.78,
+                },
+                {
+                    transform: `translate3d(${targetX}px, 0, 0) scaleX(1)`,
+                    width: `${targetWidth}px`,
+                    offset: 1,
+                },
+            ],
+            {
+                duration: 520,
+                easing: 'cubic-bezier(0.22, 0.88, 0.24, 1)',
+                fill: 'none',
+            },
+        );
+
+        const finishGlassMotion = () => {
+            tabsRoot.classList.remove('is-glass-moving');
+            tabGlass.style.transformOrigin = 'center';
+            tabGlassAnimation = null;
+        };
+
+        tabGlassAnimation.addEventListener(
+            'finish',
+            finishGlassMotion,
+            { once: true },
+        );
+
+        tabGlassAnimation.addEventListener(
+            'cancel',
+            () => {
+                tabsRoot.classList.remove('is-glass-moving');
+            },
+            { once: true },
+        );
+    }
+
     for (const button of tabButtons) {
         button.addEventListener('click', () => {
             const tab = button.dataset.tab;
@@ -3784,6 +3853,8 @@ function createExporterContent() {
             for (const item of tabButtons) {
                 item.classList.toggle('is-active', item === button);
             }
+
+            syncTabGlass(button, true);
 
             for (const panel of panels) {
                 panel.classList.toggle('is-active', panel.dataset.panel === tab);
@@ -4080,7 +4151,6 @@ function createExporterContent() {
         );
 
         saveSettings();
-        ensureSharedConnectionProfile(connection);
         updateSharedApiStatus();
     });
 
@@ -4096,7 +4166,6 @@ function createExporterContent() {
             sharedCustomModel.value = sharedApiModel.value;
 
             saveSettings();
-            ensureSharedConnectionProfile(connection);
             renderSecondaryConnectionSelect();
             aiSecondaryConnection.value = connection.id;
             updateSharedApiStatus();
@@ -4111,7 +4180,6 @@ function createExporterContent() {
         connection.model = sharedCustomModel.value.trim();
 
         saveSettings();
-        ensureSharedConnectionProfile(connection);
         renderSecondaryConnectionSelect();
         aiSecondaryConnection.value = connection.id;
         updateSharedApiStatus();
@@ -4162,6 +4230,26 @@ function createExporterContent() {
 
     renderRules();
     refreshChat();
+
+    const syncActiveTabGlass = () => {
+        const activeTab = tabButtons.find(
+            (button) => button.classList.contains('is-active'),
+        );
+        syncTabGlass(activeTab, false);
+    };
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(syncActiveTabGlass);
+    });
+
+    if (typeof ResizeObserver === 'function' && tabsRoot) {
+        const tabsResizeObserver = new ResizeObserver(() => {
+            if (root.isConnected) {
+                syncActiveTabGlass();
+            }
+        });
+        tabsResizeObserver.observe(tabsRoot);
+    }
 
     return root;
 }
@@ -4236,7 +4324,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.8.1');
+    console.info('[YaKit-纪实] initialized v0.8.5');
 }
 
 jQuery(() => {
