@@ -1,6 +1,6 @@
 /* =========================
    ST Chat Exporter
-   v0.2.2 - Large rounded popup + cleaning rules
+   v0.2.3 - Large rounded popup + cleaning rules
    ========================= */
 
 /* 只影响正文导出器自己的 Popup */
@@ -1197,4 +1197,19 @@ dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok {
         min-height: 44px !important;
         padding-inline: 14px !important;
     }
+}
+
+
+/* =========================
+   v0.2.3 - Rule name input
+   ========================= */
+
+.stce-rule-editor #stce_rule_name {
+    min-height: 48px !important;
+    padding: 10px 14px !important;
+
+    border-radius: 13px !important;
+
+    font-size: 1.04rem !important;
+    line-height: 1.35 !important;
 }
