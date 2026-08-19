@@ -1948,7 +1948,51 @@ function createExporterContent() {
         </section>
 
         <section class="stce-panel" data-panel="ai">
-            <div class="stce-ai-config">
+            <div class="stce-ai-drawers">
+
+                <section class="stce-ai-drawer" data-ai-drawer="secondary">
+                    <button class="stce-ai-drawer-trigger" type="button" aria-expanded="false">
+                        <span class="stce-ai-drawer-title-group">
+                            <span class="stce-ai-drawer-title">副 API</span>
+                            <span class="stce-ai-drawer-subtitle">管理 YaKit 共用的独立 AI 连接</span>
+                        </span>
+
+                        <i class="fa-solid fa-chevron-down stce-ai-drawer-chevron"></i>
+                    </button>
+
+                    <div class="stce-ai-drawer-body" hidden>
+                <div class="stce-shared-api-card" id="stce_shared_api_card">
+                    <div class="stce-secondary-manager">
+                        <div class="stce-secondary-list-head">
+                            <strong>副 API</strong>
+
+                            <button id="stce_secondary_new" type="button" class="stce-secondary-add">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>添加副 API</span>
+                            </button>
+                        </div>
+
+                        <select id="stce_ai_secondary_connection" hidden></select>
+                        <div class="stce-secondary-list" id="stce_secondary_list"></div>
+                    </div>
+                </div>
+
+
+                    </div>
+                </section>
+
+                <section class="stce-ai-drawer is-open" data-ai-drawer="regex">
+                    <button class="stce-ai-drawer-trigger" type="button" aria-expanded="true">
+                        <span class="stce-ai-drawer-title-group">
+                            <span class="stce-ai-drawer-title">正则助手</span>
+                            <span class="stce-ai-drawer-subtitle">抽样聊天并生成可确认的清洗规则</span>
+                        </span>
+
+                        <i class="fa-solid fa-chevron-down stce-ai-drawer-chevron"></i>
+                    </button>
+
+                    <div class="stce-ai-drawer-body">
+                        <div class="stce-ai-config stce-ai-config-in-drawer">
                 <div class="stce-ai-config-head">
                     <div>
                         <div class="stce-ai-title-row">
@@ -1965,6 +2009,7 @@ function createExporterContent() {
                         <strong id="stce_ai_preset_name">默认</strong>
                     </div>
                 </div>
+
 
                 <div class="stce-ai-options">
                     <label class="stce-field">
@@ -1995,21 +2040,41 @@ function createExporterContent() {
 
                 </div>
 
-                <div class="stce-shared-api-card" id="stce_shared_api_card" hidden>
-                    <div class="stce-secondary-manager">
-                        <div class="stce-secondary-list-head">
-                            <strong>副 API</strong>
 
-                            <button id="stce_secondary_new" type="button" class="stce-secondary-add">
-                                <i class="fa-solid fa-plus"></i>
-                                <span>添加副 API</span>
-                            </button>
+                <label class="stce-field stce-ai-goal">
+                    <span>清洗目标</span>
+                    <textarea
+                        id="stce_ai_goal"
+                        rows="3"
+                        placeholder="例如：保留叙述、动作和对白，删除思考、状态栏、记忆摘要、变量更新与规则说明。"
+                    >保留叙述、动作和对白，删除思考、状态栏、记忆摘要、变量更新与规则说明。</textarea>
+                </label>
+
+                <div class="stce-ai-config-actions">
+                    <span id="stce_ai_sample_meta" class="stce-meta">
+                        将从当前聊天均匀抽取代表性消息
+                    </span>
+
+                    <button id="stce_ai_analyze" type="button" class="menu_button stce-ai-primary">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        开始分析
+                    </button>
+                </div>
+
                         </div>
 
-                        <select id="stce_ai_secondary_connection" hidden></select>
-                        <div class="stce-secondary-list" id="stce_secondary_list"></div>
-                    </div>
+            <div class="stce-ai-results" id="stce_ai_results">
+                <div class="stce-ai-empty">
+                    <i class="fa-solid fa-sparkles"></i>
+                    <strong>还没有 AI 分析结果</strong>
+                    <span>AI 会读取抽样消息和当前预设已有规则，只建议尚未处理的格式。</span>
                 </div>
+            </div>
+        </section>
+                    </div>
+                </section>
+
+            </div>
 
                 <div class="stce-secondary-modal" id="stce_secondary_modal" hidden>
                     <div class="stce-secondary-modal-dialog" role="dialog" aria-modal="true"
@@ -2108,34 +2173,7 @@ function createExporterContent() {
                     </div>
                 </div>
 
-                <label class="stce-field stce-ai-goal">
-                    <span>清洗目标</span>
-                    <textarea
-                        id="stce_ai_goal"
-                        rows="3"
-                        placeholder="例如：保留叙述、动作和对白，删除思考、状态栏、记忆摘要、变量更新与规则说明。"
-                    >保留叙述、动作和对白，删除思考、状态栏、记忆摘要、变量更新与规则说明。</textarea>
-                </label>
 
-                <div class="stce-ai-config-actions">
-                    <span id="stce_ai_sample_meta" class="stce-meta">
-                        将从当前聊天均匀抽取代表性消息
-                    </span>
-
-                    <button id="stce_ai_analyze" type="button" class="menu_button stce-ai-primary">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                        开始分析
-                    </button>
-                </div>
-            </div>
-
-            <div class="stce-ai-results" id="stce_ai_results">
-                <div class="stce-ai-empty">
-                    <i class="fa-solid fa-sparkles"></i>
-                    <strong>还没有 AI 分析结果</strong>
-                    <span>AI 会读取抽样消息和当前预设已有规则，只建议尚未处理的格式。</span>
-                </div>
-            </div>
         </section>
     `;
 
@@ -2157,6 +2195,8 @@ function createExporterContent() {
     const renamePresetButton = root.querySelector('#stce_rename_preset');
     const deletePresetButton = root.querySelector('#stce_delete_preset');
     const aiPresetName = root.querySelector('#stce_ai_preset_name');
+    const aiDrawers = [...root.querySelectorAll('.stce-ai-drawer')];
+    const aiDrawerTriggers = [...root.querySelectorAll('.stce-ai-drawer-trigger')];
     const aiScope = root.querySelector('#stce_ai_scope');
     const aiSampleCount = root.querySelector('#stce_ai_sample_count');
     const aiApiMode = root.querySelector('#stce_ai_api_mode');
@@ -2195,6 +2235,46 @@ function createExporterContent() {
     let aiSummary = '';
     let aiSuggestions = [];
     const sharedSecondaryModels = new Map();
+
+    function setAiDrawerState(targetDrawer, shouldOpen) {
+        aiDrawers.forEach((drawer) => {
+            const isTarget = drawer === targetDrawer;
+            const open = isTarget && shouldOpen;
+
+            drawer.classList.toggle('is-open', open);
+
+            const trigger = drawer.querySelector(
+                '.stce-ai-drawer-trigger',
+            );
+            const body = drawer.querySelector(
+                '.stce-ai-drawer-body',
+            );
+
+            trigger?.setAttribute(
+                'aria-expanded',
+                String(open),
+            );
+
+            if (body) {
+                body.hidden = !open;
+            }
+        });
+    }
+
+    function openAiDrawer(name) {
+        const drawer = aiDrawers.find(
+            (item) => item.dataset.aiDrawer === name,
+        );
+
+        if (drawer) {
+            setAiDrawerState(drawer, true);
+        }
+    }
+
+    function toggleAiDrawer(drawer) {
+        const isOpen = drawer.classList.contains('is-open');
+        setAiDrawerState(drawer, !isOpen);
+    }
 
     function getActivePreset() {
         let preset = settings.presets.find(
@@ -2780,29 +2860,27 @@ function createExporterContent() {
     }
 
     function updateAiApiState({ scrollIntoView = false } = {}) {
-        const mode = aiApiMode.value;
-
         const needsSecondary =
-            mode === 'secondary';
+            aiApiMode.value === 'secondary';
 
-        sharedApiCard.hidden = !needsSecondary;
-
-        if (!needsSecondary && !secondaryModal.hidden) {
-            closeSecondaryApiModal();
+        if (!needsSecondary) {
+            return;
         }
 
-        if (needsSecondary) {
-            renderSecondaryConnectionSelect();
-            loadSharedApiUi();
+        renderSecondaryConnectionSelect();
+        loadSharedApiUi();
 
-            if (scrollIntoView) {
-                requestAnimationFrame(() => {
-                    sharedApiCard.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest',
-                    });
+        if (scrollIntoView) {
+            openAiDrawer('secondary');
+
+            requestAnimationFrame(() => {
+                root.querySelector(
+                    '[data-ai-drawer="secondary"]',
+                )?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
                 });
-            }
+            });
         }
     }
 
@@ -3460,6 +3538,16 @@ function createExporterContent() {
 
     renderSecondaryApiConnections();
 
+    aiDrawerTriggers.forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+            const drawer = trigger.closest('.stce-ai-drawer');
+
+            if (drawer) {
+                toggleAiDrawer(drawer);
+            }
+        });
+    });
+
     aiApiMode.addEventListener('change', () => {
         settings.ai.apiMode = aiApiMode.value;
         saveSettings();
@@ -3599,7 +3687,10 @@ function createExporterContent() {
 
     sharedFetchModels.addEventListener('click', handleFetchSharedModels);
 
-    aiAnalyzeButton.addEventListener('click', analyzeWithAi);
+    aiAnalyzeButton.addEventListener('click', () => {
+        openAiDrawer('regex');
+        analyzeWithAi();
+    });
     renderAiResults();
 
     root.querySelector('#stce_add_rule').addEventListener('click', () => editRule());
@@ -3713,7 +3804,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.6.8');
+    console.info('[YaKit-纪实] initialized v0.6.9');
 }
 
 jQuery(() => {

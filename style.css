@@ -3132,3 +3132,214 @@ body.stce-secondary-modal-open {
         padding: 14px 18px 16px !important;
     }
 }
+
+
+/* =========================
+   v0.6.9 - AI analysis drawers
+   ========================= */
+
+.stce-ai-drawers {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+}
+
+.stce-ai-drawer {
+    width: 100%;
+
+    overflow: hidden;
+
+    border:
+        1px solid rgb(127 127 127 / 0.12);
+    border-radius: 18px;
+
+    background:
+        rgb(127 127 127 / 0.045);
+}
+
+.stce-ai-drawer-trigger {
+    appearance: none;
+
+    width: 100%;
+    min-height: 76px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+    padding: 17px 20px;
+
+    border: 0;
+    border-radius: 18px;
+
+    color: var(--SmartThemeBodyColor);
+    background: transparent;
+
+    font: inherit;
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.stce-ai-drawer-trigger:hover {
+    background:
+        rgb(127 127 127 / 0.055);
+}
+
+.stce-ai-drawer-title-group {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+.stce-ai-drawer-title {
+    font-size: 1.08rem;
+    font-weight: 760;
+    line-height: 1.2;
+}
+
+.stce-ai-drawer-subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-size: 0.82rem;
+    font-weight: 450;
+    line-height: 1.35;
+
+    opacity: 0.5;
+}
+
+.stce-ai-drawer-chevron {
+    flex: 0 0 auto;
+
+    font-size: 0.9rem;
+    opacity: 0.5;
+
+    transition:
+        transform 0.18s ease,
+        opacity 0.18s ease;
+}
+
+.stce-ai-drawer.is-open .stce-ai-drawer-chevron {
+    transform: rotate(180deg);
+    opacity: 0.82;
+}
+
+.stce-ai-drawer-body {
+    padding:
+        0 20px 20px;
+
+    border-top:
+        1px solid rgb(127 127 127 / 0.08);
+}
+
+.stce-ai-drawer-body[hidden] {
+    display: none !important;
+}
+
+/* Secondary API drawer: the accordion itself is now the outer card. */
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-shared-api-card {
+    display: block !important;
+
+    width: 100% !important;
+
+    padding: 18px 0 0 !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+}
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-manager {
+    padding-bottom: 0 !important;
+}
+
+/* Do not repeat the drawer title inside the opened drawer. */
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-list-head > strong {
+    display: none !important;
+}
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-list-head {
+    justify-content: flex-end !important;
+}
+
+/* Regex assistant uses the existing form, but inside a drawer. */
+.stce-ai-config-in-drawer {
+    padding-top: 20px !important;
+}
+
+.stce-ai-config-in-drawer .stce-ai-config-head {
+    margin-bottom: 18px;
+}
+
+/* Its original heading is now secondary to the drawer title. */
+.stce-ai-config-in-drawer .stce-ai-title-row {
+    display: none !important;
+}
+
+.stce-ai-config-in-drawer
+.stce-ai-config-head > div:first-child > span {
+    display: block;
+
+    font-size: 0.84rem;
+    line-height: 1.5;
+
+    opacity: 0.55;
+}
+
+/* Keep the preset chip visible. */
+.stce-ai-config-in-drawer .stce-ai-preset-pill {
+    flex: 0 0 auto;
+}
+
+/* Results belong to the regex drawer rather than a separate page section. */
+.stce-ai-drawer[data-ai-drawer="regex"]
+.stce-ai-results {
+    flex: 0 0 auto !important;
+
+    min-height: 240px !important;
+
+    margin-top: 18px;
+
+    overflow: visible !important;
+}
+
+/* The panel itself remains vertically scrollable. */
+.stce-panel[data-panel="ai"].is-active {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+@media (max-width: 720px) {
+    .stce-ai-drawer-trigger {
+        min-height: 68px;
+
+        padding: 15px 16px;
+    }
+
+    .stce-ai-drawer-body {
+        padding:
+            0 16px 16px;
+    }
+
+    .stce-ai-config-in-drawer {
+        padding-top: 16px !important;
+    }
+
+    .stce-ai-drawer-subtitle {
+        max-width: 72vw;
+    }
+}
