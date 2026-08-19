@@ -3519,3 +3519,66 @@ body.stce-secondary-modal-open {
 .stce-secondary-modal-save {
     white-space: nowrap;
 }
+
+
+/* =========================
+   v0.7.7 - Hide delete for unsaved drafts
+   ========================= */
+
+.stce-secondary-modal-delete[hidden] {
+    display: none !important;
+}
+
+
+/* =========================
+   v0.7.8 - Secondary drawer sizing fix
+   ========================= */
+
+/*
+ * The drawer body stays content-sized. Only the API list itself scrolls,
+ * so deleting rows can shrink the drawer immediately.
+ */
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-ai-drawer-body {
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow: visible;
+}
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-shared-api-card {
+    min-height: 0 !important;
+}
+
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-manager {
+    min-height: 0 !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Keep the header visible and make only the rows area scroll. */
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-list {
+    width: 100%;
+
+    max-height: clamp(210px, 42vh, 430px) !important;
+    min-height: 0 !important;
+
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+}
+
+/* Do not let a global button/card rule stretch rows outside the scroller. */
+.stce-ai-drawer[data-ai-drawer="secondary"]
+.stce-secondary-row {
+    flex: 0 0 auto !important;
+}

@@ -2247,9 +2247,12 @@ function createExporterContent() {
 
         if (open) {
             body.hidden = false;
-            body.style.overflow = 'hidden';
 
             const targetHeight = body.scrollHeight;
+
+            body.style.height = '0px';
+            body.style.opacity = '0.62';
+            body.style.overflow = 'hidden';
 
             const animation = body.animate(
                 [
@@ -2265,13 +2268,15 @@ function createExporterContent() {
                 {
                     duration: 260,
                     easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-                    fill: 'both',
+                    fill: 'none',
                 },
             );
 
             animation.addEventListener(
                 'finish',
-                resetInlineStyles,
+                () => {
+                    resetInlineStyles();
+                },
                 { once: true },
             );
 
@@ -2288,9 +2293,12 @@ function createExporterContent() {
             return;
         }
 
-        body.style.overflow = 'hidden';
+        const startHeight =
+            body.getBoundingClientRect().height;
 
-        const startHeight = body.getBoundingClientRect().height;
+        body.style.height = `${startHeight}px`;
+        body.style.opacity = '1';
+        body.style.overflow = 'hidden';
 
         const animation = body.animate(
             [
@@ -2306,7 +2314,7 @@ function createExporterContent() {
             {
                 duration: 220,
                 easing: 'cubic-bezier(0.4, 0, 1, 1)',
-                fill: 'both',
+                fill: 'none',
             },
         );
 
@@ -2665,6 +2673,19 @@ function createExporterContent() {
         secondaryDeleteButton.disabled = connections.length <= 1;
 
         renderAiApiSelect();
+
+        // The drawer must follow the list's real content height.
+        // This also releases any stale height left by an interrupted animation.
+        const secondaryDrawerBody = root.querySelector(
+            '[data-ai-drawer="secondary"] .stce-ai-drawer-body',
+        );
+
+        if (secondaryDrawerBody
+            && !secondaryDrawerBody.hidden
+            && secondaryDrawerBody.getAnimations().length === 0) {
+            secondaryDrawerBody.style.height = '';
+            secondaryDrawerBody.style.overflow = '';
+        }
     }
 
     function renderSharedModelSelect() {
@@ -2976,6 +2997,10 @@ function createExporterContent() {
     }
 
     async function deleteSecondaryConnection() {
+        if (secondaryDraft) {
+            return;
+        }
+
         const store = getSharedSecondaryApiSettings();
 
         if (store.connections.length <= 1) {
@@ -4021,7 +4046,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.7.6');
+    console.info('[YaKit-纪实] initialized v0.7.8');
 }
 
 jQuery(() => {
