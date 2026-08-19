@@ -5,7 +5,7 @@ import {
     writeSecret,
 } from '../../../secrets.js';
 
-const EXTENSION_ID = 'st-chat-exporter';
+const EXTENSION_ID = 'st-YaKit-chat';
 const WAND_BUTTON_ID = 'st_chat_exporter_wand_button';
 const SHARED_SECONDARY_API_KEY = 'yakit-shared-secondary-api';
 const LEGACY_SHARED_SECONDARY_API_KEY = 'yafaya-shared-secondary-api';
@@ -49,7 +49,8 @@ function getSettings() {
     const { extensionSettings } = getContext();
 
     if (!extensionSettings[EXTENSION_ID]) {
-        extensionSettings[EXTENSION_ID] = deepClone(DEFAULT_SETTINGS);
+        extensionSettings[EXTENSION_ID] =
+            deepClone(DEFAULT_SETTINGS);
     }
 
     const settings = extensionSettings[EXTENSION_ID];
@@ -891,9 +892,40 @@ function enhanceSelect(select) {
             || select.options[0];
     }
 
+    function resetMenuPlacement() {
+        wrapper.classList.remove('is-drop-up');
+        menu.style.maxHeight = '';
+    }
+
+    function positionMenu() {
+        if (!wrapper.classList.contains('is-open')) {
+            resetMenuPlacement();
+            return;
+        }
+
+        const modalScroll = wrapper.closest('.stce-secondary-modal-scroll');
+        if (!modalScroll) {
+            return;
+        }
+
+        const clipRect = modalScroll.getBoundingClientRect();
+        const triggerRect = trigger.getBoundingClientRect();
+        const spaceBelow = Math.max(0, clipRect.bottom - triggerRect.bottom - 8);
+        const spaceAbove = Math.max(0, triggerRect.top - clipRect.top - 8);
+        const wantedHeight = Math.min(menu.scrollHeight || 0, 320);
+        const shouldDropUp = spaceBelow < Math.min(wantedHeight, 180)
+            && spaceAbove > spaceBelow;
+
+        wrapper.classList.toggle('is-drop-up', shouldDropUp);
+
+        const available = shouldDropUp ? spaceAbove : spaceBelow;
+        menu.style.maxHeight = `${Math.max(120, Math.min(320, available))}px`;
+    }
+
     function close() {
         wrapper.classList.remove('is-open');
         trigger.setAttribute('aria-expanded', 'false');
+        resetMenuPlacement();
     }
 
     function sync() {
@@ -955,6 +987,12 @@ function enhanceSelect(select) {
 
         wrapper.classList.toggle('is-open', willOpen);
         trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+
+        if (willOpen) {
+            requestAnimationFrame(positionMenu);
+        } else {
+            resetMenuPlacement();
+        }
     });
 
     select.addEventListener('change', sync);
@@ -4222,7 +4260,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.7.9');
+    console.info('[YaKit-纪实] initialized v0.8.2');
 }
 
 jQuery(() => {
