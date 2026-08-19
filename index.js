@@ -2009,66 +2009,101 @@ function createExporterContent() {
                         <select id="stce_ai_secondary_connection" hidden></select>
                         <div class="stce-secondary-list" id="stce_secondary_list"></div>
                     </div>
+                </div>
 
-                    <div class="stce-shared-api-head">
-                        <div>
-                            <strong id="stce_shared_api_title">副 API 设置</strong>
-                            <span>多套副 API 共用 YaKit 共享层，未来其他 YaKit 插件可以直接复用。</span>
-                        </div>
+                <div class="stce-secondary-modal" id="stce_secondary_modal" hidden>
+                    <div class="stce-secondary-modal-dialog" role="dialog" aria-modal="true"
+                        aria-labelledby="stce_shared_api_title">
 
-                        <div class="stce-shared-api-head-actions">
-                            <span class="stce-shared-api-status" id="stce_shared_api_status">未配置</span>
+                        <div class="stce-secondary-modal-topbar">
+                            <div>
+                                <span class="stce-secondary-modal-kicker">副 API 配置</span>
+                                <strong id="stce_shared_api_title">副 API 设置</strong>
+                            </div>
 
-                            <button id="stce_secondary_duplicate" type="button" class="stce-head-action" title="复制当前副 API">
-                                <i class="fa-regular fa-copy"></i>
-                            </button>
-                            <button id="stce_secondary_rename" type="button" class="stce-head-action" title="重命名当前副 API">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button id="stce_secondary_delete" type="button" class="stce-head-action stce-danger" title="删除当前副 API">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="stce-shared-api-grid">
-                        <label class="stce-field stce-field-wide">
-                            <span>API URL</span>
-                            <input id="stce_shared_api_url" type="text" spellcheck="false"
-                                placeholder="例如：https://api.example.com/v1">
-                        </label>
-
-                        <label class="stce-field stce-field-wide">
-                            <span>API Key</span>
-                            <input id="stce_shared_api_key" type="password"
-                                autocomplete="new-password" spellcheck="false"
-                                placeholder="输入后会保存到 SillyTavern Secrets">
-                        </label>
-
-                        <label class="stce-field">
-                            <span>模型</span>
-                            <select id="stce_shared_api_model"></select>
-                        </label>
-
-                        <div class="stce-shared-model-action">
-                            <span>模型列表</span>
-                            <button id="stce_shared_fetch_models" type="button" class="menu_button">
-                                <i class="fa-solid fa-rotate"></i>
-                                获取模型
+                            <button id="stce_secondary_modal_close" type="button"
+                                class="stce-secondary-modal-close" aria-label="关闭">
+                                <i class="fa-solid fa-xmark"></i>
                             </button>
                         </div>
 
-                        <label class="stce-field stce-field-wide"
-                            id="stce_shared_custom_model_field" hidden>
-                            <span>自定义模型 ID</span>
-                            <input id="stce_shared_custom_model" type="text" spellcheck="false"
-                                placeholder="例如：gpt-5.4、claude-sonnet-4-6 或接口要求的模型 ID">
-                        </label>
-                    </div>
+                        <div class="stce-secondary-modal-scroll">
+                            <div class="stce-shared-api-head">
+                                <div>
+                                    <span>多套副 API 共用 YaKit 共享层，未来其他 YaKit 插件可以直接复用。</span>
+                                </div>
 
-                    <div class="stce-shared-api-note">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span>普通设置只保存 URL、模型和 Secret/Profile ID，不保存 API Key 明文。</span>
+                                <div class="stce-shared-api-head-actions">
+                                    <span class="stce-shared-api-status" id="stce_shared_api_status">未配置</span>
+
+                                    <button id="stce_secondary_duplicate" type="button"
+                                        class="stce-head-action" title="复制当前副 API">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                    <button id="stce_secondary_rename" type="button"
+                                        class="stce-head-action" title="重命名当前副 API">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button id="stce_secondary_delete" type="button"
+                                        class="stce-head-action stce-danger" title="删除当前副 API">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="stce-shared-api-grid">
+                                <label class="stce-field stce-field-wide">
+                                    <span>API URL</span>
+                                    <input id="stce_shared_api_url" type="text" spellcheck="false"
+                                        placeholder="例如：https://api.example.com/v1">
+                                </label>
+
+                                <label class="stce-field stce-field-wide">
+                                    <span>API Key</span>
+                                    <input id="stce_shared_api_key" type="password"
+                                        autocomplete="new-password" spellcheck="false"
+                                        placeholder="输入后会保存到 SillyTavern Secrets">
+                                </label>
+
+                                <label class="stce-field">
+                                    <span>模型</span>
+                                    <select id="stce_shared_api_model"></select>
+                                </label>
+
+                                <div class="stce-shared-model-action">
+                                    <span>模型列表</span>
+                                    <button id="stce_shared_fetch_models" type="button" class="menu_button">
+                                        <i class="fa-solid fa-rotate"></i>
+                                        获取模型
+                                    </button>
+                                </div>
+
+                                <label class="stce-field stce-field-wide"
+                                    id="stce_shared_custom_model_field" hidden>
+                                    <span>自定义模型 ID</span>
+                                    <input id="stce_shared_custom_model" type="text" spellcheck="false"
+                                        placeholder="例如：gpt-5.4、claude-sonnet-4-6 或接口要求的模型 ID">
+                                </label>
+                            </div>
+
+                            <div class="stce-shared-api-note">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <span>普通设置只保存 URL、模型和 Secret/Profile ID，不保存 API Key 明文。</span>
+                            </div>
+                        </div>
+
+                        <div class="stce-secondary-modal-footer">
+                            <button id="stce_secondary_modal_cancel" type="button"
+                                class="menu_button stce-secondary-modal-cancel">
+                                关闭
+                            </button>
+
+                            <button id="stce_secondary_modal_save" type="button"
+                                class="menu_button stce-secondary-modal-save">
+                                <i class="fa-solid fa-check"></i>
+                                保存配置
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -2131,6 +2166,10 @@ function createExporterContent() {
     const secondaryRenameButton = root.querySelector('#stce_secondary_rename');
     const secondaryDeleteButton = root.querySelector('#stce_secondary_delete');
     const sharedApiCard = root.querySelector('#stce_shared_api_card');
+    const secondaryModal = root.querySelector('#stce_secondary_modal');
+    const secondaryModalClose = root.querySelector('#stce_secondary_modal_close');
+    const secondaryModalCancel = root.querySelector('#stce_secondary_modal_cancel');
+    const secondaryModalSave = root.querySelector('#stce_secondary_modal_save');
     const sharedApiTitle = root.querySelector('#stce_shared_api_title');
     const sharedApiStatus = root.querySelector('#stce_shared_api_status');
     const sharedApiUrl = root.querySelector('#stce_shared_api_url');
@@ -2407,6 +2446,53 @@ function createExporterContent() {
         sharedApiModel._stceRender?.();
     }
 
+    function openSecondaryApiModal() {
+        loadSharedApiUi();
+        secondaryModal.hidden = false;
+        document.body.classList.add('stce-secondary-modal-open');
+
+        requestAnimationFrame(() => {
+            sharedApiUrl.focus({ preventScroll: true });
+        });
+    }
+
+    function closeSecondaryApiModal() {
+        secondaryModal.hidden = true;
+        document.body.classList.remove('stce-secondary-modal-open');
+
+        sharedApiKey.value = '';
+        loadSharedApiUi();
+    }
+
+    async function saveSecondaryApiModal() {
+        secondaryModalSave.disabled = true;
+
+        const originalHtml = secondaryModalSave.innerHTML;
+        secondaryModalSave.innerHTML = `
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            保存中…
+        `;
+
+        try {
+            await persistSharedApiFromUi();
+            toastr.success('副 API 配置已保存', 'YaKit 副 API');
+            closeSecondaryApiModal();
+        } catch (error) {
+            console.error(
+                '[YaKit-纪实] Failed to save secondary API config:',
+                error,
+            );
+
+            toastr.error(
+                error?.message || String(error),
+                'YaKit 副 API',
+            );
+        } finally {
+            secondaryModalSave.disabled = false;
+            secondaryModalSave.innerHTML = originalHtml;
+        }
+    }
+
     function updateSharedApiStatus() {
         const connection = getSelectedSecondaryConnection();
 
@@ -2595,6 +2681,7 @@ function createExporterContent() {
         renderSecondaryConnectionSelect();
         aiSecondaryConnection.value = connection.id;
         loadSharedApiUi();
+        openSecondaryApiModal();
 
         toastr.success(
             `已创建“${name}”`,
@@ -2701,6 +2788,7 @@ function createExporterContent() {
 
         renderSecondaryConnectionSelect();
         loadSharedApiUi();
+        closeSecondaryApiModal();
 
         toastr.success(
             '副 API 已删除',
@@ -2728,6 +2816,10 @@ function createExporterContent() {
             mode === 'secondary';
 
         sharedApiCard.hidden = !needsSecondary;
+
+        if (!needsSecondary && !secondaryModal.hidden) {
+            closeSecondaryApiModal();
+        }
 
         if (needsSecondary) {
             renderSecondaryConnectionSelect();
@@ -3430,15 +3522,18 @@ function createExporterContent() {
 
         const connectionId = row.dataset.secondaryId;
 
-        if (!connectionId
-            || connectionId === aiSecondaryConnection.value) {
+        if (!connectionId) {
             return;
         }
 
-        aiSecondaryConnection.value = connectionId;
-        aiSecondaryConnection.dispatchEvent(
-            new Event('change', { bubbles: true }),
-        );
+        if (connectionId !== aiSecondaryConnection.value) {
+            aiSecondaryConnection.value = connectionId;
+            aiSecondaryConnection.dispatchEvent(
+                new Event('change', { bubbles: true }),
+            );
+        }
+
+        openSecondaryApiModal();
     });
 
     secondaryNewButton.addEventListener(
@@ -3460,6 +3555,33 @@ function createExporterContent() {
         'click',
         deleteSecondaryConnection,
     );
+
+    secondaryModalClose.addEventListener(
+        'click',
+        closeSecondaryApiModal,
+    );
+
+    secondaryModalCancel.addEventListener(
+        'click',
+        closeSecondaryApiModal,
+    );
+
+    secondaryModalSave.addEventListener(
+        'click',
+        saveSecondaryApiModal,
+    );
+
+    secondaryModal.addEventListener('click', (event) => {
+        if (event.target === secondaryModal) {
+            closeSecondaryApiModal();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !secondaryModal.hidden) {
+            closeSecondaryApiModal();
+        }
+    });
 
     sharedApiUrl.addEventListener('change', () => {
         const connection = getSelectedSecondaryConnection();
@@ -3620,7 +3742,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.6.4');
+    console.info('[YaKit-纪实] initialized v0.6.5');
 }
 
 jQuery(() => {

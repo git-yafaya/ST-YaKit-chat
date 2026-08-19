@@ -2558,3 +2558,213 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
         align-items: flex-start !important;
     }
 }
+
+
+/* =========================
+   v0.6.5 - Secondary API standalone modal
+   ========================= */
+
+.stce-secondary-modal[hidden] {
+    display: none !important;
+}
+
+.stce-secondary-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 28px;
+
+    background: rgb(0 0 0 / 0.34);
+    backdrop-filter: blur(5px);
+}
+
+.stce-secondary-modal-dialog {
+    width: min(920px, calc(100vw - 48px));
+    max-height: min(820px, calc(100vh - 56px));
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 26px;
+
+    color: var(--SmartThemeBodyColor);
+    background: var(--SmartThemeBlurTintColor, #f6f6f6);
+
+    box-shadow:
+        0 24px 80px rgb(0 0 0 / 0.28),
+        0 8px 24px rgb(0 0 0 / 0.14);
+}
+
+.stce-secondary-modal-topbar {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+    padding: 22px 24px 18px;
+
+    border-bottom: 1px solid rgb(127 127 127 / 0.10);
+}
+
+.stce-secondary-modal-topbar > div:first-child {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stce-secondary-modal-kicker {
+    font-size: 0.74rem;
+    font-weight: 650;
+    opacity: 0.48;
+}
+
+.stce-secondary-modal-topbar #stce_shared_api_title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-size: 1.28rem !important;
+    font-weight: 760 !important;
+    line-height: 1.2 !important;
+}
+
+.stce-secondary-modal-close {
+    appearance: none;
+
+    width: 42px;
+    height: 42px;
+
+    flex: 0 0 auto;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+    border-radius: 13px;
+
+    color: inherit;
+    background: rgb(127 127 127 / 0.08);
+
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.stce-secondary-modal-close:hover {
+    background: rgb(127 127 127 / 0.14);
+}
+
+.stce-secondary-modal-scroll {
+    min-height: 0;
+    flex: 1 1 auto;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 20px;
+    padding: 20px 24px 24px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+}
+
+.stce-secondary-modal .stce-shared-api-head {
+    padding-bottom: 4px;
+}
+
+.stce-secondary-modal .stce-shared-api-head > div:first-child > span {
+    font-size: 0.84rem !important;
+    line-height: 1.5 !important;
+    opacity: 0.56 !important;
+}
+
+.stce-secondary-modal .stce-shared-api-grid {
+    grid-template-columns: minmax(0, 1fr) 180px;
+    gap: 15px;
+}
+
+.stce-secondary-modal .stce-field > span:first-child,
+.stce-secondary-modal .stce-shared-model-action > span {
+    font-size: 0.92rem !important;
+    font-weight: 680 !important;
+    opacity: 0.84 !important;
+}
+
+.stce-secondary-modal input[type="text"],
+.stce-secondary-modal input[type="password"],
+.stce-secondary-modal .stce-select-trigger {
+    min-height: 52px !important;
+    font-size: 0.96rem !important;
+}
+
+.stce-secondary-modal .stce-shared-model-action .menu_button {
+    min-height: 52px !important;
+}
+
+.stce-secondary-modal-footer {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 10px;
+    padding: 16px 24px 20px;
+
+    border-top: 1px solid rgb(127 127 127 / 0.10);
+}
+
+.stce-secondary-modal-footer .menu_button {
+    min-height: 44px !important;
+    padding: 9px 18px !important;
+    border-radius: 12px !important;
+    font-size: 0.92rem !important;
+    font-weight: 650 !important;
+}
+
+.stce-secondary-modal-save {
+    min-width: 124px;
+}
+
+body.stce-secondary-modal-open {
+    overflow: hidden;
+}
+
+@media (max-width: 720px) {
+    .stce-secondary-modal {
+        padding: 12px;
+    }
+
+    .stce-secondary-modal-dialog {
+        width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+        border-radius: 20px;
+    }
+
+    .stce-secondary-modal-topbar {
+        padding: 18px 18px 15px;
+    }
+
+    .stce-secondary-modal-scroll {
+        padding: 16px 18px 20px;
+    }
+
+    .stce-secondary-modal .stce-shared-api-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stce-secondary-modal-footer {
+        padding: 14px 18px 16px;
+    }
+}
