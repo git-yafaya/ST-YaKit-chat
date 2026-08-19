@@ -395,6 +395,125 @@ function validateRule(rule) {
     return null;
 }
 
+function enhanceSelect(select) {
+    if (!select || select.dataset.stceEnhanced === 'true') {
+        return;
+    }
+
+    select.dataset.stceEnhanced = 'true';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'stce-custom-select';
+
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(select);
+
+    select.classList.add('stce-native-select');
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'stce-select-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    trigger.innerHTML = `
+        <span class="stce-select-value"></span>
+        <i class="fa-solid fa-chevron-down"></i>
+    `;
+
+    const menu = document.createElement('div');
+    menu.className = 'stce-select-menu';
+    menu.setAttribute('role', 'listbox');
+
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+
+    function getSelectedOption() {
+        return [...select.options].find((option) => option.value === select.value)
+            || select.options[0];
+    }
+
+    function close() {
+        wrapper.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function sync() {
+        const selected = getSelectedOption();
+
+        trigger.querySelector('.stce-select-value').textContent =
+            selected?.textContent || '';
+
+        trigger.disabled = Boolean(select.disabled);
+
+        for (const optionButton of menu.querySelectorAll('.stce-select-option')) {
+            const active = optionButton.dataset.value === select.value;
+            optionButton.classList.toggle('is-selected', active);
+            optionButton.setAttribute('aria-selected', active ? 'true' : 'false');
+        }
+
+        if (select.disabled) {
+            close();
+        }
+    }
+
+    function renderOptions() {
+        menu.innerHTML = '';
+
+        for (const option of select.options) {
+            const optionButton = document.createElement('button');
+            optionButton.type = 'button';
+            optionButton.className = 'stce-select-option';
+            optionButton.dataset.value = option.value;
+            optionButton.setAttribute('role', 'option');
+            optionButton.textContent = option.textContent;
+
+            optionButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (select.disabled) return;
+
+                select.value = option.value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+
+                sync();
+                close();
+            });
+
+            menu.appendChild(optionButton);
+        }
+    }
+
+    trigger.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (select.disabled) return;
+
+        const willOpen = !wrapper.classList.contains('is-open');
+
+        for (const other of document.querySelectorAll('.stce-custom-select.is-open')) {
+            if (other !== wrapper) {
+                other.classList.remove('is-open');
+                other.querySelector('.stce-select-trigger')
+                    ?.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        wrapper.classList.toggle('is-open', willOpen);
+        trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+
+    select.addEventListener('change', sync);
+
+    select._stceSync = sync;
+    select._stceClose = close;
+
+    renderOptions();
+    sync();
+}
+
 async function openRuleEditor(rule, currentMessages, getOptions) {
     const context = getContext();
     const { Popup, POPUP_TYPE, POPUP_RESULT } = context;
@@ -542,6 +661,18 @@ async function openRuleEditor(rule, currentMessages, getOptions) {
     regexReplacementInput.value = draft.type === 'regex' ? draft.replacement || '' : '';
     flagsInput.value = draft.flags || 'g';
 
+    for (const select of editor.querySelectorAll('select')) {
+        enhanceSelect(select);
+    }
+
+    editor.addEventListener('click', (event) => {
+        if (event.target.closest('.stce-custom-select')) return;
+
+        for (const select of editor.querySelectorAll('select')) {
+            select._stceClose?.();
+        }
+    });
+
     function readDraftFromForm() {
         const type = typeInput.value;
         const stage = stageInput.value;
@@ -592,6 +723,11 @@ async function openRuleEditor(rule, currentMessages, getOptions) {
         } else if (scopeInput.value === 'all' && draft.stage !== 'document') {
             scopeInput.value = draft.scope || 'assistant';
         }
+
+        scopeInput._stceSync?.();
+        typeInput._stceSync?.();
+        stageInput._stceSync?.();
+        tagModeInput._stceSync?.();
     }
 
     function buildTestSample() {
@@ -1185,7 +1321,7 @@ function init() {
     getSettings();
     createWandButton();
 
-    console.info('[ST Chat Exporter] initialized v0.2.0');
+    console.info('[ST Chat Exporter] initialized v0.2.1');
 }
 
 jQuery(() => {

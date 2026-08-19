@@ -1,6 +1,6 @@
 /* =========================
    ST Chat Exporter
-   v0.2.0 - Large rounded popup + cleaning rules
+   v0.2.1 - Large rounded popup + cleaning rules
    ========================= */
 
 /* 只影响正文导出器自己的 Popup */
@@ -974,4 +974,167 @@ dialog.popup:has(.stce-rule-editor) {
     .stce-rule-actions {
         flex-wrap: wrap;
     }
+}
+
+
+/* =========================
+   v0.2.1 - Rule editor fixes
+   ========================= */
+
+/* Author CSS on .stce-field overrides the browser's default [hidden] rule,
+   so explicitly hide rule-type-specific fields. */
+.stce-type-field[hidden] {
+    display: none !important;
+}
+
+/* Replace native Linux/Chromium select popup with a controlled dropdown. */
+.stce-native-select {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+}
+
+.stce-custom-select {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.stce-select-trigger {
+    appearance: none;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+    padding: 8px 12px;
+
+    box-sizing: border-box;
+
+    border: 1px solid transparent;
+    border-radius: 11px;
+
+    color: var(--SmartThemeBodyColor);
+    background: rgb(127 127 127 / 0.055);
+
+    font: inherit;
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.stce-select-trigger:hover:not(:disabled) {
+    background: rgb(127 127 127 / 0.09);
+}
+
+.stce-custom-select.is-open .stce-select-trigger {
+    border-color: var(--SmartThemeBorderColor);
+    background: rgb(127 127 127 / 0.09);
+}
+
+.stce-select-trigger:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.stce-select-trigger > .stce-select-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stce-select-trigger > i {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    opacity: 0.55;
+
+    transition: transform 0.15s ease;
+}
+
+.stce-custom-select.is-open .stce-select-trigger > i {
+    transform: rotate(180deg);
+}
+
+.stce-select-menu {
+    position: absolute;
+    z-index: 100;
+
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+
+    display: none;
+    flex-direction: column;
+
+    gap: 3px;
+    padding: 5px;
+
+    box-sizing: border-box;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 13px;
+
+    color: var(--SmartThemeBodyColor);
+    background: var(--SmartThemeBlurTintColor);
+
+    box-shadow:
+        0 12px 32px rgb(0 0 0 / 0.18),
+        0 2px 8px rgb(0 0 0 / 0.10);
+
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.stce-custom-select.is-open .stce-select-menu {
+    display: flex;
+}
+
+.stce-select-option {
+    appearance: none;
+
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    min-height: 36px;
+    padding: 7px 10px;
+
+    border: 0;
+    border-radius: 9px;
+
+    color: var(--SmartThemeBodyColor);
+    background: transparent;
+
+    font: inherit;
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.stce-select-option:hover {
+    background: rgb(127 127 127 / 0.10);
+}
+
+.stce-select-option.is-selected {
+    background: rgb(127 127 127 / 0.16);
+    font-weight: 650;
+}
+
+/* Prevent the editor grid from visually reserving space for hidden fields. */
+.stce-editor-grid > [hidden] {
+    display: none !important;
 }
