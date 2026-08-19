@@ -3462,8 +3462,8 @@ body.stce-secondary-modal-open {
 /* Restore a short, natural arrow transition. */
 .stce-ai-drawer-chevron {
     transition:
-        transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
-        opacity 170ms ease !important;
+        transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 240ms ease !important;
 }
 
 .stce-ai-drawer.is-open .stce-ai-drawer-chevron {

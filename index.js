@@ -2032,7 +2032,6 @@ function createExporterContent() {
                         <span>AI 接口</span>
                         <select id="stce_ai_api_mode">
                             <option value="primary">主 API（当前聊天）</option>
-                            <option value="secondary">副 API（独立连接）</option>
                         </select>
                     </label>
 
@@ -2261,7 +2260,7 @@ function createExporterContent() {
                     },
                 ],
                 {
-                    duration: 190,
+                    duration: 260,
                     easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
                     fill: 'both',
                 },
@@ -2302,7 +2301,7 @@ function createExporterContent() {
                 },
             ],
             {
-                duration: 155,
+                duration: 220,
                 easing: 'cubic-bezier(0.4, 0, 1, 1)',
                 fill: 'both',
             },
@@ -2516,6 +2515,61 @@ function createExporterContent() {
     }
 
 
+    function getAiApiSelection() {
+        const value = aiApiMode.value || 'primary';
+
+        if (value.startsWith('secondary:')) {
+            return {
+                mode: 'secondary',
+                connectionId: value.slice('secondary:'.length),
+            };
+        }
+
+        return {
+            mode: 'primary',
+            connectionId: '',
+        };
+    }
+
+    function renderAiApiSelect() {
+        const connections = getSharedSecondaryConnections();
+
+        aiApiMode.innerHTML = [
+            '<option value="primary">主 API（当前聊天）</option>',
+            ...connections.map((connection) => {
+                const modelText =
+                    connection.model
+                    || '未选择模型';
+
+                return `
+                    <option value="secondary:${escapeHtml(connection.id)}">
+                        ${escapeHtml(connection.name)} · ${escapeHtml(modelText)}
+                    </option>
+                `;
+            }),
+        ].join('');
+
+        const preferredValue =
+            settings.ai.apiMode === 'secondary'
+            && settings.ai.secondaryConnectionId
+                ? `secondary:${settings.ai.secondaryConnectionId}`
+                : 'primary';
+
+        const hasPreferred = [
+            ...aiApiMode.options,
+        ].some((option) => option.value === preferredValue);
+
+        aiApiMode.value = hasPreferred
+            ? preferredValue
+            : 'primary';
+
+        if (!hasPreferred) {
+            settings.ai.apiMode = 'primary';
+        }
+
+        aiApiMode._stceRender?.();
+    }
+
     function getSelectedSecondaryConnection() {
         const selectedId =
             aiSecondaryConnection.value
@@ -2602,6 +2656,8 @@ function createExporterContent() {
             .join('');
 
         secondaryDeleteButton.disabled = connections.length <= 1;
+
+        renderAiApiSelect();
     }
 
     function renderSharedModelSelect() {
@@ -2919,29 +2975,28 @@ function createExporterContent() {
         updateAiApiState();
     }
 
-    function updateAiApiState({ scrollIntoView = false } = {}) {
-        const needsSecondary =
-            aiApiMode.value === 'secondary';
+    function updateAiApiState() {
+        const selection = getAiApiSelection();
 
-        if (!needsSecondary) {
+        if (selection.mode !== 'secondary') {
             return;
         }
 
-        renderSecondaryConnectionSelect();
-        loadSharedApiUi();
+        const connection = getSharedSecondaryConnection(
+            selection.connectionId,
+        );
 
-        if (scrollIntoView) {
-            openAiDrawer('secondary');
-
-            requestAnimationFrame(() => {
-                root.querySelector(
-                    '[data-ai-drawer="secondary"]',
-                )?.scrollIntoView({
-                    behavior: 'auto',
-                    block: 'nearest',
-                });
-            });
+        if (!connection) {
+            return;
         }
+
+        settings.ai.secondaryConnectionId = connection.id;
+        setActiveSharedSecondaryConnection(connection.id);
+
+        aiSecondaryConnection.value = connection.id;
+        renderSecondaryConnectionSelect();
+        aiSecondaryConnection.value = connection.id;
+        loadSharedApiUi();
     }
 
     function getSelectedAiSuggestions() {
@@ -3087,16 +3142,41 @@ function createExporterContent() {
             return;
         }
 
+        const apiSelection = getAiApiSelection();
         const needsSecondary =
-            aiApiMode.value === 'secondary';
+            apiSelection.mode === 'secondary';
 
         let secondaryRequestProfileId = '';
 
         if (needsSecondary) {
             try {
-                secondaryRequestProfileId = await persistSharedApiFromUi({
-                    requireReady: true,
-                });
+                const connection = getSharedSecondaryConnection(
+                    apiSelection.connectionId,
+                );
+
+                if (!connection) {
+                    throw new Error('选择的副 API 已不存在');
+                }
+
+                if (!connection.apiUrl) {
+                    throw new Error('当前副 API 尚未填写 API URL');
+                }
+
+                if (!connection.secretId) {
+                    throw new Error('当前副 API 尚未填写 API Key');
+                }
+
+                if (!connection.model) {
+                    throw new Error('当前副 API 尚未选择模型');
+                }
+
+                secondaryRequestProfileId =
+                    connection.profileId
+                    || ensureSharedConnectionProfile(connection);
+
+                if (!secondaryRequestProfileId) {
+                    throw new Error('当前副 API 配置尚未完成');
+                }
             } catch (error) {
                 toastr.warning(
                     error?.message || String(error),
@@ -3119,7 +3199,7 @@ function createExporterContent() {
                 goal: aiGoal.value.trim(),
                 presetName: getActivePreset().name,
             }, {
-                mode: aiApiMode.value,
+                mode: apiSelection.mode,
                 secondaryProfileId: secondaryRequestProfileId,
             });
 
@@ -3589,7 +3669,7 @@ function createExporterContent() {
     renamePresetButton.addEventListener('click', renamePreset);
     deletePresetButton.addEventListener('click', deletePreset);
 
-    aiApiMode.value = settings.ai.apiMode || 'primary';
+    renderAiApiSelect();
 
     enhanceSelect(aiScope);
     enhanceSelect(aiSampleCount);
@@ -3597,6 +3677,7 @@ function createExporterContent() {
     enhanceSelect(sharedApiModel);
 
     renderSecondaryApiConnections();
+    renderAiApiSelect();
 
     aiDrawerTriggers.forEach((trigger) => {
         trigger.addEventListener('click', () => {
@@ -3609,13 +3690,25 @@ function createExporterContent() {
     });
 
     aiApiMode.addEventListener('change', () => {
-        settings.ai.apiMode = aiApiMode.value;
-        saveSettings();
+        const selection = getAiApiSelection();
 
-        updateAiApiState({
-            scrollIntoView:
-                aiApiMode.value === 'secondary',
-        });
+        settings.ai.apiMode = selection.mode;
+
+        if (selection.mode === 'secondary') {
+            settings.ai.secondaryConnectionId =
+                selection.connectionId;
+
+            setActiveSharedSecondaryConnection(
+                selection.connectionId,
+            );
+
+            aiSecondaryConnection.value =
+                selection.connectionId;
+        }
+
+        // Selection is persisted immediately through SillyTavern settings.
+        saveSettings();
+        updateAiApiState();
     });
 
     aiSecondaryConnection.addEventListener('change', () => {
@@ -3629,6 +3722,10 @@ function createExporterContent() {
         saveSettings();
         renderSecondaryConnectionSelect();
         loadSharedApiUi();
+
+        if (settings.ai.apiMode === 'secondary') {
+            renderAiApiSelect();
+        }
     });
 
     secondaryList.addEventListener('click', (event) => {
@@ -3859,7 +3956,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.7.3');
+    console.info('[YaKit-纪实] initialized v0.7.5');
 }
 
 jQuery(() => {
