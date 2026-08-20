@@ -4228,3 +4228,819 @@ dialog.popup:has(.stce-ai-test-popup) {
     );
     background-clip: padding-box;
 }
+
+
+/* =========================
+   组件补丁：复选框、插件反馈和插件内弹窗
+   ========================= */
+
+/* 复选框把表面和勾号分成两层，避免 background shorthand 把勾号清掉。 */
+.stce-root .stce-panel[data-panel="export"] {
+    --stce-checkbox-surface: var(--stce-card-surface, var(--stce-surface-inset));
+    --stce-checkbox-border: var(--stce-card-border-hover, var(--stce-border-strong));
+    --stce-checkbox-accent: var(--stce-primary-deep, var(--stce-action-primary));
+    --stce-checkbox-accent-border: color-mix(
+        in srgb,
+        var(--stce-checkbox-accent) 88%,
+        var(--stce-primary) 12%
+    );
+    --stce-checkbox-mark: #fff;
+    --stce-checkbox-transition: 220ms cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    margin: 0;
+    padding: 0;
+
+    border: 1px solid var(--stce-checkbox-border);
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-checkbox-mark);
+    cursor: pointer;
+
+    /* 未选中状态明确保留表面，且不携带旧的图形层。 */
+    background: var(--stce-checkbox-surface) none center / 0 0 no-repeat !important;
+    background-image: none !important;
+    background-origin: border-box;
+    background-clip: border-box;
+
+    transition:
+        background-color var(--stce-checkbox-transition),
+        border-color var(--stce-checkbox-transition),
+        box-shadow var(--stce-checkbox-transition),
+        transform var(--stce-checkbox-transition);
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:hover:not(:disabled):not(:checked) {
+    border-color: var(--stce-primary);
+    box-shadow: 0 0 0 3px color-mix(
+        in srgb,
+        var(--stce-primary) 16%,
+        transparent
+    );
+}
+
+/* 最后声明 background-image，确保勾号图形不会被底色层覆盖。 */
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:checked {
+    border-color: var(--stce-checkbox-accent-border);
+    background: var(--stce-checkbox-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4.1 10.1 8.1 14.2 15.9 5.8' fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3'/%3E%3C/svg%3E") center / 17px 17px no-repeat !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4.1 10.1 8.1 14.2 15.9 5.8' fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3'/%3E%3C/svg%3E") !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: 17px 17px !important;
+    box-shadow:
+        0 0 0 1px var(--stce-checkbox-accent-border),
+        0 2px 8px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 32%,
+            transparent
+        );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:checked:hover:not(:disabled) {
+    border-color: var(--stce-checkbox-accent);
+    box-shadow:
+        0 0 0 1px var(--stce-checkbox-accent),
+        0 3px 10px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 40%,
+            transparent
+        );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-focus-ring), 0 0 0 1px var(--stce-primary);
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:checked:focus-visible {
+    box-shadow:
+        var(--stce-focus-ring),
+        0 0 0 1px var(--stce-checkbox-accent),
+        0 2px 8px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 32%,
+            transparent
+        );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:disabled:not(:checked) {
+    background: var(--stce-checkbox-surface) none center / 0 0 no-repeat !important;
+    background-image: none !important;
+    box-shadow: none;
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:disabled:checked {
+    box-shadow: none;
+}
+
+/* root 内的弹窗遮罩和面板使用同一套主题表面，避免表单变成整片蓝色。 */
+.stce-root:has(.stce-native-dialog) {
+    position: relative;
+}
+
+.stce-root .stce-native-dialog[hidden],
+.stce-root .stce-feedback[hidden] {
+    display: none !important;
+}
+
+.stce-root .stce-native-dialog {
+    --stce-native-dialog-surface: var(--stce-glass-surface, var(--stce-surface-raised));
+    --stce-native-dialog-inset: var(--stce-surface-inset);
+    --stce-native-dialog-border: var(--stce-card-border);
+    --stce-native-dialog-overlay: color-mix(
+        in srgb,
+        var(--stce-surface) 48%,
+        transparent
+    );
+
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+
+    display: grid;
+    align-items: center;
+    justify-items: center;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--stce-space-5);
+    box-sizing: border-box;
+    overflow: auto;
+
+    color: var(--stce-text);
+    background: var(--stce-native-dialog-overlay);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.stce-root .stce-native-dialog-panel,
+.stce-root .stce-native-dialog-content,
+.stce-root .stce-native-dialog > [role="dialog"],
+.stce-root .stce-native-dialog > .stce-dialog-panel {
+    width: min(560px, 100%);
+    max-height: min(720px, 100%);
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+
+    border: 1px solid var(--stce-native-dialog-border);
+    border-radius: var(--stce-radius-xl);
+    color: var(--stce-text);
+    background: var(--stce-native-dialog-surface);
+    box-shadow: var(--stce-shadow-elevated);
+}
+
+.stce-root .stce-native-dialog-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--stce-space-3);
+    padding: var(--stce-space-4) var(--stce-space-5);
+    border-bottom: 1px solid var(--stce-border-soft);
+}
+
+.stce-root .stce-native-dialog-title {
+    min-width: 0;
+    color: var(--stce-text);
+    font-family: var(--stce-font-sans);
+    font-size: 17px;
+    font-weight: 720;
+    line-height: 1.35;
+}
+
+.stce-root .stce-native-dialog-description {
+    margin-top: 4px;
+    color: var(--stce-text-description);
+    font-family: var(--stce-font-sans);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.stce-root .stce-native-dialog-close {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-text-description);
+    background: transparent;
+    cursor: pointer;
+    transition:
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        color var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-native-dialog-close:hover:not(:disabled) {
+    border-color: var(--stce-border);
+    color: var(--stce-text);
+    background: var(--stce-surface-hover);
+}
+
+.stce-root .stce-native-dialog-close:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.stce-root .stce-native-dialog-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--stce-space-4);
+    padding: var(--stce-space-5);
+    overflow: auto;
+}
+
+.stce-root .stce-native-dialog-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--stce-space-2);
+    padding: var(--stce-space-3) var(--stce-space-5) var(--stce-space-4);
+    border-top: 1px solid var(--stce-border-soft);
+    background: var(--stce-surface-inset);
+}
+
+.stce-root .stce-native-dialog-actions > button,
+.stce-root .stce-native-dialog-actions > .menu_button {
+    min-width: 104px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 15px;
+    border: 1px solid var(--stce-card-border);
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-text-body);
+    background: var(--stce-button-secondary);
+    font-family: var(--stce-font-sans);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 20px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        color var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-native-dialog-actions > button:hover:not(:disabled),
+.stce-root .stce-native-dialog-actions > .menu_button:hover:not(:disabled) {
+    border-color: var(--stce-card-border-hover);
+    background: var(--stce-card-surface-hover);
+    box-shadow: var(--stce-shadow-card-hover);
+    transform: translateY(-1px);
+}
+
+.stce-root .stce-native-dialog-actions > button:active:not(:disabled),
+.stce-root .stce-native-dialog-actions > .menu_button:active:not(:disabled) {
+    transform: translateY(1px) scale(0.985);
+}
+
+.stce-root .stce-native-dialog-actions > .stce-native-dialog-primary,
+.stce-root .stce-native-dialog-actions > .stce-native-dialog-confirm,
+.stce-root .stce-native-dialog-actions > .stce-native-dialog-save {
+    border-color: var(--stce-primary-deep);
+    color: #fff;
+    background: var(--stce-primary-deep);
+    box-shadow: 0 4px 12px color-mix(
+        in srgb,
+        var(--stce-primary-deep) 22%,
+        transparent
+    );
+}
+
+.stce-root .stce-native-dialog-actions > .stce-native-dialog-primary:hover:not(:disabled),
+.stce-root .stce-native-dialog-actions > .stce-native-dialog-confirm:hover:not(:disabled),
+.stce-root .stce-native-dialog-actions > .stce-native-dialog-save:hover:not(:disabled) {
+    border-color: var(--stce-primary-deep);
+    background: color-mix(
+        in srgb,
+        var(--stce-primary-deep) 88%,
+        var(--stce-text) 12%
+    );
+}
+
+.stce-root .stce-native-dialog-actions > .stce-native-dialog-danger {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-danger) 48%,
+        var(--stce-card-border) 52%
+    );
+    color: var(--stce-danger);
+    background: var(--stce-danger-surface);
+}
+
+.stce-root .stce-native-dialog-actions > button:focus-visible,
+.stce-root .stce-native-dialog-close:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-root .stce-native-dialog-actions > button:disabled,
+.stce-root .stce-native-dialog-close:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+}
+
+/* 原生弹窗里的输入框明确使用插件表面，focus 只提亮边框和焦点环。 */
+.stce-root .stce-native-dialog input[type="text"],
+.stce-root .stce-native-dialog input[type="password"],
+.stce-root .stce-native-dialog input[type="number"],
+.stce-root .stce-native-dialog input[type="url"],
+.stce-root .stce-native-dialog textarea,
+.stce-root .stce-native-dialog select:not(.stce-native-select),
+.stce-root .stce-native-dialog .stce-select-trigger {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--stce-card-border);
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-text-body);
+    background: var(--stce-native-dialog-inset);
+    font-family: var(--stce-font-sans);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.stce-root .stce-native-dialog textarea {
+    min-height: 112px;
+    resize: vertical;
+}
+
+.stce-root .stce-native-dialog input[type="text"]::placeholder,
+.stce-root .stce-native-dialog input[type="password"]::placeholder,
+.stce-root .stce-native-dialog input[type="number"]::placeholder,
+.stce-root .stce-native-dialog textarea::placeholder {
+    color: var(--stce-text-description);
+    opacity: 0.78;
+}
+
+.stce-root .stce-native-dialog input[type="text"]:focus,
+.stce-root .stce-native-dialog input[type="password"]:focus,
+.stce-root .stce-native-dialog input[type="number"]:focus,
+.stce-root .stce-native-dialog input[type="url"]:focus,
+.stce-root .stce-native-dialog textarea:focus,
+.stce-root .stce-native-dialog select:not(.stce-native-select):focus,
+.stce-root .stce-native-dialog .stce-select-trigger:focus-visible {
+    outline: none;
+    border-color: var(--stce-primary);
+    color: var(--stce-text);
+    background: var(--stce-surface-raised);
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-root .stce-native-dialog .stce-field > span:first-child {
+    color: var(--stce-text-body);
+    font-family: var(--stce-font-sans);
+    font-size: 13px;
+    font-weight: 650;
+    opacity: 1;
+}
+
+.stce-root .stce-native-dialog .stce-field[hidden],
+.stce-root .stce-native-dialog [hidden] {
+    display: none !important;
+}
+
+/* root 内的规则编辑器不再依赖 SillyTavern Popup 的蓝色默认表面。 */
+.stce-root .stce-rule-editor {
+    color: var(--stce-text);
+    background: transparent;
+}
+
+.stce-root .stce-rule-editor .stce-editor-title > strong,
+.stce-root .stce-rule-editor .stce-rule-test-head strong {
+    color: var(--stce-text);
+}
+
+.stce-root .stce-rule-editor .stce-editor-title > span,
+.stce-root .stce-rule-editor .stce-rule-test-head span {
+    color: var(--stce-text-description);
+    opacity: 1;
+}
+
+.stce-root .stce-rule-editor .stce-rule-test {
+    border-top-color: var(--stce-border-soft);
+}
+
+/* 插件内反馈区替代宿主 Toast 时，状态色只放在边框、图标和浅底上。 */
+.stce-root .stce-feedback {
+    --stce-feedback-color: var(--stce-primary);
+    --stce-feedback-surface: var(--stce-primary-surface);
+
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--stce-space-2);
+    padding: 10px 12px;
+    box-sizing: border-box;
+
+    border: 1px solid color-mix(
+        in srgb,
+        var(--stce-feedback-color) 34%,
+        var(--stce-card-border) 66%
+    );
+    border-radius: var(--stce-radius-md);
+    color: var(--stce-text-body);
+    background: var(--stce-feedback-surface);
+    font-family: var(--stce-font-sans);
+    font-size: 13px;
+    line-height: 1.55;
+    transition:
+        opacity var(--stce-transition-fast),
+        transform var(--stce-transition-fast),
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast);
+}
+
+.stce-root .stce-feedback.is-success,
+.stce-root .stce-feedback[data-tone="success"] {
+    --stce-feedback-color: var(--stce-success);
+    --stce-feedback-surface: color-mix(
+        in srgb,
+        var(--stce-success) 12%,
+        var(--stce-surface-inset) 88%
+    );
+}
+
+.stce-root .stce-feedback.is-warning,
+.stce-root .stce-feedback[data-tone="warning"] {
+    --stce-feedback-color: var(--stce-warning);
+    --stce-feedback-surface: color-mix(
+        in srgb,
+        var(--stce-warning) 12%,
+        var(--stce-surface-inset) 88%
+    );
+}
+
+.stce-root .stce-feedback.is-error,
+.stce-root .stce-feedback[data-tone="error"] {
+    --stce-feedback-color: var(--stce-danger);
+    --stce-feedback-surface: var(--stce-danger-surface);
+}
+
+.stce-root .stce-feedback-icon {
+    flex: 0 0 auto;
+    width: 1.2em;
+    color: var(--stce-feedback-color);
+    text-align: center;
+}
+
+.stce-root .stce-feedback-content {
+    min-width: 0;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stce-root .stce-feedback-title {
+    color: var(--stce-text);
+    font-weight: 700;
+}
+
+.stce-root .stce-feedback-message,
+.stce-root .stce-feedback-detail {
+    color: var(--stce-text-body);
+}
+
+.stce-root .stce-feedback-detail {
+    color: var(--stce-text-description);
+    font-size: 12px;
+}
+
+.stce-root .stce-feedback-close {
+    flex: 0 0 auto;
+    padding: 2px 4px;
+    border: 0;
+    color: var(--stce-text-description);
+    background: transparent;
+    cursor: pointer;
+}
+
+.stce-root .stce-feedback-close:hover {
+    color: var(--stce-text);
+}
+
+.stce-root .stce-feedback.is-entering {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.stce-root .stce-feedback.is-leaving {
+    opacity: 0;
+    transform: translateY(-2px);
+}
+
+/* AI 直出页面只补充通用间距，不接管设置页和滚动 owner。 */
+.stce-root .stce-ai-page {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--stce-space-4);
+}
+
+.stce-root .stce-ai-page > * {
+    min-width: 0;
+}
+
+/* 旧版规则编辑仍可能暂时使用宿主 Popup，这里把关键 Token 传入 Popup。 */
+dialog.popup:has(.stce-rule-editor) {
+    --stce-surface-raised: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, var(--SmartThemeBodyColor)) 96%,
+        transparent
+    );
+    --stce-surface-inset: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, var(--SmartThemeBodyColor)) 90%,
+        var(--SmartThemeBodyColor) 10%
+    );
+    --stce-surface-hover: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, var(--SmartThemeBodyColor)) 84%,
+        var(--SmartThemeBodyColor) 16%
+    );
+    --stce-panel-solid: var(--stce-surface-raised);
+    --stce-text: var(--SmartThemeBodyColor);
+    --stce-text-body: var(--SmartThemeBodyColor);
+    --stce-text-description: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor) 62%,
+        transparent
+    );
+    --stce-border: var(--SmartThemeBorderColor);
+    --stce-border-soft: color-mix(
+        in srgb,
+        var(--SmartThemeBorderColor) 62%,
+        transparent
+    );
+    --stce-border-strong: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor));
+    --stce-primary: var(--SmartThemeQuoteColor, var(--SmartThemeBodyColor));
+    --stce-primary-deep: color-mix(
+        in srgb,
+        var(--stce-primary) 82%,
+        var(--SmartThemeBodyColor) 18%
+    );
+    --stce-focus-ring: 0 0 0 2px color-mix(
+        in srgb,
+        var(--stce-primary) 24%,
+        transparent
+    );
+    --stce-radius-sm: 10px;
+    --stce-radius-md: 14px;
+    --stce-radius-xl: 22px;
+    --stce-font-sans:
+        "PingFang SC",
+        "Noto Sans SC",
+        "Microsoft YaHei",
+        sans-serif;
+
+    color: var(--stce-text);
+    background: var(--stce-surface-raised) !important;
+    border-color: var(--stce-border) !important;
+}
+
+dialog.popup:has(.stce-rule-editor) .stce-rule-editor {
+    color: var(--stce-text);
+    background: var(--stce-surface-raised);
+}
+
+dialog.popup:has(.stce-rule-editor) .stce-field input[type="text"],
+dialog.popup:has(.stce-rule-editor) .stce-field input[type="password"],
+dialog.popup:has(.stce-rule-editor) .stce-field input[type="number"],
+dialog.popup:has(.stce-rule-editor) .stce-field textarea,
+dialog.popup:has(.stce-rule-editor) .stce-field .stce-select-trigger {
+    color: var(--stce-text) !important;
+    background: var(--stce-surface-inset) !important;
+    border-color: var(--stce-border) !important;
+}
+
+dialog.popup:has(.stce-rule-editor) .stce-field input[type="text"]:focus,
+dialog.popup:has(.stce-rule-editor) .stce-field input[type="password"]:focus,
+dialog.popup:has(.stce-rule-editor) .stce-field input[type="number"]:focus,
+dialog.popup:has(.stce-rule-editor) .stce-field textarea:focus,
+dialog.popup:has(.stce-rule-editor) .stce-field .stce-select-trigger:focus-visible {
+    background: var(--stce-surface-raised) !important;
+    border-color: var(--stce-primary) !important;
+    box-shadow: var(--stce-focus-ring) !important;
+}
+
+dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok {
+    border-color: var(--stce-primary-deep) !important;
+    color: #fff !important;
+    background: var(--stce-primary-deep) !important;
+}
+
+dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-cancel {
+    border-color: var(--stce-border) !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-surface-inset) !important;
+}
+
+
+/* 当前 index.js 使用的 root 对话框类名，沿用上面的插件内视觉。 */
+.stce-root:has(.stce-root-dialog) {
+    position: relative;
+}
+
+.stce-root .stce-root-dialog[hidden] {
+    display: none !important;
+}
+
+.stce-root .stce-root-dialog {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 40 !important;
+    display: grid !important;
+    align-items: center;
+    justify-items: center;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--stce-space-5) !important;
+    box-sizing: border-box;
+    overflow: auto;
+    background: color-mix(
+        in srgb,
+        var(--stce-surface) 48%,
+        transparent
+    ) !important;
+    backdrop-filter: blur(5px) !important;
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-dialog {
+    width: min(560px, 100%) !important;
+    max-height: min(720px, 100%) !important;
+    min-width: 0;
+    border: 1px solid var(--stce-card-border) !important;
+    border-radius: var(--stce-radius-xl) !important;
+    color: var(--stce-text);
+    background: var(--stce-glass-surface) !important;
+    box-shadow: var(--stce-shadow-elevated) !important;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-topbar {
+    min-height: 0;
+    gap: var(--stce-space-3);
+    padding: var(--stce-space-4) var(--stce-space-5) !important;
+    border-bottom: 1px solid var(--stce-border-soft) !important;
+    background: transparent !important;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-topbar strong {
+    color: var(--stce-text);
+    font-family: var(--stce-font-sans);
+    font-size: 17px;
+    font-weight: 720;
+    line-height: 1.35;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-close {
+    width: 34px !important;
+    height: 34px !important;
+    border: 1px solid transparent !important;
+    border-radius: var(--stce-radius-sm) !important;
+    color: var(--stce-text-description) !important;
+    background: transparent !important;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-close:hover:not(:disabled) {
+    border-color: var(--stce-border) !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-surface-hover) !important;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-scroll {
+    max-height: none !important;
+    gap: var(--stce-space-4) !important;
+    padding: var(--stce-space-5) !important;
+    background: transparent !important;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-footer {
+    min-height: 0;
+    gap: var(--stce-space-2);
+    padding: var(--stce-space-3) var(--stce-space-5) var(--stce-space-4) !important;
+    border-top: 1px solid var(--stce-border-soft) !important;
+    background: var(--stce-surface-inset) !important;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-footer-actions {
+    gap: var(--stce-space-2);
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-footer .menu_button {
+    min-width: 104px !important;
+    min-height: 42px !important;
+    padding: 9px 15px !important;
+    border-radius: var(--stce-radius-sm) !important;
+    font-family: var(--stce-font-sans);
+    font-size: 13px !important;
+    font-weight: 650 !important;
+    line-height: 20px;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-cancel {
+    border-color: var(--stce-card-border) !important;
+    color: var(--stce-text-body) !important;
+    background: var(--stce-button-secondary) !important;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-save {
+    border-color: var(--stce-primary-deep) !important;
+    color: #fff !important;
+    background: var(--stce-primary-deep) !important;
+    box-shadow: 0 4px 12px color-mix(
+        in srgb,
+        var(--stce-primary-deep) 22%,
+        transparent
+    ) !important;
+}
+
+.stce-root .stce-root-dialog .stce-secondary-modal-save:hover:not(:disabled) {
+    border-color: var(--stce-primary-deep) !important;
+    background: color-mix(
+        in srgb,
+        var(--stce-primary-deep) 88%,
+        var(--stce-text) 12%
+    ) !important;
+}
+
+/* 根内规则编辑器里的控件覆盖宿主表单色，focus 不再铺满蓝色。 */
+.stce-root .stce-root-dialog .stce-field input[type="text"],
+.stce-root .stce-root-dialog .stce-field input[type="password"],
+.stce-root .stce-root-dialog .stce-field input[type="number"],
+.stce-root .stce-root-dialog .stce-field textarea,
+.stce-root .stce-root-dialog .stce-field .stce-select-trigger {
+    color: var(--stce-text-body) !important;
+    background: var(--stce-surface-inset) !important;
+    border-color: var(--stce-card-border) !important;
+}
+
+.stce-root .stce-root-dialog .stce-field input[type="text"]:focus,
+.stce-root .stce-root-dialog .stce-field input[type="password"]:focus,
+.stce-root .stce-root-dialog .stce-field input[type="number"]:focus,
+.stce-root .stce-root-dialog .stce-field textarea:focus,
+.stce-root .stce-root-dialog .stce-field .stce-select-trigger:focus-visible {
+    color: var(--stce-text) !important;
+    background: var(--stce-surface-raised) !important;
+    border-color: var(--stce-primary) !important;
+    box-shadow: var(--stce-focus-ring) !important;
+}
+
+/* 当前反馈节点由 index.js 写入少量内联样式，这里用同一主题 Token 收口。 */
+.stce-root #stce_feedback.stce-feedback {
+    align-items: flex-start !important;
+    min-height: 0 !important;
+    margin: 0 0 var(--stce-space-2) !important;
+    padding: 9px 12px !important;
+    border: 1px solid color-mix(
+        in srgb,
+        var(--stce-feedback-color) 34%,
+        var(--stce-card-border) 66%
+    ) !important;
+    border-radius: var(--stce-radius-md) !important;
+    color: var(--stce-text-body) !important;
+    background: var(--stce-feedback-surface) !important;
+    box-shadow: var(--stce-shadow-card) !important;
+    font-family: var(--stce-font-sans) !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+}
