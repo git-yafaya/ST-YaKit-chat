@@ -394,3 +394,294 @@
     border-color: var(--stce-card-border) !important;
     background: var(--stce-card-surface) !important;
 }
+
+/* 设置页顶部只保留简洁说明，避免重复显示大标题。 */
+.stce-root .stce-settings-page {
+    gap: var(--stce-space-4);
+    padding-bottom: var(--stce-space-2);
+}
+
+.stce-root .stce-settings-heading {
+    align-items: flex-start;
+    gap: var(--stce-space-5);
+    padding: var(--stce-space-1) var(--stce-space-1) var(--stce-space-3);
+    border-bottom: 1px solid var(--stce-border-soft);
+}
+
+.stce-root .stce-settings-heading > div:first-child {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stce-root .stce-settings-kicker {
+    margin: 0;
+    color: var(--stce-text-body);
+    font-family: var(--stce-font-sans);
+    font-size: 15px;
+    font-weight: 720;
+    letter-spacing: normal;
+    line-height: 22px;
+    text-transform: none;
+}
+
+.stce-root .stce-settings-heading h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    border: 0;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.stce-root .stce-settings-heading p {
+    max-width: 620px;
+    margin: 0;
+    color: var(--stce-text-description);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+/* 当前主题状态和未来版本状态共用紧凑的右侧状态行。 */
+.stce-root .stce-settings-status,
+.stce-root .stce-settings-version-message {
+    color: var(--stce-text-description);
+}
+
+.stce-root .stce-settings-status {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 11px;
+    border-color: var(--stce-card-border);
+    border-radius: 999px;
+    background: var(--stce-card-surface);
+    line-height: 20px;
+}
+
+.stce-root .stce-settings-version-area {
+    min-width: 176px;
+    display: flex;
+    align-items: flex-end;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: var(--stce-space-1);
+}
+
+.stce-root .stce-settings-version-button,
+.stce-root .stce-settings-update-action {
+    appearance: none;
+    border: 1px solid var(--stce-card-border);
+    color: var(--stce-text-body);
+    background: var(--stce-button-secondary);
+    font: inherit;
+    cursor: pointer;
+    transition:
+        color var(--stce-transition-fast),
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        opacity var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-settings-version-button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 8px 12px;
+    border-radius: var(--stce-radius-sm);
+}
+
+.stce-root .stce-settings-version-button > span {
+    color: var(--stce-text-description);
+    font-size: 11px;
+}
+
+.stce-root .stce-settings-version-button > strong {
+    color: var(--stce-primary);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+}
+
+.stce-root .stce-settings-version-button > i {
+    color: var(--stce-text-description);
+    font-size: 16px;
+    font-style: normal;
+    line-height: 1;
+}
+
+.stce-root .stce-settings-version-button:hover:not(:disabled),
+.stce-root .stce-settings-version-button:focus-visible,
+.stce-root .stce-settings-update-action:hover:not(:disabled),
+.stce-root .stce-settings-update-action:focus-visible {
+    border-color: var(--stce-border-strong);
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-root .stce-settings-version-button:active:not(:disabled),
+.stce-root .stce-settings-update-action:active:not(:disabled) {
+    transform: translateY(1px) scale(0.985);
+}
+
+.stce-root .stce-settings-version-button:disabled,
+.stce-root .stce-settings-update-action:disabled {
+    cursor: progress;
+    opacity: 0.72;
+}
+
+.stce-root .stce-settings-version-button.is-available,
+.stce-root .stce-settings-update-row {
+    color: var(--stce-primary);
+}
+
+.stce-root .stce-settings-version-button.is-available {
+    border-color: var(--stce-border-strong);
+    background: var(--stce-primary-surface);
+}
+
+.stce-root .stce-settings-version-button.is-updated,
+.stce-root .stce-settings-version-button.is-up-to-date,
+.stce-root .stce-settings-version-message.is-updated,
+.stce-root .stce-settings-version-message.is-up-to-date {
+    border-color: color-mix(in srgb, var(--stce-success) 42%, var(--stce-card-border));
+    color: var(--stce-success);
+}
+
+.stce-root .stce-settings-version-button.is-error,
+.stce-root .stce-settings-version-message.is-error {
+    border-color: color-mix(in srgb, var(--stce-danger) 42%, var(--stce-card-border));
+    color: var(--stce-danger);
+}
+
+.stce-root .stce-settings-update-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--stce-space-1);
+    font-size: 11px;
+    line-height: 18px;
+}
+
+.stce-root .stce-settings-update-action {
+    min-height: 30px;
+    padding: 5px 10px;
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.stce-root .stce-settings-version-message {
+    max-width: 280px;
+    font-size: 10px;
+    line-height: 15px;
+    text-align: right;
+}
+
+/* 设置分组保持完整配置页层级，减少内部卡片的重复悬浮感。 */
+.stce-root .stce-settings-accordion-list {
+    gap: var(--stce-space-3);
+}
+
+.stce-root .stce-settings-inner {
+    padding: var(--stce-space-4) var(--stce-space-5) var(--stce-space-5);
+}
+
+.stce-root .stce-settings-row {
+    gap: var(--stce-space-5);
+}
+
+.stce-root .stce-settings-row-copy {
+    gap: var(--stce-space-1);
+}
+
+.stce-root .stce-settings-row-copy span {
+    max-width: 520px;
+}
+
+/* 获取模型按钮与相邻控件同高，并预留四字文字的舒适宽度。 */
+.stce-root .stce-shared-api-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 210px) !important;
+}
+
+.stce-root .stce-shared-model-action {
+    min-width: 0;
+    gap: var(--stce-space-2);
+}
+
+.stce-root .stce-shared-model-action .menu_button {
+    width: 100% !important;
+    height: 52px !important;
+    min-width: 184px !important;
+    min-height: 52px !important;
+    padding-inline: 18px !important;
+    font-size: 14px !important;
+    font-weight: 650 !important;
+    line-height: 20px !important;
+}
+
+/* AI 页直接展示配置和结果，不再为抽屉触发器保留空白。 */
+.stce-root .stce-ai-page,
+.stce-root .stce-panel[data-panel="ai"] {
+    min-width: 0;
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-drawers {
+    width: 100%;
+    min-width: 0;
+    gap: 0;
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-drawer {
+    overflow: visible;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-drawer-trigger {
+    display: none;
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-drawer-body {
+    border-top: 0;
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-config-in-drawer {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-goal {
+    gap: var(--stce-space-2);
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-goal > small,
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-goal-help {
+    color: var(--stce-text-description);
+    font-size: 11px;
+    line-height: 17px;
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-config-actions {
+    flex-wrap: wrap;
+    gap: var(--stce-space-3);
+    margin-top: var(--stce-space-1);
+}
+
+.stce-root .stce-panel[data-panel="ai"] .stce-ai-results {
+    width: 100%;
+    margin-top: var(--stce-space-4);
+    gap: var(--stce-space-3);
+}
