@@ -1,0 +1,426 @@
+/* 主题变量、字体和基础令牌。 */
+
+
+
+
+/* =========================
+   v0.9.0 - 参考 Timeline 的界面基础层
+   ========================= */
+
+/*
+ * 上面的历史规则仍按功能保留，以兼容 SillyTavern 的弹窗结构。
+ * 这一层负责当前界面的语义变量、稳定尺寸、轻量动效和滚动区域。
+ */
+.stce-root {
+    --stce-bg: #0f172a;
+    --stce-panel: rgb(33 49 69 / 0.85);
+    --stce-panel-solid: #213145;
+    --stce-panel-soft: rgb(255 255 255 / 0.045);
+    --stce-panel-hover: rgb(255 255 255 / 0.07);
+    --stce-control: rgb(33 49 69 / 0.72);
+    --stce-control-hover: rgb(33 49 69 / 0.9);
+    --stce-listbox: rgb(24 39 58 / 0.98);
+    --stce-text: #f3f6ff;
+    --stce-muted: #b8c1d1;
+    --stce-faint: rgb(184 193 209 / 0.62);
+    --stce-border: rgb(194 198 214 / 0.16);
+    --stce-border-soft: rgb(194 198 214 / 0.1);
+    --stce-border-strong: rgb(173 198 255 / 0.38);
+    --stce-primary: #adc6ff;
+    --stce-primary-deep: #2170e4;
+    --stce-primary-surface: rgb(33 112 228 / 0.18);
+    --stce-primary-selected: rgb(33 112 228 / 0.3);
+    --stce-success: #4edea3;
+    --stce-warning: #ffb370;
+    --stce-danger: #ffb4ab;
+    --stce-danger-surface: rgb(186 26 26 / 0.16);
+    --stce-focus-ring: 0 0 0 2px rgb(173 198 255 / 0.2);
+    --stce-shadow: 0 4px 20px rgb(0 0 0 / 0.15);
+    --stce-shadow-elevated: 0 12px 36px rgb(0 0 0 / 0.3);
+    --stce-shadow-listbox: 0 14px 34px rgb(0 0 0 / 0.34), 0 2px 8px rgb(0 0 0 / 0.22);
+    --stce-radius: 12px;
+
+    --stce-text: var(--SmartThemeBodyColor, #f3f6ff);
+    --stce-muted: color-mix(in srgb, var(--stce-text) 68%, transparent);
+    --stce-faint: color-mix(in srgb, var(--stce-text) 48%, transparent);
+    --stce-border: color-mix(in srgb, var(--stce-text) 17%, transparent);
+    --stce-border-soft: color-mix(in srgb, var(--stce-text) 10%, transparent);
+    --stce-control: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 72%, transparent);
+    --stce-control-hover: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 88%, transparent);
+
+}
+
+
+/* =========================
+   v0.9.1 - 视觉层优化
+   ========================= */
+
+/*
+ * 这一层只调整颜色、间距、圆角、阴影和动效，不改变现有功能与布局。
+ * 所有变量和选择器都放在插件自己的命名空间内，方便以后统一换主题。
+ */
+.stce-root {
+    --stce-space-1: 6px;
+    --stce-space-2: 10px;
+    --stce-space-3: 14px;
+    --stce-space-4: 18px;
+    --stce-space-5: 24px;
+
+    --stce-radius-sm: 10px;
+    --stce-radius-md: 14px;
+    --stce-radius-lg: 18px;
+    --stce-radius-xl: 22px;
+
+    /* 前景层使用更高的不透明度，减少聊天背景穿透。 */
+    --stce-surface: var(--SmartThemeBlurTintColor, #213145);
+    --stce-surface: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 94%,
+        transparent
+    );
+    --stce-surface-raised: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 98%,
+        transparent
+    );
+    --stce-surface-inset: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 90%,
+        transparent
+    );
+    --stce-surface-hover: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 96%,
+        transparent
+    );
+
+    --stce-border: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 22%,
+        transparent
+    );
+    --stce-border-soft: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 13%,
+        transparent
+    );
+    --stce-border-strong: color-mix(
+        in srgb,
+        var(--stce-primary, #adc6ff) 48%,
+        transparent
+    );
+
+    --stce-shadow: 0 8px 24px rgb(0 0 0 / 0.16),
+        0 1px 2px rgb(0 0 0 / 0.12);
+    --stce-shadow-elevated: 0 18px 48px rgb(0 0 0 / 0.28),
+        0 4px 12px rgb(0 0 0 / 0.16);
+    --stce-transition-fast: 140ms ease-out;
+    --stce-transition: 180ms ease-out;
+
+}
+
+
+/* =========================
+   v0.10.0 - Shell 设置页与主题
+   ========================= */
+
+/* 深色主题使用兄弟项目的深蓝色表面。 */
+.stce-root[data-theme="dark"] {
+    color-scheme: dark;
+    --stce-surface: rgb(33 49 69 / 0.94);
+    --stce-surface-raised: rgb(33 49 69 / 0.98);
+    --stce-surface-inset: rgb(24 39 58 / 0.92);
+    --stce-surface-hover: rgb(45 63 86 / 0.98);
+    --stce-panel-soft: rgb(255 255 255 / 0.06);
+    --stce-panel-hover: rgb(255 255 255 / 0.09);
+    --stce-panel-solid: #213145;
+    --stce-control: rgb(33 49 69 / 0.92);
+    --stce-control-hover: rgb(45 63 86 / 0.98);
+    --stce-listbox: #18273a;
+    --stce-text: #f3f6ff;
+    --stce-muted: #b8c1d1;
+    --stce-faint: rgb(184 193 209 / 0.62);
+    --stce-border: rgb(194 198 214 / 0.22);
+    --stce-border-soft: rgb(194 198 214 / 0.13);
+    --stce-border-strong: rgb(173 198 255 / 0.48);
+    --stce-primary: #adc6ff;
+    --stce-primary-deep: #2170e4;
+    --stce-primary-surface: rgb(33 112 228 / 0.22);
+    --stce-primary-selected: rgb(33 112 228 / 0.32);
+    --stce-danger: #ffb4ab;
+    --stce-danger-surface: rgb(186 26 26 / 0.18);
+    --stce-focus-ring: 0 0 0 2px rgb(173 198 255 / 0.22);
+    --stce-shadow: 0 8px 24px rgb(0 0 0 / 0.18),
+        0 1px 2px rgb(0 0 0 / 0.12);
+    --stce-shadow-elevated: 0 18px 48px rgb(0 0 0 / 0.3),
+        0 4px 12px rgb(0 0 0 / 0.18);
+}
+
+/* 浅色主题使用高亮度表面，但仍保留前景层级和轻微玻璃感。 */
+.stce-root[data-theme="light"] {
+    color-scheme: light;
+    --stce-surface: rgb(248 250 255 / 0.96);
+    --stce-surface-raised: rgb(248 250 255 / 0.99);
+    --stce-surface-inset: rgb(255 255 255 / 0.94);
+    --stce-surface-hover: rgb(230 238 251 / 0.98);
+    --stce-panel-soft: rgb(33 49 69 / 0.055);
+    --stce-panel-hover: rgb(33 49 69 / 0.085);
+    --stce-panel-solid: #f8faff;
+    --stce-control: rgb(255 255 255 / 0.94);
+    --stce-control-hover: rgb(230 238 251 / 0.98);
+    --stce-listbox: #f8faff;
+    --stce-text: #172033;
+    --stce-muted: #5f6b7d;
+    --stce-faint: rgb(95 107 125 / 0.62);
+    --stce-border: rgb(71 85 105 / 0.18);
+    --stce-border-soft: rgb(71 85 105 / 0.12);
+    --stce-border-strong: rgb(36 95 174 / 0.42);
+    --stce-primary: #245fae;
+    --stce-primary-deep: #2161b5;
+    --stce-primary-surface: rgb(36 95 174 / 0.12);
+    --stce-primary-selected: rgb(36 95 174 / 0.18);
+    --stce-danger: #b3261e;
+    --stce-danger-surface: rgb(179 38 30 / 0.1);
+    --stce-focus-ring: 0 0 0 2px rgb(36 95 174 / 0.2);
+    --stce-shadow: 0 8px 24px rgb(15 23 42 / 0.1),
+        0 1px 2px rgb(15 23 42 / 0.08);
+    --stce-shadow-elevated: 0 18px 48px rgb(15 23 42 / 0.16),
+        0 4px 12px rgb(15 23 42 / 0.1);
+}
+
+/* 跟随模式直接继承 SillyTavern 已应用的主题变量和用户自定义 CSS。 */
+.stce-root[data-theme="follow"] {
+    color-scheme: inherit;
+    --stce-bg: var(--SmartThemeBlurTintColor, #0f172a);
+    --stce-panel: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 94%,
+        transparent
+    );
+    --stce-panel-solid: var(--SmartThemeBlurTintColor, #213145);
+    --stce-panel-soft: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 6%,
+        transparent
+    );
+    --stce-panel-hover: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 9%,
+        transparent
+    );
+    --stce-control: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 92%,
+        transparent
+    );
+    --stce-control-hover: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 98%,
+        transparent
+    );
+    --stce-listbox: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 98%,
+        transparent
+    );
+    --stce-text: var(--SmartThemeBodyColor, #f3f6ff);
+    --stce-muted: color-mix(in srgb, var(--stce-text) 68%, transparent);
+    --stce-faint: color-mix(in srgb, var(--stce-text) 48%, transparent);
+    --stce-border: color-mix(
+        in srgb,
+        var(--SmartThemeBorderColor, rgb(194 198 214 / 0.22)) 72%,
+        transparent
+    );
+    --stce-border-soft: color-mix(
+        in srgb,
+        var(--SmartThemeBorderColor, rgb(194 198 214 / 0.22)) 48%,
+        transparent
+    );
+    --stce-border-strong: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 48%,
+        transparent
+    );
+    --stce-primary: var(--SmartThemeQuoteColor, #adc6ff);
+    --stce-primary-deep: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #2170e4) 82%,
+        #000
+    );
+    --stce-primary-surface: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 18%,
+        transparent
+    );
+    --stce-primary-selected: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 28%,
+        transparent
+    );
+    --stce-focus-ring: 0 0 0 2px color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 22%,
+        transparent
+    );
+    --stce-shadow: 0 8px 24px var(--SmartThemeShadowColor, rgb(0 0 0 / 0.3)),
+        0 1px 2px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.3)) 72%,
+            transparent
+        );
+    --stce-shadow-elevated: 0 18px 48px var(--SmartThemeShadowColor, rgb(0 0 0 / 0.3)),
+        0 4px 12px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.3)) 72%,
+            transparent
+        );
+}
+
+
+/* =========================
+   细节精修 - 阅读区与控件质感
+   ========================= */
+
+/* 统一细节动画和阴影，整体保持轻盈。 */
+.stce-root {
+    --stce-transition-fast: 180ms cubic-bezier(0.2, 0.75, 0.3, 1);
+    --stce-transition: 220ms cubic-bezier(0.2, 0.75, 0.3, 1);
+    --stce-shadow-soft: 0 6px 18px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 18%,
+            transparent
+        ),
+        0 1px 2px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 14%,
+            transparent
+        );
+    --stce-shadow-soft-hover: 0 8px 20px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 24%,
+            transparent
+        ),
+        0 2px 4px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 16%,
+            transparent
+        );
+    --stce-reading-surface: color-mix(
+        in srgb,
+        var(--stce-surface-raised, #213145) 88%,
+        var(--stce-primary-surface, rgb(33 112 228 / 0.12)) 12%
+    );
+    --stce-reading-surface-hover: color-mix(
+        in srgb,
+        var(--stce-surface-raised, #213145) 82%,
+        var(--stce-primary-surface, rgb(33 112 228 / 0.12)) 18%
+    );
+    --stce-reading-border: color-mix(
+        in srgb,
+        var(--stce-border-soft, rgb(194 198 214 / 0.13)) 78%,
+        var(--stce-primary, #adc6ff) 22%
+    );
+    --stce-reading-shadow: 0 8px 24px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 18%,
+            transparent
+        ),
+        inset 0 1px 0 rgb(255 255 255 / 0.035);
+}
+
+
+/* =========================
+   最后一层精修 - 磨砂层级与阅读细节
+   ========================= */
+
+/* 前景尽量使用实色，玻璃效果只负责柔化边缘，不让聊天内容抢走注意力。 */
+.stce-root {
+    --stce-font-sans:
+        "PingFang SC",
+        "Noto Sans SC",
+        "Microsoft YaHei",
+        sans-serif;
+    --stce-glass-surface: color-mix(
+        in srgb,
+        var(--stce-surface-raised, #213145) 96%,
+        var(--stce-surface, #213145) 4%
+    );
+    --stce-card-surface: color-mix(
+        in srgb,
+        var(--stce-surface-raised, #213145) 94%,
+        var(--stce-surface-inset, #18273a) 6%
+    );
+    --stce-card-surface-hover: color-mix(
+        in srgb,
+        var(--stce-card-surface) 90%,
+        var(--stce-surface-hover, #2d3f56) 10%
+    );
+    --stce-card-border: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 11%,
+        transparent
+    );
+    --stce-card-border-hover: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 17%,
+        transparent
+    );
+    --stce-button-secondary: color-mix(
+        in srgb,
+        var(--stce-surface-raised, #213145) 95%,
+        var(--stce-primary-surface, rgb(33 112 228 / 0.12)) 5%
+    );
+    --stce-action-primary: #2161b5;
+    --stce-text-body: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 90%,
+        transparent 10%
+    );
+    --stce-text-description: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 62%,
+        transparent 38%
+    );
+    --stce-shadow-card: 0 3px 10px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 13%,
+            transparent
+        ),
+        0 1px 2px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 10%,
+            transparent
+        );
+    --stce-shadow-card-hover: 0 5px 14px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 17%,
+            transparent
+        ),
+        0 1px 3px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 12%,
+            transparent
+        );
+    --stce-reading-surface: color-mix(
+        in srgb,
+        var(--stce-card-surface) 94%,
+        var(--stce-primary-surface, rgb(33 112 228 / 0.12)) 6%
+    );
+    --stce-reading-surface-hover: color-mix(
+        in srgb,
+        var(--stce-card-surface-hover) 94%,
+        var(--stce-primary-surface, rgb(33 112 228 / 0.12)) 6%
+    );
+    --stce-reading-border: var(--stce-card-border);
+    --stce-reading-shadow: 0 4px 14px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 13%,
+            transparent
+        ),
+        inset 0 1px 0 rgb(255 255 255 / 0.03);
+
+}
+
+.stce-root[data-theme="dark"] {
+    --stce-action-primary: #2170e4;
+}

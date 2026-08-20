@@ -1,0 +1,1153 @@
+/* 弹窗壳、顶部 Shell、导航、面板和页面结构。 */
+
+/* =========================
+   YaKit-chat
+   v0.4.0 - Large rounded popup + cleaning rules + presets + AI
+   ========================= */
+
+/* 只影响正文导出器自己的 Popup */
+dialog.popup:has(.stce-root) {
+    width: min(1180px, calc(100vw - 36px)) !important;
+    max-width: min(1180px, calc(100vw - 36px)) !important;
+    height: min(860px, calc(100vh - 36px)) !important;
+    max-height: min(860px, calc(100vh - 36px)) !important;
+
+    padding: 0 !important;
+    margin: auto !important;
+
+    border-radius: 28px !important;
+    overflow: hidden !important;
+
+    box-sizing: border-box !important;
+}
+
+/* ST Popup 内层全部允许真正撑满 */
+dialog.popup:has(.stce-root) .popup-body {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+dialog.popup:has(.stce-root) .popup-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+
+    padding: 0 !important;
+    overflow: hidden !important;
+
+    box-sizing: border-box !important;
+    text-align: left !important;
+}
+
+/* DISPLAY Popup 不需要底部系统按钮区 */
+dialog.popup:has(.stce-root) .popup-controls {
+    display: none !important;
+}
+
+/* 右上角关闭按钮 */
+dialog.popup:has(.stce-root) .popup-button-close {
+    top: 14px !important;
+    right: 14px !important;
+
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 999px !important;
+
+    z-index: 20;
+}
+
+/* =========================
+   App shell
+   ========================= */
+
+.stce-root {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    box-sizing: border-box;
+    padding: 26px 28px 24px;
+
+    color: var(--SmartThemeBodyColor);
+    overflow: hidden;
+}
+
+.stce-header {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+    padding-right: 46px;
+}
+
+.stce-title {
+    font-size: 1.38rem;
+    font-weight: 750;
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+}
+
+.stce-subtitle {
+    margin-top: 5px;
+
+    font-size: 0.88rem;
+    line-height: 1.4;
+    opacity: 0.6;
+}
+
+.stce-count {
+    flex: 0 0 auto;
+    white-space: nowrap;
+
+    margin-top: 4px;
+    padding: 6px 10px;
+
+    border-radius: 999px;
+    background: rgb(127 127 127 / 0.10);
+
+    font-size: 0.82rem;
+    opacity: 0.75;
+}
+
+/* =========================
+   Tabs
+   ========================= */
+
+.stce-tabs {
+    position: relative;
+    isolation: isolate;
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    margin-top: 18px;
+    padding: 4px;
+
+    width: fit-content;
+    max-width: 100%;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 14px;
+
+    background: rgb(127 127 127 / 0.06);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.10),
+        inset 0 -1px 0 rgb(0 0 0 / 0.04);
+}
+
+.stce-tab {
+    position: relative;
+    z-index: 1;
+
+    appearance: none;
+    border: 0;
+    outline: none;
+
+    min-width: 96px;
+    padding: 9px 16px;
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    color: var(--SmartThemeBodyColor);
+    background: transparent;
+
+    font: inherit;
+    font-weight: 500;
+
+    transition:
+        transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        text-shadow 180ms ease,
+        opacity 180ms ease;
+}
+
+.stce-tab:hover {
+    background: transparent;
+    text-shadow: 0 1px 8px rgb(255 255 255 / 0.10);
+}
+
+.stce-tab:active {
+    transform: scale(0.965);
+}
+
+.stce-tab.is-active {
+    background: transparent;
+    font-weight: 700;
+}
+
+/* =========================
+   Panels
+   ========================= */
+
+.stce-panel {
+    display: none;
+
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+
+    margin-top: 18px;
+}
+
+.stce-panel.is-active {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* =========================
+   Export options
+   ========================= */
+
+.stce-grid {
+    flex: 0 0 auto;
+
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.stce-section-title {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-top: 2px;
+
+    font-weight: 700;
+}
+
+/* =========================
+   Bottom action bar
+   ========================= */
+
+.stce-actions {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+    min-height: 42px;
+}
+
+.stce-action-spacer {
+    flex: 1 1 auto;
+}
+/* =========================
+   v0.2.0 - Cleaning rules
+   ========================= */
+
+.stce-rules-toolbar {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+    box-sizing: border-box;
+}
+
+.stce-rules-toolbar > div:first-child {
+    min-width: 0;
+
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.stce-rules-toolbar > #stce_add_rule i {
+    flex: 0 0 auto;
+}
+
+
+/* =========================
+   v0.3.0 - Cleaning presets
+   ========================= */
+
+.stce-preset-bar {
+    flex: 0 0 auto;
+
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 16px;
+    padding: 14px 16px;
+
+    box-sizing: border-box;
+
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 16px;
+
+    background: rgb(127 127 127 / 0.035);
+}
+
+.stce-preset-picker {
+    min-width: 260px;
+    max-width: 440px;
+    flex: 1 1 360px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+.stce-preset-label {
+    font-size: 0.82rem;
+    font-weight: 650;
+    opacity: 0.72;
+}
+
+.stce-preset-actions {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+/* =========================
+   v0.6.0 - Larger preset manager
+   ========================= */
+
+.stce-preset-bar {
+    gap: 22px !important;
+    padding: 20px 22px !important;
+    border-radius: 20px !important;
+}
+
+.stce-preset-picker {
+    min-width: 340px !important;
+    max-width: 620px !important;
+    flex-basis: 500px !important;
+    gap: 9px !important;
+}
+
+.stce-preset-label {
+    font-size: 0.96rem !important;
+    font-weight: 700 !important;
+    opacity: 0.82 !important;
+}
+
+.stce-preset-actions {
+    gap: 9px !important;
+}
+
+
+/* =========================
+   v0.6.1 - Cleaner main title
+   ========================= */
+
+.stce-title {
+    font-size: 1.5rem !important;
+    font-weight: 750 !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.01em;
+}
+
+
+/* =========================
+   v0.6.3 - AI panel scrolling
+   ========================= */
+
+/*
+ * The AI settings area can become taller than the popup after switching
+ * to a vertical layout and expanding secondary API configuration.
+ * Scroll the whole AI panel instead of letting .stce-root clip it.
+ */
+.stce-panel[data-panel="ai"].is-active {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    padding-right: 5px;
+    padding-bottom: 8px;
+
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+/* A little breathing room at the end when scrolled to the bottom. */
+.stce-panel[data-panel="ai"]::after {
+    content: "";
+    flex: 0 0 4px;
+}
+
+/* The panel itself remains vertically scrollable. */
+.stce-panel[data-panel="ai"].is-active {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* 当前应用壳的基础几何保持在布局模块中。 */
+.stce-root {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    color: var(--stce-text);
+    background: var(--stce-panel);
+    font-family: Manrope, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: left;
+}
+
+dialog.popup:has(.stce-root) {
+    width: min(1200px, calc(100vw - 48px)) !important;
+    max-width: min(1200px, calc(100vw - 48px)) !important;
+    height: min(80dvh, 860px) !important;
+    max-height: min(80dvh, 860px) !important;
+    padding: 0 !important;
+    border: 1px solid color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 16%, transparent) !important;
+    border-radius: 12px !important;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 86%, transparent) !important;
+    box-shadow: 0 4px 20px rgb(0 0 0 / 0.2) !important;
+}
+
+dialog.popup:has(.stce-root) .popup-body,
+dialog.popup:has(.stce-root) .popup-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+}
+
+dialog.popup:has(.stce-root) .popup-controls,
+dialog.popup:has(.stce-root) .popup-button-close {
+    display: none !important;
+}
+
+.stce-header {
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 0 0 auto;
+    gap: 20px;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--stce-border);
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 82%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.stce-brand-lockup {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stce-brand-mark {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--stce-border-strong);
+    border-radius: 10px;
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+}
+
+.stce-brand-mark i {
+    font-size: 14px;
+}
+
+.stce-title {
+    color: var(--stce-text);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.01em;
+}
+
+.stce-subtitle {
+    margin-top: 2px;
+    color: var(--stce-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-count {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: 999px;
+    color: var(--stce-muted);
+    background: var(--stce-panel-soft);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+}
+
+.stce-tabs {
+    position: relative;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    overflow-x: auto;
+    padding: 7px 24px 5px !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--stce-border) !important;
+    border-radius: 0 !important;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 62%, transparent) !important;
+    box-shadow: none !important;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--stce-primary) 58%, transparent) transparent;
+}
+
+.stce-tabs::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.stce-tabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.stce-tabs::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stce-primary) 58%, transparent);
+}
+
+.stce-tab {
+    position: relative;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 38px;
+    flex: 0 0 auto;
+    padding: 0 12px !important;
+    border: 1px solid transparent !important;
+    border-radius: 8px !important;
+    color: var(--stce-muted) !important;
+    background: transparent !important;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    cursor: pointer;
+    transition: color 180ms ease-out, background-color 180ms ease-out, border-color 180ms ease-out;
+}
+
+.stce-tab:hover {
+    color: var(--stce-primary) !important;
+    background: var(--stce-panel-hover) !important;
+    border-color: var(--stce-border-soft) !important;
+}
+
+.stce-tab:active {
+    transform: none !important;
+}
+
+.stce-tab.is-active {
+    color: var(--stce-primary) !important;
+    background: var(--stce-primary-surface) !important;
+    border-color: color-mix(in srgb, var(--stce-primary) 24%, transparent) !important;
+}
+
+.stce-tab::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    bottom: 2px;
+    left: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--stce-primary);
+    opacity: 0;
+    transform: scaleX(0.6);
+    transition: opacity 180ms ease-out, transform 180ms ease-out;
+}
+
+.stce-tab.is-active::after {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+.stce-panel {
+    min-width: 0;
+    min-height: 0;
+    margin-top: 0 !important;
+    padding: 24px !important;
+    gap: 16px !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--stce-primary) 54%, transparent) transparent;
+}
+
+.stce-panel.is-active {
+    display: flex;
+    flex-direction: column;
+    animation: stce-panel-enter 180ms ease-out;
+}
+
+.stce-panel[data-panel="export"],
+.stce-panel[data-panel="rules"] {
+    overflow: hidden;
+}
+
+.stce-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.stce-section-title,
+.stce-rules-toolbar,
+.stce-preset-bar {
+    color: var(--stce-text);
+}
+
+/* 视觉层只增强应用壳的磨砂表面。 */
+.stce-root {
+    background: var(--stce-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* 主窗口与弹出编辑窗口使用同一套前景层级。 */
+dialog.popup:has(.stce-root) {
+    border-radius: 26px !important;
+    background: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 96%,
+        transparent
+    ) !important;
+    box-shadow: var(--stce-shadow-elevated, 0 18px 48px rgb(0 0 0 / 0.28)) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.stce-header {
+    min-height: 76px;
+    gap: var(--stce-space-5);
+    padding: 16px 26px;
+    border-bottom-color: var(--stce-border);
+    background: var(--stce-surface-raised);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.stce-brand-lockup {
+    gap: 12px;
+}
+
+.stce-brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--stce-radius-sm);
+    background: var(--stce-surface-inset);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+.stce-title {
+    font-size: 21px;
+    font-weight: 720;
+    line-height: 30px;
+}
+
+.stce-subtitle {
+    margin-top: 3px;
+    font-size: 13px;
+    line-height: 19px;
+}
+
+.stce-count {
+    padding: 7px 12px;
+    border-color: var(--stce-border-soft);
+    background: var(--stce-surface-inset);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+    transition:
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-count:hover {
+    border-color: var(--stce-border-strong);
+    background: var(--stce-surface-hover);
+}
+
+.stce-count:active {
+    transform: translateY(1px);
+}
+
+/* Tab 改成紧凑的分段控制，选中项用背景和阴影表达状态。 */
+.stce-tabs {
+    align-self: flex-start;
+    width: fit-content !important;
+    max-width: calc(100% - 52px) !important;
+    min-height: 46px;
+    margin: 14px 26px 0 !important;
+    padding: 4px !important;
+    gap: 3px;
+    border: 1px solid var(--stce-border) !important;
+    border-radius: var(--stce-radius-md) !important;
+    background: var(--stce-surface-inset) !important;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.06),
+        0 3px 12px rgb(0 0 0 / 0.08) !important;
+}
+
+.stce-tab {
+    height: 36px;
+    padding: 0 16px !important;
+    border-radius: var(--stce-radius-sm) !important;
+    transition:
+        color var(--stce-transition),
+        background-color var(--stce-transition),
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition),
+        transform var(--stce-transition-fast);
+}
+
+.stce-tab:hover {
+    background: var(--stce-surface-hover) !important;
+}
+
+.stce-tab:active {
+    transform: scale(0.97) !important;
+}
+
+.stce-tab.is-active {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-primary) 34%,
+        transparent
+    ) !important;
+    background: var(--stce-primary-surface) !important;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.12);
+}
+
+.stce-tab::after {
+    display: none;
+}
+
+.stce-panel {
+    padding: 24px 26px 28px !important;
+    gap: var(--stce-space-4) !important;
+}
+
+.stce-section-title {
+    min-height: 24px;
+    padding-inline: 2px;
+}
+
+/* Shell 桌面端对齐兄弟项目：品牌在左、导航居中、状态在右。 */
+.stce-header {
+    position: relative;
+    z-index: 5;
+    flex-wrap: wrap;
+}
+
+.stce-header > .stce-brand-lockup {
+    flex: 0 0 auto;
+}
+
+.stce-header > .stce-tabs {
+    align-self: center;
+    flex: 0 1 auto;
+    width: fit-content !important;
+    max-width: min(620px, calc(100% - 360px)) !important;
+    margin: 0 auto !important;
+}
+
+.stce-header > .stce-count {
+    flex: 0 0 auto;
+}
+
+/* 外层边框只保留一圈很轻的轮廓，交互时再稍微提亮。 */
+dialog.popup:has(.stce-root) {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 10%,
+        transparent
+    ) !important;
+    box-shadow: 0 16px 40px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 28%,
+            transparent
+        ),
+        0 2px 8px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 18%,
+            transparent
+        ) !important;
+    transition:
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition);
+}
+
+dialog.popup:has(.stce-root):hover {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 14%,
+        transparent
+    ) !important;
+}
+
+dialog.popup:has(.stce-root):focus-within {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-primary, #adc6ff) 18%,
+        var(--stce-border-soft, transparent)
+    ) !important;
+}
+
+/* Header 收紧一点，让标题、导航和消息数保持平衡。 */
+.stce-root .stce-header {
+    min-height: 68px;
+    gap: var(--stce-space-4);
+    padding: 10px 22px 11px;
+}
+
+.stce-root .stce-brand-lockup {
+    gap: 10px;
+}
+
+.stce-root .stce-brand-mark {
+    width: 34px;
+    height: 34px;
+}
+
+.stce-root .stce-title {
+    font-size: 20px;
+    line-height: 27px;
+}
+
+.stce-root .stce-subtitle {
+    margin-top: 1px;
+    font-size: 12px;
+    line-height: 17px;
+}
+
+.stce-root .stce-count {
+    padding: 6px 10px;
+}
+
+.stce-root .stce-header > .stce-tabs {
+    min-height: 42px;
+    padding: 3px !important;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.045),
+        0 2px 8px rgb(0 0 0 / 0.055) !important;
+}
+
+.stce-root .stce-header > .stce-tabs .stce-tab {
+    height: 34px;
+    padding: 0 14px !important;
+    font-size: 13px;
+}
+
+/* 选项卡和内容切换只使用很短的位移动画。 */
+.stce-root .stce-tab {
+    transition:
+        color var(--stce-transition),
+        background-color var(--stce-transition),
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-tab:hover {
+    transform: translateY(-1px);
+}
+
+.stce-root .stce-tab.is-active {
+    box-shadow: 0 2px 8px color-mix(
+        in srgb,
+        var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 12%,
+        transparent
+    );
+}
+
+.stce-root .stce-panel.is-active {
+    animation: stce-panel-enter 220ms cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
+/* 最终应用壳使用统一中文字体与高不透明度前景。 */
+.stce-root {
+    color: var(--stce-text);
+    font-family: var(--stce-font-sans);
+    background: var(--stce-glass-surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+dialog.popup:has(.stce-root) {
+    border-color: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 8%,
+        transparent
+    ) !important;
+    background: var(--SmartThemeBlurTintColor, #213145) !important;
+    background: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 98%,
+        var(--SmartThemeBodyColor, #f3f6ff) 2%
+    ) !important;
+    box-shadow: 0 12px 30px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 23%,
+            transparent
+        ),
+        0 2px 6px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 13%,
+            transparent
+        ) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+dialog.popup:has(.stce-root):hover {
+    border-color: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 11%,
+        transparent
+    ) !important;
+}
+
+dialog.popup:has(.stce-root):focus-within {
+    border-color: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 15%,
+        transparent
+    ) !important;
+}
+
+dialog.popup:has(.stce-root[data-theme="dark"]) {
+    background: #213145 !important;
+}
+
+dialog.popup:has(.stce-root[data-theme="light"]) {
+    background: #f8faff !important;
+}
+
+/* 跟随主题色可能自带透明度，叠加同色底板后仍保留用户配色。 */
+dialog.popup:has(.stce-root[data-theme="follow"]) {
+    background:
+        linear-gradient(
+            var(--SmartThemeBlurTintColor, #213145),
+            var(--SmartThemeBlurTintColor, #213145)
+        ),
+        linear-gradient(
+            var(--SmartThemeBlurTintColor, #213145),
+            var(--SmartThemeBlurTintColor, #213145)
+        ),
+        var(--SmartThemeBlurTintColor, #213145) !important;
+}
+
+/* 收紧 Header 的上下留白，但保留原有品牌、导航和状态排列。 */
+.stce-root .stce-header {
+    min-height: 64px;
+    gap: 14px;
+    padding: 8px 20px 9px;
+}
+
+.stce-root .stce-brand-lockup {
+    gap: 9px;
+}
+
+.stce-root .stce-brand-mark {
+    width: 32px;
+    height: 32px;
+    border-color: var(--stce-card-border);
+    background: var(--stce-card-surface);
+}
+
+.stce-root .stce-brand-mark i {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.stce-root .stce-title {
+    font-size: 19px;
+    line-height: 26px;
+}
+
+.stce-root .stce-subtitle {
+    margin-top: 0;
+    font-size: 11px;
+    line-height: 16px;
+}
+
+.stce-root .stce-count {
+    padding: 5px 9px;
+    font-size: 12px;
+}
+
+/* Tab 只保留一层浅背景，激活阴影控制在很小的范围内。 */
+.stce-root .stce-header > .stce-tabs {
+    min-height: 40px;
+    padding: 3px !important;
+    background: var(--stce-card-surface) !important;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035) !important;
+}
+
+.stce-root .stce-header > .stce-tabs .stce-tab {
+    height: 32px;
+    padding: 0 13px !important;
+    color: var(--stce-text-description) !important;
+    font-family: var(--stce-font-sans);
+    font-size: 13px;
+    transition:
+        color var(--stce-transition),
+        background-color var(--stce-transition),
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-header > .stce-tabs .stce-tab:hover {
+    color: var(--stce-text-body) !important;
+    transform: none;
+}
+
+.stce-root .stce-header > .stce-tabs .stce-tab.is-active {
+    color: var(--stce-primary) !important;
+    background: color-mix(
+        in srgb,
+        var(--stce-card-surface) 76%,
+        var(--stce-primary-surface, rgb(33 112 228 / 0.12)) 24%
+    ) !important;
+    box-shadow: 0 1px 4px color-mix(
+        in srgb,
+        var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 9%,
+        transparent
+    );
+}
+
+/* Shell 标题与辅助文字保持清晰的层级。 */
+.stce-root .stce-title,
+.stce-root .stce-section-title {
+    color: var(--stce-text);
+    font-weight: 720;
+}
+
+.stce-root .stce-subtitle {
+    color: var(--stce-text-description);
+    opacity: 1;
+}
+
+/* 主面板滚动条沿用阅读区的低存在感样式。 */
+.stce-panel::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.stce-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.stce-panel::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stce-primary) 54%, transparent);
+    background-clip: padding-box;
+}
+
+.stce-panel::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--stce-primary) 72%, transparent);
+    background-clip: padding-box;
+}
+
+.stce-panel {
+    scrollbar-color: color-mix(
+            in srgb,
+            var(--stce-primary) 42%,
+            transparent
+        ) transparent;
+}
+
+.stce-panel::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.stce-panel::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stce-primary) 42%, transparent);
+    background-clip: padding-box;
+}
+
+.stce-panel::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--stce-primary) 64%, transparent);
+    background-clip: padding-box;
+}
+
+.stce-root .stce-panel {
+    scrollbar-color: color-mix(
+            in srgb,
+            var(--stce-text, #f3f6ff) 26%,
+            transparent
+        ) transparent;
+}
+
+.stce-root .stce-panel::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.stce-root .stce-panel::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 26%,
+        transparent
+    );
+    background-clip: padding-box;
+}
+
+.stce-root .stce-panel::-webkit-scrollbar-thumb:hover {
+    background: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 48%,
+        transparent
+    );
+    background-clip: padding-box;
+}

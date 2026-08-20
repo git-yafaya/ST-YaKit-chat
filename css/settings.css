@@ -1,0 +1,396 @@
+/* 设置页、主题卡片和设置相关界面。 */
+
+
+
+/* 设置页沿用兄弟项目的分组手风琴逻辑。 */
+.stce-settings-page {
+    width: min(960px, 100%);
+    min-width: 0;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.stce-settings-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.stce-settings-kicker {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--stce-primary);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.stce-settings-heading h2 {
+    margin: 0;
+    color: var(--stce-text);
+    font-size: 24px;
+    font-weight: 720;
+    line-height: 32px;
+}
+
+.stce-settings-heading p {
+    margin: 4px 0 0;
+    color: var(--stce-muted);
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.stce-settings-status {
+    flex: 0 0 auto;
+    padding: 7px 11px;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: 999px;
+    color: var(--stce-muted);
+    background: var(--stce-surface-inset);
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+}
+
+.stce-settings-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stce-settings-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: var(--stce-radius-md);
+    background: var(--stce-surface);
+    box-shadow: var(--stce-shadow);
+    transition:
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition),
+        background-color var(--stce-transition);
+}
+
+.stce-settings-card.is-open {
+    border-color: var(--stce-border);
+}
+
+.stce-settings-trigger {
+    width: 100%;
+    min-height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 15px 18px;
+    border: 0;
+    border-radius: var(--stce-radius-md);
+    color: var(--stce-text);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background-color var(--stce-transition-fast),
+        color var(--stce-transition-fast);
+}
+
+.stce-settings-trigger:hover,
+.stce-settings-trigger:focus-visible {
+    color: var(--stce-primary);
+    background: var(--stce-surface-hover);
+}
+
+.stce-settings-trigger:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-settings-trigger-copy {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stce-settings-trigger-icon {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+}
+
+.stce-settings-trigger-copy > span:last-child {
+    min-width: 0;
+}
+
+.stce-settings-trigger strong,
+.stce-settings-trigger small {
+    display: block;
+}
+
+.stce-settings-trigger strong {
+    font-size: 16px;
+    font-weight: 680;
+    line-height: 24px;
+}
+
+.stce-settings-trigger small {
+    margin-top: 3px;
+    color: var(--stce-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-settings-chevron {
+    flex: 0 0 auto;
+    color: var(--stce-muted);
+    font-size: 12px;
+    transition:
+        color var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-settings-card.is-open .stce-settings-chevron {
+    color: var(--stce-primary);
+    transform: rotate(180deg);
+}
+
+.stce-settings-content {
+    border-top: 1px solid var(--stce-border-soft);
+    background: var(--stce-surface-raised);
+    animation: stce-settings-content-in 180ms ease-out;
+}
+
+.stce-settings-content[hidden] {
+    display: none !important;
+}
+
+.stce-settings-inner {
+    min-width: 0;
+    padding: 18px 20px 20px;
+}
+
+.stce-settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.stce-settings-row-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stce-settings-row-copy strong {
+    color: var(--stce-text);
+    font-size: 14px;
+    font-weight: 680;
+    line-height: 20px;
+}
+
+.stce-settings-row-copy span {
+    max-width: 480px;
+    color: var(--stce-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-theme-options {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(104px, 1fr));
+    gap: 8px;
+    flex: 0 1 390px;
+}
+
+.stce-theme-option {
+    min-width: 0;
+    min-height: 76px;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 8px;
+    padding: 10px 11px;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-muted);
+    background: var(--stce-surface-inset);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        color var(--stce-transition-fast),
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-theme-option:hover,
+.stce-theme-option:focus-visible {
+    border-color: var(--stce-border-strong);
+    color: var(--stce-text);
+    background: var(--stce-surface-hover);
+}
+
+.stce-theme-option:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-theme-option:active {
+    transform: translateY(1px) scale(0.985);
+}
+
+.stce-theme-option.is-active {
+    border-color: var(--stce-primary);
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.1);
+}
+
+.stce-theme-option > i {
+    grid-row: 1 / -1;
+    font-size: 15px;
+}
+
+.stce-theme-option > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 18px;
+}
+
+.stce-theme-option > small {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--stce-muted);
+    font-size: 10px;
+    line-height: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stce-settings-help {
+    margin: 14px 0 0;
+    color: var(--stce-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-settings-card[data-settings-section="secondary"] .stce-shared-api-card {
+    margin: 0;
+    box-shadow: none;
+    background: var(--stce-surface-inset) !important;
+}
+
+.stce-settings-card[data-settings-section="secondary"] .stce-secondary-list {
+    max-height: clamp(190px, 38vh, 390px);
+    padding-right: 18px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scrollbar-gutter: stable;
+}
+
+.stce-settings-card[data-settings-section="secondary"] .stce-secondary-list::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* 设置卡片使用与其他组件相同的轻量层次。 */
+.stce-root .stce-settings-card,
+.stce-root .stce-theme-option {
+    box-shadow: var(--stce-shadow-soft);
+}
+
+.stce-root .stce-settings-card:hover,
+.stce-root .stce-theme-option:hover,
+.stce-root .stce-theme-option:focus-visible {
+    box-shadow: var(--stce-shadow-soft-hover);
+}
+
+.stce-root .stce-theme-option.is-active {
+    box-shadow: var(--stce-shadow-soft-hover);
+}
+
+/* 设置页标题、正文和说明文字保持三级层级。 */
+.stce-root .stce-settings-heading h2,
+.stce-root .stce-settings-trigger strong {
+    color: var(--stce-text);
+    font-weight: 720;
+}
+
+.stce-root .stce-settings-row-copy strong {
+    color: var(--stce-text-body);
+}
+
+.stce-root .stce-settings-trigger small,
+.stce-root .stce-settings-row-copy span,
+.stce-root .stce-settings-help {
+    color: var(--stce-text-description);
+    opacity: 1;
+}
+
+/* 设置卡片边框更细，阴影缩短，减少悬浮感。 */
+.stce-root .stce-settings-card,
+.stce-root .stce-theme-option {
+    border-radius: var(--stce-radius-md) !important;
+    border-color: var(--stce-card-border) !important;
+    background: var(--stce-card-surface) !important;
+    box-shadow: var(--stce-shadow-card);
+    transition:
+        background-color var(--stce-transition),
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-settings-card:hover,
+.stce-root .stce-theme-option:hover,
+.stce-root .stce-theme-option:focus-visible {
+    border-color: var(--stce-card-border-hover) !important;
+    background: var(--stce-card-surface-hover) !important;
+    box-shadow: var(--stce-shadow-card-hover);
+}
+
+.stce-root .stce-theme-option.is-active {
+    border-color: var(--stce-primary) !important;
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface) !important;
+    box-shadow: var(--stce-shadow-card);
+}
+
+.stce-root .stce-theme-option:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-shadow-card), var(--stce-focus-ring);
+}
+
+.stce-root .stce-settings-card.is-open {
+    border-color: var(--stce-border) !important;
+    box-shadow: var(--stce-shadow-card);
+}
+
+.stce-root .stce-settings-card[data-settings-section="secondary"] .stce-shared-api-card {
+    border-color: var(--stce-card-border) !important;
+    background: var(--stce-card-surface) !important;
+}

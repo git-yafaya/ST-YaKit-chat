@@ -1,0 +1,48 @@
+/* 关键帧、公共动效和动效减弱规则。 */
+
+
+
+@keyframes stce-panel-enter {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes stce-listbox-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes stce-settings-content-in {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 用户要求减少动效时，最后统一压缩插件动画和过渡。 */
+@media (prefers-reduced-motion: reduce) {
+    .stce-root *,
+    .stce-root *::before,
+    .stce-root *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
