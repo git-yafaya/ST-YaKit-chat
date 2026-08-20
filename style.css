@@ -5891,3 +5891,418 @@ dialog.popup:has(.stce-ai-test-popup) {
         max-width: 100%;
     }
 }
+
+
+/* =========================
+   细节精修 - 阅读区与控件质感
+   ========================= */
+
+/* 统一细节动画和阴影，整体保持轻盈。 */
+.stce-root {
+    --stce-transition-fast: 180ms cubic-bezier(0.2, 0.75, 0.3, 1);
+    --stce-transition: 220ms cubic-bezier(0.2, 0.75, 0.3, 1);
+    --stce-shadow-soft: 0 6px 18px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 18%,
+            transparent
+        ),
+        0 1px 2px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 14%,
+            transparent
+        );
+    --stce-shadow-soft-hover: 0 8px 20px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 24%,
+            transparent
+        ),
+        0 2px 4px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 16%,
+            transparent
+        );
+    --stce-reading-surface: color-mix(
+        in srgb,
+        var(--stce-surface-raised, #213145) 88%,
+        var(--stce-primary-surface, rgb(33 112 228 / 0.12)) 12%
+    );
+    --stce-reading-surface-hover: color-mix(
+        in srgb,
+        var(--stce-surface-raised, #213145) 82%,
+        var(--stce-primary-surface, rgb(33 112 228 / 0.12)) 18%
+    );
+    --stce-reading-border: color-mix(
+        in srgb,
+        var(--stce-border-soft, rgb(194 198 214 / 0.13)) 78%,
+        var(--stce-primary, #adc6ff) 22%
+    );
+    --stce-reading-shadow: 0 8px 24px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 18%,
+            transparent
+        ),
+        inset 0 1px 0 rgb(255 255 255 / 0.035);
+}
+
+/* 外层边框只保留一圈很轻的轮廓，交互时再稍微提亮。 */
+dialog.popup:has(.stce-root) {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 10%,
+        transparent
+    ) !important;
+    box-shadow: 0 16px 40px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 28%,
+            transparent
+        ),
+        0 2px 8px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 18%,
+            transparent
+        ) !important;
+    transition:
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition);
+}
+
+dialog.popup:has(.stce-root):hover {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 14%,
+        transparent
+    ) !important;
+}
+
+dialog.popup:has(.stce-root):focus-within {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-primary, #adc6ff) 18%,
+        var(--stce-border-soft, transparent)
+    ) !important;
+}
+
+/* Header 收紧一点，让标题、导航和消息数保持平衡。 */
+.stce-root .stce-header {
+    min-height: 68px;
+    gap: var(--stce-space-4);
+    padding: 10px 22px 11px;
+}
+
+.stce-root .stce-brand-lockup {
+    gap: 10px;
+}
+
+.stce-root .stce-brand-mark {
+    width: 34px;
+    height: 34px;
+}
+
+.stce-root .stce-title {
+    font-size: 20px;
+    line-height: 27px;
+}
+
+.stce-root .stce-subtitle {
+    margin-top: 1px;
+    font-size: 12px;
+    line-height: 17px;
+}
+
+.stce-root .stce-count {
+    padding: 6px 10px;
+}
+
+.stce-root .stce-header > .stce-tabs {
+    min-height: 42px;
+    padding: 3px !important;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.045),
+        0 2px 8px rgb(0 0 0 / 0.055) !important;
+}
+
+.stce-root .stce-header > .stce-tabs .stce-tab {
+    height: 34px;
+    padding: 0 14px !important;
+    font-size: 13px;
+}
+
+/* 预览区改成更接近 Markdown 阅读器的文本面板。 */
+.stce-root .stce-preview {
+    align-self: center;
+    width: min(100%, 980px) !important;
+    max-width: 980px;
+    padding: 30px clamp(24px, 5vw, 68px) !important;
+    border: 1px solid var(--stce-reading-border) !important;
+    border-radius: var(--stce-radius-lg) !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-reading-surface) !important;
+    box-shadow: var(--stce-reading-shadow), var(--stce-shadow-soft);
+    font-family:
+        "PingFang SC",
+        "Noto Sans SC",
+        "Microsoft YaHei",
+        sans-serif;
+    font-size: clamp(16px, 1.2vw, 18px);
+    line-height: 1.85;
+    letter-spacing: 0.018em;
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    tab-size: 4;
+    transition:
+        border-color var(--stce-transition),
+        background-color var(--stce-transition),
+        box-shadow var(--stce-transition);
+}
+
+.stce-root .stce-preview:hover {
+    border-color: var(--stce-reading-border) !important;
+    background: var(--stce-reading-surface-hover) !important;
+    box-shadow: var(--stce-reading-shadow), var(--stce-shadow-soft-hover);
+}
+
+.stce-root .stce-preview:focus-visible {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-primary, #adc6ff) 42%,
+        var(--stce-reading-border)
+    ) !important;
+    box-shadow: var(--stce-reading-shadow), var(--stce-focus-ring);
+}
+
+/* 滚动条保持 6px、圆角和低透明度，悬停时才稍微显眼。 */
+.stce-root .stce-panel,
+.stce-root .stce-preview,
+.stce-root .stce-rules-list,
+.stce-root .stce-secondary-modal-scroll,
+.stce-root .stce-select-menu {
+    scrollbar-color: color-mix(
+            in srgb,
+            var(--stce-text, #f3f6ff) 26%,
+            transparent
+        ) transparent;
+}
+
+.stce-root .stce-panel::-webkit-scrollbar,
+.stce-root .stce-preview::-webkit-scrollbar,
+.stce-root .stce-rules-list::-webkit-scrollbar,
+.stce-root .stce-secondary-modal-scroll::-webkit-scrollbar,
+.stce-root .stce-select-menu::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.stce-root .stce-panel::-webkit-scrollbar-thumb,
+.stce-root .stce-preview::-webkit-scrollbar-thumb,
+.stce-root .stce-rules-list::-webkit-scrollbar-thumb,
+.stce-root .stce-secondary-modal-scroll::-webkit-scrollbar-thumb,
+.stce-root .stce-select-menu::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 26%,
+        transparent
+    );
+    background-clip: padding-box;
+}
+
+.stce-root .stce-panel::-webkit-scrollbar-thumb:hover,
+.stce-root .stce-preview::-webkit-scrollbar-thumb:hover,
+.stce-root .stce-rules-list::-webkit-scrollbar-thumb:hover,
+.stce-root .stce-secondary-modal-scroll::-webkit-scrollbar-thumb:hover,
+.stce-root .stce-select-menu::-webkit-scrollbar-thumb:hover {
+    background: color-mix(
+        in srgb,
+        var(--stce-text, #f3f6ff) 48%,
+        transparent
+    );
+    background-clip: padding-box;
+}
+
+/* 选项卡和内容切换只使用很短的位移动画。 */
+.stce-root .stce-tab {
+    transition:
+        color var(--stce-transition),
+        background-color var(--stce-transition),
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-tab:hover {
+    transform: translateY(-1px);
+}
+
+.stce-root .stce-tab.is-active {
+    box-shadow: 0 2px 8px color-mix(
+        in srgb,
+        var(--SmartThemeShadowColor, rgb(0 0 0 / 0.5)) 12%,
+        transparent
+    );
+}
+
+.stce-root .stce-panel.is-active {
+    animation: stce-panel-enter 220ms cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
+/* 选项卡片保持轻微层次，悬停时只提升一像素。 */
+.stce-root .stce-option,
+.stce-root .stce-preset-bar,
+.stce-root .stce-rules-toolbar,
+.stce-root .stce-ai-config,
+.stce-root .stce-shared-api-card,
+.stce-root .stce-rules-hint,
+.stce-root .stce-rule-card,
+.stce-root .stce-ai-drawer,
+.stce-root .stce-ai-suggestion,
+.stce-root .stce-secondary-row,
+.stce-root .stce-placeholder,
+.stce-root .stce-rules-empty,
+.stce-root .stce-settings-card,
+.stce-root .stce-theme-option {
+    box-shadow: var(--stce-shadow-soft);
+}
+
+.stce-root .stce-option {
+    align-items: center;
+    gap: 10px;
+}
+
+.stce-root .stce-option > span,
+.stce-root .stce-check-row,
+.stce-root .stce-rule-toggle {
+    line-height: 20px;
+}
+
+.stce-root .stce-option:hover,
+.stce-root .stce-option:focus-within,
+.stce-root .stce-settings-card:hover,
+.stce-root .stce-theme-option:hover,
+.stce-root .stce-theme-option:focus-visible {
+    box-shadow: var(--stce-shadow-soft-hover);
+}
+
+.stce-root .stce-theme-option.is-active {
+    box-shadow: var(--stce-shadow-soft-hover);
+}
+
+.stce-root .stce-rule-card:hover,
+.stce-root .stce-secondary-row:hover,
+.stce-root .stce-ai-suggestion:hover {
+    box-shadow: var(--stce-shadow-soft-hover);
+    transform: translateY(-1px);
+}
+
+/* 所有常用按钮统一高度、圆角、字体和悬停反馈。 */
+.stce-root .menu_button,
+.stce-root .stce-preset-button,
+.stce-root .stce-secondary-add,
+.stce-root .stce-select-trigger {
+    min-height: 42px;
+    border-radius: var(--stce-radius-sm) !important;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 20px;
+    letter-spacing: 0.005em;
+    transition:
+        color var(--stce-transition-fast),
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .menu_button:hover:not(:disabled),
+.stce-root .stce-preset-button:hover:not(:disabled),
+.stce-root .stce-secondary-add:hover:not(:disabled),
+.stce-root .stce-select-trigger:hover:not(:disabled) {
+    box-shadow: var(--stce-shadow-soft-hover);
+    transform: translateY(-1px);
+}
+
+.stce-root .menu_button:active:not(:disabled),
+.stce-root .stce-preset-button:active:not(:disabled),
+.stce-root .stce-secondary-add:active:not(:disabled),
+.stce-root .stce-select-trigger:active:not(:disabled) {
+    transform: translateY(1px) scale(0.985);
+}
+
+/* 导出按钮使用主要色，刷新、预设和取消按钮使用轻量次要样式。 */
+.stce-root .stce-actions .menu_button:not(:first-child),
+.stce-root .stce-ai-primary,
+.stce-root .stce-secondary-modal-save {
+    box-shadow: 0 5px 14px color-mix(
+        in srgb,
+        var(--stce-primary-deep, #2170e4) 22%,
+        transparent
+    );
+}
+
+.stce-root .stce-actions .menu_button:not(:first-child):hover:not(:disabled),
+.stce-root .stce-ai-primary:hover:not(:disabled),
+.stce-root .stce-secondary-modal-save:hover:not(:disabled) {
+    box-shadow: 0 8px 18px color-mix(
+        in srgb,
+        var(--stce-primary-deep, #2170e4) 28%,
+        transparent
+    );
+    filter: none;
+}
+
+.stce-root #stce_refresh,
+.stce-root .stce-actions .menu_button:first-child,
+.stce-root .stce-secondary-modal-cancel,
+.stce-root .stce-preset-button:not(.stce-danger),
+.stce-root .stce-secondary-add {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-primary, #adc6ff) 42%,
+        var(--stce-border-soft, transparent)
+    ) !important;
+    color: var(--stce-text) !important;
+    background: transparent !important;
+    box-shadow: none;
+}
+
+.stce-root #stce_refresh:hover:not(:disabled),
+.stce-root .stce-actions .menu_button:first-child:hover:not(:disabled),
+.stce-root .stce-secondary-modal-cancel:hover:not(:disabled),
+.stce-root .stce-preset-button:not(.stce-danger):hover:not(:disabled),
+.stce-root .stce-secondary-add:hover:not(:disabled) {
+    border-color: var(--stce-primary) !important;
+    color: var(--stce-primary) !important;
+    background: var(--stce-surface-hover) !important;
+    box-shadow: var(--stce-shadow-soft-hover);
+}
+
+/* 触控端保留足够的阅读和点击空间。 */
+@media (max-width: 720px) {
+    .stce-root .stce-header {
+        min-height: 64px;
+        padding: 9px 16px 11px;
+    }
+
+    .stce-root .stce-header > .stce-tabs {
+        min-height: 42px;
+    }
+
+    .stce-root .stce-preview {
+        width: 100% !important;
+        max-width: none;
+        padding: 24px 20px !important;
+        font-size: 16px;
+        line-height: 1.8;
+    }
+}
+
+@media (max-width: 560px) {
+    .stce-root .stce-header {
+        padding: 8px 14px 10px;
+    }
+
+    .stce-root .stce-preview {
+        padding: 22px 16px !important;
+    }
+}
