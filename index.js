@@ -11,6 +11,11 @@ const LEGACY_WAND_BUTTON_ID = 'st_chat_exporter_wand_button';
 const SHARED_SECONDARY_API_KEY = 'yakit-shared-secondary-api';
 const LEGACY_SHARED_SECONDARY_API_KEY = 'yafaya-shared-secondary-api';
 const STCE_THEME_MODES = Object.freeze(['follow', 'light', 'dark']);
+const EXTENSION_UPDATE_NAMES = Object.freeze([
+    'ST-Yakit-chat',
+    'ST-YaKit-chat',
+    'YaKit-chat',
+]);
 
 const DEFAULT_SETTINGS = Object.freeze({
     version: 6,
@@ -1160,9 +1165,203 @@ function installCustomSelectDismissHandler() {
     }, true);
 }
 
-async function openRuleEditor(rule, currentMessages, getOptions) {
-    const context = getContext();
-    const { Popup, POPUP_TYPE, POPUP_RESULT } = context;
+/* 在插件根节点内打开统一的模态框，并负责关闭、焦点和 Escape。 */
+function openRootDialog(root, {
+    title,
+    content,
+    confirmText = '确定',
+    cancelText = '取消',
+    confirmClass = 'stce-secondary-modal-save',
+    focusSelector = '',
+    beforeConfirm = null,
+} = {}) {
+    const previousActive = document.activeElement;
+    const titleId = createId('dialog-title');
+    const overlay = document.createElement('div');
+
+    overlay.className = 'stce-secondary-modal stce-root-dialog';
+    overlay.hidden = true;
+    overlay.setAttribute('data-stce-dialog', 'true');
+    overlay.innerHTML = `
+        <div class="stce-secondary-modal-dialog" role="dialog" aria-modal="true"
+            aria-labelledby="${titleId}">
+            <div class="stce-secondary-modal-topbar">
+                <div>
+                    <strong id="${titleId}"></strong>
+                </div>
+
+                <button type="button" class="stce-secondary-modal-close"
+                    data-stce-dialog-close aria-label="关闭">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="stce-secondary-modal-scroll" data-stce-dialog-content></div>
+
+            <div class="stce-secondary-modal-footer">
+                <button type="button" class="menu_button stce-secondary-modal-cancel"
+                    data-stce-dialog-cancel></button>
+
+                <div class="stce-secondary-modal-footer-actions">
+                    <button type="button" class="menu_button ${confirmClass}"
+                        data-stce-dialog-confirm></button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const dialog = overlay.querySelector('[role="dialog"]');
+    const titleElement = overlay.querySelector(`#${titleId}`);
+    const contentHost = overlay.querySelector('[data-stce-dialog-content]');
+    const closeButton = overlay.querySelector('[data-stce-dialog-close]');
+    const cancelButton = overlay.querySelector('[data-stce-dialog-cancel]');
+    const confirmButton = overlay.querySelector('[data-stce-dialog-confirm]');
+
+    titleElement.textContent = String(title || 'YaKit-纪实');
+    cancelButton.textContent = cancelText;
+    confirmButton.textContent = confirmText;
+
+    if (content instanceof Node) {
+        contentHost.appendChild(content);
+    } else if (content !== undefined && content !== null) {
+        contentHost.textContent = String(content);
+    }
+
+    root.appendChild(overlay);
+    overlay.hidden = false;
+
+    const getFocusable = () => [
+        ...dialog.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), '
+            + 'select:not(.stce-native-select):not([disabled]), '
+            + 'textarea:not([disabled]), '
+            + '[tabindex]:not([tabindex="-1"])',
+        ),
+    ].filter((element) => !element.hidden && element.getClientRects().length > 0);
+
+    let settled = false;
+    let confirmPending = false;
+    let resolveDialog;
+
+    const promise = new Promise((resolve) => {
+        resolveDialog = resolve;
+    });
+
+    const finish = (result) => {
+        if (settled) return;
+
+        settled = true;
+        overlay.remove();
+
+        if (previousActive?.isConnected
+            && typeof previousActive.focus === 'function') {
+            previousActive.focus({ preventScroll: true });
+        }
+
+        resolveDialog(result);
+    };
+
+    const onKeyDown = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            finish(false);
+            return;
+        }
+
+        if (event.key !== 'Tab') return;
+
+        const focusable = getFocusable();
+        if (!focusable.length) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    };
+
+    const onBackdrop = (event) => {
+        if (event.target === overlay && event.currentTarget === overlay) {
+            finish(false);
+        }
+    };
+
+    const onConfirm = async () => {
+        if (confirmPending || settled) return;
+
+        confirmPending = true;
+        confirmButton.disabled = true;
+
+        try {
+            const result = beforeConfirm
+                ? await beforeConfirm({ dialog, contentHost })
+                : true;
+
+            if (result !== false) {
+                finish(result === undefined ? true : result);
+            }
+        } catch (error) {
+            console.error('[YaKit-chat] root dialog confirm failed:', error);
+            finish(false);
+        } finally {
+            confirmPending = false;
+            if (!settled) {
+                confirmButton.disabled = false;
+            }
+        }
+    };
+
+    closeButton.addEventListener('click', () => finish(false));
+    cancelButton.addEventListener('click', () => finish(false));
+    confirmButton.addEventListener('click', onConfirm);
+    overlay.addEventListener('click', onBackdrop);
+    overlay.addEventListener('keydown', onKeyDown);
+
+    requestAnimationFrame(() => {
+        const target = focusSelector
+            ? dialog.querySelector(focusSelector)
+            : getFocusable()[0];
+
+        target?.focus({ preventScroll: true });
+    });
+
+    return promise;
+}
+
+function createRootDialogMessage(message) {
+    const content = document.createElement('div');
+    content.className = 'stce-rule-editor';
+    content.innerHTML = `
+        <div class="stce-editor-title">
+            <strong>请确认此操作</strong>
+            <span>${escapeHtml(String(message || ''))}</span>
+        </div>
+    `;
+    return content;
+}
+
+async function confirmRootAction(openDialog, title, message, confirmText = '确认') {
+    return Boolean(await openDialog({
+        title,
+        content: createRootDialogMessage(message),
+        confirmText,
+        cancelText: '取消',
+    }));
+}
+
+async function openRuleEditor(
+    rule,
+    currentMessages,
+    getOptions,
+    openDialog,
+    notify = () => {},
+) {
 
     const draft = deepClone(rule || createDefaultRule());
 
@@ -1174,6 +1373,9 @@ async function openRuleEditor(rule, currentMessages, getOptions) {
             <strong>${rule ? '编辑清洗规则' : '添加清洗规则'}</strong>
             <span>规则会按列表顺序执行</span>
         </div>
+
+        <div id="stce_rule_editor_feedback" class="stce-feedback"
+            role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
         <div class="stce-editor-grid">
             <label class="stce-field stce-field-wide">
@@ -1294,6 +1496,19 @@ async function openRuleEditor(rule, currentMessages, getOptions) {
     const flagsInput = editor.querySelector('#stce_rule_flags');
     const beforeInput = editor.querySelector('#stce_rule_test_before');
     const afterInput = editor.querySelector('#stce_rule_test_after');
+    const editorFeedback = editor.querySelector('#stce_rule_editor_feedback');
+
+    function showEditorFeedback(message, tone = 'warning') {
+        if (!editorFeedback) {
+            notify(message, tone);
+            return;
+        }
+
+        editorFeedback.hidden = false;
+        editorFeedback.textContent = String(message || '');
+        editorFeedback.dataset.tone = tone;
+        editorFeedback.style.display = 'flex';
+    }
 
     typeInput.value = draft.type || 'tag';
     stageInput.value = draft.stage || 'message';
@@ -1402,9 +1617,12 @@ async function openRuleEditor(rule, currentMessages, getOptions) {
         const error = validateRule(candidate);
 
         if (error) {
-            toastr.warning(error, '规则测试');
+            showEditorFeedback(error, 'warning');
             return;
         }
+
+        editorFeedback.hidden = true;
+        editorFeedback.style.display = 'none';
 
         if (!beforeInput.value.trim()) {
             beforeInput.value = buildTestSample();
@@ -1420,33 +1638,34 @@ async function openRuleEditor(rule, currentMessages, getOptions) {
     updateTypeVisibility();
     beforeInput.value = buildTestSample();
 
-    const popup = new Popup(
-        editor,
-        POPUP_TYPE.TEXT,
-        '',
-        {
-            wider: true,
-            okButton: '保存',
-            cancelButton: '取消',
-            allowVerticalScrolling: true,
-            leftAlign: true,
+    const result = await openDialog({
+        title: rule ? '编辑清洗规则' : '添加清洗规则',
+        content: editor,
+        confirmText: '保存',
+        cancelText: '取消',
+        focusSelector: '#stce_rule_name',
+        beforeConfirm: () => {
+            const candidate = readDraftFromForm();
+            const error = validateRule(candidate);
+
+            if (error) {
+                showEditorFeedback(`${error}。规则未保存。`, 'error');
+                nameInput.focus({ preventScroll: true });
+                return false;
+            }
+
+            editorFeedback.hidden = true;
+            editorFeedback.style.display = 'none';
+
+            return true;
         },
-    );
+    });
 
-    bindPopupBackdropClose(popup);
-    const result = await popup.show();
-
-    if (result !== POPUP_RESULT.AFFIRMATIVE) {
+    if (!result) {
         return null;
     }
 
     const finalRule = readDraftFromForm();
-    const error = validateRule(finalRule);
-
-    if (error) {
-        toastr.error(`${error}。规则未保存。`, 'YaKit-纪实');
-        return null;
-    }
 
     return finalRule;
 }
@@ -1995,6 +2214,99 @@ function aiSuggestionToRule(suggestion) {
     };
 }
 
+function getExtensionRequestHeaders() {
+    try {
+        return getContext().getRequestHeaders?.()
+            || { 'Content-Type': 'application/json' };
+    } catch {
+        return { 'Content-Type': 'application/json' };
+    }
+}
+
+function isExtensionUpdateRecord(value) {
+    return typeof value === 'object'
+        && value !== null
+        && !Array.isArray(value);
+}
+
+async function postExtensionEndpoint(endpoint, extensionName) {
+    const response = await fetch(`/api/extensions/${endpoint}`, {
+        method: 'POST',
+        headers: getExtensionRequestHeaders(),
+        body: JSON.stringify({
+            extensionName,
+            global: false,
+        }),
+    });
+
+    const responseText = await response.text();
+    let payload = {};
+
+    try {
+        payload = responseText ? JSON.parse(responseText) : {};
+    } catch {
+        payload = {};
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            responseText || response.statusText || `HTTP ${response.status}`,
+        );
+    }
+
+    if (!isExtensionUpdateRecord(payload)) {
+        throw new Error('宿主返回了无法识别的更新信息');
+    }
+
+    return payload;
+}
+
+function readExtensionUpToDate(payload) {
+    if (typeof payload.isUpToDate !== 'boolean') {
+        throw new Error('宿主未返回有效的版本状态');
+    }
+
+    return payload.isUpToDate;
+}
+
+async function checkExtensionUpdate() {
+    let lastError;
+
+    for (const extensionName of EXTENSION_UPDATE_NAMES) {
+        try {
+            const payload = await postExtensionEndpoint(
+                'version',
+                extensionName,
+            );
+
+            return {
+                extensionName,
+                isUpToDate: readExtensionUpToDate(payload),
+            };
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError instanceof Error
+        ? lastError
+        : new Error('无法连接到 SillyTavern 更新服务');
+}
+
+async function updateExtension(extensionName) {
+    const payload = await postExtensionEndpoint(
+        'update',
+        extensionName,
+    );
+
+    return {
+        isUpToDate: readExtensionUpToDate(payload),
+        shortCommitHash: typeof payload.shortCommitHash === 'string'
+            ? payload.shortCommitHash
+            : '',
+    };
+}
+
 function createExporterContent() {
     const settings = getSettings();
     const root = document.createElement('div');
@@ -2031,6 +2343,9 @@ function createExporterContent() {
 
             <div class="stce-count" id="stce_message_count" role="status" aria-live="polite">0 条消息</div>
         </div>
+
+        <div id="stce_feedback" class="stce-meta stce-feedback"
+            role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
         <section id="stce_panel_export" class="stce-panel is-active" role="tabpanel"
             aria-labelledby="stce_tab_export" data-panel="export">
@@ -2139,25 +2454,13 @@ function createExporterContent() {
 
         <section id="stce_panel_ai" class="stce-panel" role="tabpanel"
             aria-labelledby="stce_tab_ai" data-panel="ai" hidden>
-            <div class="stce-ai-drawers">
-
-                <section class="stce-ai-drawer is-open" data-ai-drawer="regex">
-                    <button class="stce-ai-drawer-trigger" type="button" aria-expanded="true"
-                        aria-controls="stce_ai_drawer_regex_body">
-                        <span class="stce-ai-drawer-title-group">
-                            <span class="stce-ai-drawer-title">正则助手</span>
-                        </span>
-
-                        <i class="fa-solid fa-chevron-down stce-ai-drawer-chevron"></i>
-                    </button>
-
-                    <div id="stce_ai_drawer_regex_body" class="stce-ai-drawer-body">
-                        <div class="stce-ai-config stce-ai-config-in-drawer">
+            <div class="stce-ai-page">
+            <div class="stce-ai-config">
                 <div class="stce-ai-config-head">
                     <div>
                         <div class="stce-ai-title-row">
                             <i class="fa-solid fa-wand-magic-sparkles"></i>
-                            <strong>AI 正则助手</strong>
+                            <strong>AI 分析</strong>
                         </div>
                         <span>
                             AI 只分析聊天格式并生成规则建议，不会修改聊天正文，也不会自动写入预设。
@@ -2205,12 +2508,15 @@ function createExporterContent() {
                     <textarea
                         id="stce_ai_goal"
                         rows="3"
-                        placeholder="例如：保留叙述、动作和对白，删除思考、状态栏、记忆摘要、变量更新与规则说明。"
-                    >保留叙述、动作和对白，删除思考、状态栏、记忆摘要、变量更新与规则说明。</textarea>
+                    ></textarea>
+                    <span class="stce-meta">
+                        示例：保留叙述、动作和对白，删除思考、状态栏、记忆摘要、变量更新与规则说明。
+                    </span>
                 </label>
 
                 <div class="stce-ai-config-actions">
-                    <span id="stce_ai_sample_meta" class="stce-meta">
+                    <span id="stce_ai_sample_meta" class="stce-meta"
+                        role="status" aria-live="polite">
                         将从当前聊天均匀抽取代表性消息
                     </span>
 
@@ -2220,7 +2526,7 @@ function createExporterContent() {
                     </button>
                 </div>
 
-                        </div>
+            </div>
 
             <div class="stce-ai-results" id="stce_ai_results">
                 <div class="stce-ai-empty">
@@ -2229,8 +2535,6 @@ function createExporterContent() {
                     <span>AI 会读取抽样消息和当前预设已有规则，只建议尚未处理的格式。</span>
                 </div>
             </div>
-                    </div>
-                </section>
             </div>
         </section>
 
@@ -2240,12 +2544,26 @@ function createExporterContent() {
                 <div class="stce-settings-heading">
                     <div>
                         <span class="stce-settings-kicker">YaKit-纪实</span>
-                        <h2>设置</h2>
-                        <p>配置界面主题和副 API 连接。</p>
+                        <h2>配置</h2>
+                        <p>主题与副 API 连接。</p>
+                        <span class="stce-settings-status" id="stce_theme_status"
+                            role="status" aria-live="polite">跟随 SillyTavern</span>
                     </div>
-                    <span class="stce-settings-status" id="stce_theme_status" role="status" aria-live="polite">
-                        跟随 SillyTavern
-                    </span>
+                    <div class="stce-settings-update-area"
+                        style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:180px;">
+                        <button id="stce_update_button" type="button" class="menu_button"
+                            aria-busy="false">
+                            <i class="fa-solid fa-rotate"></i>
+                            检查更新
+                        </button>
+                        <button id="stce_update_apply" type="button" class="menu_button stce-ai-primary"
+                            aria-busy="false" hidden>
+                            <i class="fa-solid fa-cloud-arrow-down"></i>
+                            更新版本
+                        </button>
+                        <span class="stce-settings-status" id="stce_update_message"
+                            role="status" aria-live="polite">尚未检查</span>
+                    </div>
                 </div>
 
                 <div class="stce-settings-accordion-list">
@@ -2376,6 +2694,9 @@ function createExporterContent() {
                                 </div>
                             </div>
 
+                            <div id="stce_secondary_feedback" class="stce-feedback"
+                                role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
                             <div class="stce-shared-api-grid">
                                 <label class="stce-field stce-field-wide">
                                     <span>名称</span>
@@ -2459,6 +2780,8 @@ function createExporterContent() {
     const preview = root.querySelector('#stce_preview');
     const previewMeta = root.querySelector('#stce_preview_meta');
     const messageCount = root.querySelector('#stce_message_count');
+    const feedback = root.querySelector('#stce_feedback');
+    const secondaryFeedback = root.querySelector('#stce_secondary_feedback');
     const rulesList = root.querySelector('#stce_rules_list');
     const rulesMeta = root.querySelector('#stce_rules_meta');
     const presetSelect = root.querySelector('#stce_preset_select');
@@ -2467,12 +2790,13 @@ function createExporterContent() {
     const renamePresetButton = root.querySelector('#stce_rename_preset');
     const deletePresetButton = root.querySelector('#stce_delete_preset');
     const aiPresetName = root.querySelector('#stce_ai_preset_name');
-    const aiDrawers = [...root.querySelectorAll('.stce-ai-drawer')];
-    const aiDrawerTriggers = [...root.querySelectorAll('.stce-ai-drawer-trigger')];
     const settingsCards = [...root.querySelectorAll('.stce-settings-card')];
     const settingsTriggers = [...root.querySelectorAll('.stce-settings-trigger')];
     const themeButtons = [...root.querySelectorAll('.stce-theme-option')];
     const themeStatus = root.querySelector('#stce_theme_status');
+    const updateButton = root.querySelector('#stce_update_button');
+    const updateApplyButton = root.querySelector('#stce_update_apply');
+    const updateMessage = root.querySelector('#stce_update_message');
     const aiScope = root.querySelector('#stce_ai_scope');
     const aiSampleCount = root.querySelector('#stce_ai_sample_count');
     const aiApiMode = root.querySelector('#stce_ai_api_mode');
@@ -2514,6 +2838,78 @@ function createExporterContent() {
 
     // New secondary APIs stay transient until the user confirms them.
     let secondaryDraft = null;
+    let feedbackTimer = 0;
+
+    const openDialog = (options) => openRootDialog(root, options);
+
+    /* 反馈只保留一行正文，不再调用 SillyTavern 的全局 Toast。 */
+    function showFeedback(message, tone = 'info', duration = 4200) {
+        if (!feedback) return;
+
+        window.clearTimeout(feedbackTimer);
+
+        const targets = [feedback];
+        if (secondaryFeedback && !secondaryModal.hidden) {
+            targets.push(secondaryFeedback);
+        }
+
+        const normalized = String(message || '').replace(/\s+/g, ' ').trim();
+        const text = normalized.length > 240
+            ? `${normalized.slice(0, 237)}…`
+            : normalized;
+
+        if (!text) {
+            targets.forEach((target) => {
+                target.hidden = true;
+                target.style.display = 'none';
+            });
+            return;
+        }
+
+        const toneVariables = {
+            info: '--stce-primary',
+            success: '--stce-success',
+            warning: '--stce-warning',
+            error: '--stce-danger',
+        };
+        const toneVariable = toneVariables[tone] || toneVariables.info;
+
+        targets.forEach((target) => {
+            target.hidden = false;
+            target.textContent = text;
+            target.dataset.tone = tone;
+            target.style.display = 'flex';
+        });
+
+        feedback.style.alignItems = 'center';
+        feedback.style.minHeight = '36px';
+        feedback.style.margin = '0 0 10px';
+        feedback.style.padding = '8px 12px';
+        feedback.style.border = `1px solid color-mix(in srgb, var(${toneVariable}) 34%, transparent)`;
+        feedback.style.borderRadius = 'var(--stce-radius-sm, 10px)';
+        feedback.style.color = `var(${toneVariable})`;
+        feedback.style.background = 'var(--stce-card-surface, var(--stce-surface-raised))';
+        feedback.style.boxShadow = 'var(--stce-shadow-card, none)';
+        feedback.style.fontSize = '13px';
+        feedback.style.lineHeight = '20px';
+        feedback.style.whiteSpace = 'nowrap';
+        feedback.style.overflow = 'hidden';
+        feedback.style.textOverflow = 'ellipsis';
+
+        if (duration > 0) {
+            feedbackTimer = window.setTimeout(() => {
+                targets.forEach((target) => {
+                    target.hidden = true;
+                    target.style.display = 'none';
+                });
+            }, duration);
+        }
+    }
+
+    const extensionUpdateState = {
+        status: 'idle',
+        extensionName: '',
+    };
 
     const themeLabels = {
         follow: '跟随 SillyTavern',
@@ -2577,153 +2973,102 @@ function createExporterContent() {
         });
     }
 
-    applyTheme();
+    function renderUpdateState(status, message) {
+        extensionUpdateState.status = status;
 
-    function animateAiDrawerBody(body, open) {
-        body.getAnimations().forEach(
-            (animation) => animation.cancel(),
-        );
-
-        const resetInlineStyles = () => {
-            body.style.height = '';
-            body.style.opacity = '';
-            body.style.overflow = '';
-        };
-
-        if (open) {
-            body.hidden = false;
-
-            const targetHeight = body.scrollHeight;
-
-            body.style.height = '0px';
-            body.style.opacity = '0.62';
-            body.style.overflow = 'hidden';
-
-            const animation = body.animate(
-                [
-                    {
-                        height: '0px',
-                        opacity: 0.62,
-                    },
-                    {
-                        height: `${targetHeight}px`,
-                        opacity: 1,
-                    },
-                ],
-                {
-                    duration: 260,
-                    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-                    fill: 'none',
-                },
-            );
-
-            animation.addEventListener(
-                'finish',
-                () => {
-                    resetInlineStyles();
-                },
-                { once: true },
-            );
-
-            animation.addEventListener(
-                'cancel',
-                resetInlineStyles,
-                { once: true },
-            );
-
-            return;
+        if (updateMessage) {
+            updateMessage.textContent = message;
         }
 
-        if (body.hidden) {
-            return;
+        const checking = status === 'checking';
+        const updating = status === 'updating';
+        const busy = checking || updating;
+
+        if (updateButton) {
+            updateButton.disabled = busy;
+            updateButton.setAttribute('aria-busy', String(busy));
+            updateButton.innerHTML = `
+                <i class="fa-solid ${checking ? 'fa-spinner fa-spin' : 'fa-rotate'}"></i>
+                ${checking ? '检查中…' : status === 'available' ? '重新检查' : '检查更新'}
+            `;
         }
 
-        const startHeight =
-            body.getBoundingClientRect().height;
-
-        body.style.height = `${startHeight}px`;
-        body.style.opacity = '1';
-        body.style.overflow = 'hidden';
-
-        const animation = body.animate(
-            [
-                {
-                    height: `${startHeight}px`,
-                    opacity: 1,
-                },
-                {
-                    height: '0px',
-                    opacity: 0.62,
-                },
-            ],
-            {
-                duration: 220,
-                easing: 'cubic-bezier(0.4, 0, 1, 1)',
-                fill: 'none',
-            },
-        );
-
-        animation.addEventListener(
-            'finish',
-            () => {
-                body.hidden = true;
-                resetInlineStyles();
-            },
-            { once: true },
-        );
-
-        animation.addEventListener(
-            'cancel',
-            resetInlineStyles,
-            { once: true },
-        );
+        if (updateApplyButton) {
+            updateApplyButton.hidden = status !== 'available'
+                && status !== 'updating';
+            updateApplyButton.disabled = updating;
+            updateApplyButton.setAttribute('aria-busy', String(updating));
+            updateApplyButton.innerHTML = `
+                <i class="fa-solid ${updating ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'}"></i>
+                ${updating ? '更新中…' : '更新版本'}
+            `;
+        }
     }
 
-    function setAiDrawerState(targetDrawer, shouldOpen) {
-        aiDrawers.forEach((drawer) => {
-            const isTarget = drawer === targetDrawer;
-            const open = isTarget && shouldOpen;
-            const wasOpen =
-                drawer.classList.contains('is-open');
+    async function checkForUpdate(force = false) {
+        if (extensionUpdateState.status === 'checking'
+            || extensionUpdateState.status === 'updating') {
+            return;
+        }
 
-            if (open === wasOpen) {
+        if (!force && extensionUpdateState.status === 'available') {
+            return;
+        }
+
+        renderUpdateState('checking', '正在检查新版本…');
+
+        try {
+            const result = await checkExtensionUpdate();
+            extensionUpdateState.extensionName = result.extensionName;
+
+            renderUpdateState(
+                result.isUpToDate ? 'up-to-date' : 'available',
+                result.isUpToDate
+                    ? '当前已是最新版本。'
+                    : '发现可用更新。',
+            );
+        } catch (error) {
+            renderUpdateState(
+                'error',
+                `检查更新失败：${error instanceof Error ? error.message : '无法连接到更新服务'}`,
+            );
+        }
+    }
+
+    async function updateInstalledExtension() {
+        if (extensionUpdateState.status !== 'available'
+            || !extensionUpdateState.extensionName) {
+            return;
+        }
+
+        renderUpdateState('updating', '正在更新扩展…');
+
+        try {
+            const result = await updateExtension(
+                extensionUpdateState.extensionName,
+            );
+
+            if (result.isUpToDate) {
+                renderUpdateState('up-to-date', '当前已是最新版本。');
                 return;
             }
 
-            drawer.classList.toggle('is-open', open);
-
-            const trigger = drawer.querySelector(
-                '.stce-ai-drawer-trigger',
+            renderUpdateState(
+                'updated',
+                result.shortCommitHash
+                    ? `更新完成（${result.shortCommitHash}），正在刷新页面…`
+                    : '更新完成，正在刷新页面…',
             );
-            const body = drawer.querySelector(
-                '.stce-ai-drawer-body',
+            globalThis.location.reload();
+        } catch (error) {
+            renderUpdateState(
+                'error',
+                `更新失败：${error instanceof Error ? error.message : '宿主拒绝了更新请求'}`,
             );
-
-            trigger?.setAttribute(
-                'aria-expanded',
-                String(open),
-            );
-
-            if (body) {
-                animateAiDrawerBody(body, open);
-            }
-        });
-    }
-
-    function openAiDrawer(name) {
-        const drawer = aiDrawers.find(
-            (item) => item.dataset.aiDrawer === name,
-        );
-
-        if (drawer) {
-            setAiDrawerState(drawer, true);
         }
     }
 
-    function toggleAiDrawer(drawer) {
-        const isOpen = drawer.classList.contains('is-open');
-        setAiDrawerState(drawer, !isOpen);
-    }
+    applyTheme();
 
     function getActivePreset() {
         let preset = settings.presets.find(
@@ -2762,31 +3107,54 @@ function createExporterContent() {
     }
 
     async function requestPresetName(title, defaultValue = '') {
-        const { Popup } = getContext();
-        const value = await Popup.show.input(
+        const content = document.createElement('div');
+        content.className = 'stce-rule-editor';
+        content.innerHTML = `
+            <div class="stce-editor-title">
+                <strong>预设名称</strong>
+                <span>名称只用于识别当前清洗规则集合。</span>
+            </div>
+
+            <label class="stce-field stce-field-wide">
+                <span>名称</span>
+                <input id="stce_preset_name_input" type="text"
+                    value="${escapeHtml(defaultValue)}"
+                    placeholder="例如：默认清洗、简洁导出">
+                <span id="stce_preset_name_error" class="stce-meta" hidden>
+                    预设名称不能为空
+                </span>
+            </label>
+        `;
+
+        const input = content.querySelector('#stce_preset_name_input');
+        const error = content.querySelector('#stce_preset_name_error');
+        const result = await openDialog({
             title,
-            '输入清洗预设名称。',
-            defaultValue,
-            {
-                okButton: '确定',
-                cancelButton: '取消',
+            content,
+            confirmText: '确定',
+            cancelText: '取消',
+            focusSelector: '#stce_preset_name_input',
+            beforeConfirm: () => {
+                const name = input.value.trim();
+
+                if (!name) {
+                    error.hidden = false;
+                    input.focus({ preventScroll: true });
+                    return false;
+                }
+
+                return true;
             },
-        );
+        });
 
-        if (value === null) return null;
+        if (!result) return null;
 
-        const name = String(value).trim();
-
-        if (!name) {
-            toastr.warning('预设名称不能为空', 'YaKit-纪实');
-            return null;
-        }
-
-        return name;
+        const name = input.value.trim();
+        return name || null;
     }
 
     async function createPreset() {
-        const name = await requestPresetName('新建清洗预设', '新预设');
+        const name = await requestPresetName('新建清洗预设');
         if (!name) return;
 
         const preset = {
@@ -2803,7 +3171,7 @@ function createExporterContent() {
         renderRules();
         renderPreview();
 
-        toastr.success(`已创建预设“${name}”`, 'YaKit-纪实');
+        showFeedback(`已创建预设“${name}”`, 'success');
     }
 
     function duplicatePreset() {
@@ -2822,7 +3190,7 @@ function createExporterContent() {
         renderRules();
         renderPreview();
 
-        toastr.success('已复制当前预设', 'YaKit-纪实');
+        showFeedback('已复制当前预设', 'success');
     }
 
     async function renamePreset() {
@@ -2836,24 +3204,23 @@ function createExporterContent() {
         renderPresetSelect();
         renderPreview();
 
-        toastr.success('预设已重命名', 'YaKit-纪实');
+        showFeedback('预设已重命名', 'success');
     }
 
     async function deletePreset() {
         if (settings.presets.length <= 1) {
-            toastr.warning('至少需要保留一个清洗预设', 'YaKit-纪实');
+            showFeedback('至少需要保留一个清洗预设', 'warning');
             return;
         }
 
         const preset = getActivePreset();
-        const { Popup, POPUP_RESULT } = getContext();
-
-        const result = await Popup.show.confirm(
+        const result = await confirmRootAction(
+            openDialog,
             '删除清洗预设',
             `确定删除“${preset.name}”及其中的 ${preset.rules.length} 条规则吗？`,
         );
 
-        if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+        if (!result) return;
 
         settings.presets = settings.presets.filter(
             (item) => item.id !== preset.id,
@@ -2867,7 +3234,7 @@ function createExporterContent() {
         renderRules();
         renderPreview();
 
-        toastr.success('预设已删除', 'YaKit-纪实');
+        showFeedback('预设已删除', 'success');
     }
 
 
@@ -3112,6 +3479,9 @@ function createExporterContent() {
         const abandonedDraft = secondaryDraft;
 
         secondaryModal.hidden = true;
+        secondaryFeedback.hidden = true;
+        secondaryFeedback.textContent = '';
+        secondaryFeedback.style.display = 'none';
 
         sharedApiKey.value = '';
 
@@ -3153,15 +3523,9 @@ function createExporterContent() {
                 aiSecondaryConnection.value = pendingDraft.id;
                 renderAiApiSelect();
 
-                toastr.success(
-                    `“${pendingDraft.name}”已添加`,
-                    'YaKit-纪实 副 API',
-                );
+                showFeedback(`“${pendingDraft.name}”已添加`, 'success');
             } else {
-                toastr.success(
-                    '副 API 配置已保存',
-                    'YaKit-纪实 副 API',
-                );
+                showFeedback('副 API 配置已保存', 'success');
             }
 
             closeSecondaryApiModal();
@@ -3171,10 +3535,7 @@ function createExporterContent() {
                 error,
             );
 
-            toastr.error(
-                error?.message || String(error),
-                'YaKit-纪实 副 API',
-            );
+            showFeedback(error?.message || String(error), 'error');
         } finally {
             secondaryModalSave.disabled = false;
             secondaryModalSave.innerHTML = originalHtml;
@@ -3323,9 +3684,9 @@ function createExporterContent() {
             renderSharedModelSelect();
             updateSharedApiStatus();
 
-            toastr.success(
+            showFeedback(
                 `“${connection.name}”已获取 ${models.length} 个模型`,
-                'YaKit-纪实 副 API',
+                'success',
             );
         } catch (error) {
             console.error(
@@ -3333,10 +3694,7 @@ function createExporterContent() {
                 error,
             );
 
-            toastr.error(
-                error?.message || String(error),
-                'YaKit-纪实 副 API',
-            );
+            showFeedback(error?.message || String(error), 'error');
         } finally {
             sharedFetchModels.disabled = false;
             sharedFetchModels.innerHTML = originalHtml;
@@ -3373,23 +3731,19 @@ function createExporterContent() {
         const store = getSharedSecondaryApiSettings();
 
         if (store.connections.length <= 1) {
-            toastr.warning(
-                '至少需要保留一个副 API 配置',
-                'YaKit-纪实 副 API',
-            );
+            showFeedback('至少需要保留一个副 API 配置', 'warning');
 
             return;
         }
 
         const connection = getSelectedSecondaryConnection();
-        const { Popup, POPUP_RESULT } = getContext();
-
-        const result = await Popup.show.confirm(
+        const result = await confirmRootAction(
+            openDialog,
             '删除副 API',
             `确定删除“${connection.name}”吗？API Key Secret 不会被自动删除。`,
         );
 
-        if (result !== POPUP_RESULT.AFFIRMATIVE) {
+        if (!result) {
             return;
         }
 
@@ -3413,10 +3767,7 @@ function createExporterContent() {
         loadSharedApiUi();
         closeSecondaryApiModal();
 
-        toastr.success(
-            '副 API 已删除',
-            'YaKit-纪实 副 API',
-        );
+        showFeedback('副 API 已删除', 'success');
     }
 
     function renderSecondaryApiConnections() {
@@ -3595,7 +3946,7 @@ function createExporterContent() {
         );
 
         if (!aiSamples.length) {
-            toastr.warning('当前聊天没有可供 AI 分析的消息', 'YaKit-纪实');
+            showFeedback('当前聊天没有可供 AI 分析的消息', 'warning');
             return;
         }
 
@@ -3629,10 +3980,7 @@ function createExporterContent() {
 
                 secondaryRequestConnectionId = connection.id;
             } catch (error) {
-                toastr.warning(
-                    error?.message || String(error),
-                    'YaKit-纪实 副 API',
-                );
+                showFeedback(error?.message || String(error), 'warning');
 
                 return;
             }
@@ -3642,6 +3990,9 @@ function createExporterContent() {
             `本次抽取 ${aiSamples.length} 条消息，共 ${aiSamples.reduce((sum, item) => sum + item.text.length, 0).toLocaleString()} 字`;
 
         aiAnalyzeButton.disabled = true;
+        aiAnalyzeButton.setAttribute('aria-busy', 'true');
+        aiSampleMeta.textContent =
+            `正在分析 ${aiSamples.length} 条样本…`;
 
         try {
             const result = await requestAiRuleSuggestions({
@@ -3665,32 +4016,30 @@ function createExporterContent() {
                 ),
             }));
 
+            aiSampleMeta.textContent =
+                `本次抽取 ${aiSamples.length} 条消息，共 ${aiSamples.reduce((sum, item) => sum + item.text.length, 0).toLocaleString()} 字`;
             renderAiResults();
 
             if (aiSuggestions.length) {
-                toastr.success(
+                showFeedback(
                     `AI 生成了 ${aiSuggestions.length} 条规则建议`,
-                    'YaKit-纪实',
+                    'success',
                 );
             } else {
-                toastr.info(
-                    'AI 没有发现可靠的新规则',
-                    'YaKit-纪实',
-                );
+                showFeedback('AI 没有发现可靠的新规则', 'info');
             }
         } catch (error) {
             console.error('[YaKit-chat] AI analysis failed:', error);
 
             aiSummary = '';
             aiSuggestions = [];
+            aiSampleMeta.textContent = '分析失败，请检查配置或稍后重试。';
             renderAiResults();
 
-            toastr.error(
-                error?.message || 'AI 分析失败',
-                'YaKit-纪实',
-            );
+            showFeedback(error?.message || 'AI 分析失败', 'error');
         } finally {
             aiAnalyzeButton.disabled = false;
+            aiAnalyzeButton.setAttribute('aria-busy', 'false');
         }
     }
 
@@ -3698,7 +4047,7 @@ function createExporterContent() {
         const selected = getSelectedAiSuggestions();
 
         if (!selected.length) {
-            toastr.warning('请先选择至少一条 AI 建议', 'YaKit-纪实');
+            showFeedback('请先选择至少一条 AI 建议', 'warning');
             return;
         }
 
@@ -3770,7 +4119,7 @@ function createExporterContent() {
         const selected = getSelectedAiSuggestions();
 
         if (!selected.length) {
-            toastr.warning('请先选择至少一条 AI 建议', 'YaKit-纪实');
+            showFeedback('请先选择至少一条 AI 建议', 'warning');
             return;
         }
 
@@ -3793,10 +4142,7 @@ function createExporterContent() {
         }
 
         if (!added) {
-            toastr.info(
-                '选中的建议已经存在于当前预设中',
-                'YaKit-纪实',
-            );
+            showFeedback('选中的建议已经存在于当前预设中', 'info');
             return;
         }
 
@@ -3812,9 +4158,9 @@ function createExporterContent() {
 
         renderAiResults();
 
-        toastr.success(
+        showFeedback(
             `已向“${getActivePreset().name}”加入 ${added} 条 AI 规则`,
-            'YaKit-纪实',
+            'success',
         );
     }
 
@@ -3847,6 +4193,10 @@ function createExporterContent() {
         messageCount.textContent = `${currentMessages.length} 条消息`;
         aiSampleMeta.textContent = '将从当前聊天均匀抽取代表性消息';
         renderPreview();
+
+        if (!currentMessages.length) {
+            showFeedback('当前没有可读取的聊天记录', 'warning');
+        }
     }
 
     function moveRule(id, direction) {
@@ -3885,16 +4235,22 @@ function createExporterContent() {
             ? getRules().find((item) => item.id === ruleId)
             : null;
 
-        const edited = await openRuleEditor(original, currentMessages, getOptions);
+        const edited = await openRuleEditor(
+            original,
+            currentMessages,
+            getOptions,
+            openDialog,
+            showFeedback,
+        );
         if (!edited) return;
 
         if (original) {
             const index = getRules().findIndex((item) => item.id === ruleId);
             getRules()[index] = edited;
-            toastr.success('规则已更新', 'YaKit-纪实');
+            showFeedback('规则已更新', 'success');
         } else {
             getRules().push(edited);
-            toastr.success('规则已添加', 'YaKit-纪实');
+            showFeedback('规则已添加', 'success');
         }
 
         saveSettings();
@@ -3906,13 +4262,13 @@ function createExporterContent() {
         const rule = getRules().find((item) => item.id === ruleId);
         if (!rule) return;
 
-        const { Popup, POPUP_RESULT } = getContext();
-        const result = await Popup.show.confirm(
+        const result = await confirmRootAction(
+            openDialog,
             '删除清洗规则',
             `确定删除“${rule.name}”吗？`,
         );
 
-        if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+        if (!result) return;
 
         const preset = getActivePreset();
         preset.rules = preset.rules.filter((item) => item.id !== ruleId);
@@ -3920,7 +4276,7 @@ function createExporterContent() {
         saveSettings();
         renderRules();
         renderPreview();
-        toastr.success('规则已删除', 'YaKit-纪实');
+        showFeedback('规则已删除', 'success');
     }
 
     function duplicateRule(ruleId) {
@@ -3938,7 +4294,7 @@ function createExporterContent() {
         saveSettings();
         renderRules();
         renderPreview();
-        toastr.success('已复制规则', 'YaKit-纪实');
+        showFeedback('已复制规则', 'success');
     }
 
     function renderRules() {
@@ -4091,6 +4447,10 @@ function createExporterContent() {
             panel.hidden = !active;
         }
 
+        if (tab === 'settings' && extensionUpdateState.status === 'idle') {
+            void checkForUpdate();
+        }
+
         if (focus) {
             targetButton.focus({ preventScroll: true });
         }
@@ -4181,16 +4541,6 @@ function createExporterContent() {
     renderSecondaryApiConnections();
     renderAiApiSelect();
 
-    aiDrawerTriggers.forEach((trigger) => {
-        trigger.addEventListener('click', () => {
-            const drawer = trigger.closest('.stce-ai-drawer');
-
-            if (drawer) {
-                toggleAiDrawer(drawer);
-            }
-        });
-    });
-
     settingsTriggers.forEach((trigger) => {
         trigger.addEventListener('click', () => {
             const card = trigger.closest('.stce-settings-card');
@@ -4208,6 +4558,14 @@ function createExporterContent() {
         button.addEventListener('click', () => {
             setThemePreference(button.dataset.themeOption);
         });
+    });
+
+    updateButton?.addEventListener('click', () => {
+        void checkForUpdate(true);
+    });
+
+    updateApplyButton?.addEventListener('click', () => {
+        void updateInstalledExtension();
     });
 
     aiApiMode.addEventListener('change', () => {
@@ -4492,36 +4850,31 @@ function createExporterContent() {
 
     sharedFetchModels.addEventListener('click', handleFetchSharedModels);
 
-    aiAnalyzeButton.addEventListener('click', () => {
-        openAiDrawer('regex');
-        analyzeWithAi();
-    });
+    aiAnalyzeButton.addEventListener('click', analyzeWithAi);
     renderAiResults();
 
     root.querySelector('#stce_add_rule').addEventListener('click', () => editRule());
 
     root.querySelector('#stce_refresh').addEventListener('click', () => {
         refreshChat();
-        toastr.success('已重新读取当前聊天', 'YaKit-纪实');
     });
 
     root.querySelector('#stce_export_txt').addEventListener('click', () => {
         const result = processChat(currentMessages, getOptions(), getRules());
 
         if (!result.text.trim()) {
-            toastr.warning('没有可导出的正文', 'YaKit-纪实');
+            showFeedback('没有可导出的正文', 'warning');
             return;
         }
 
         downloadText(getDefaultFilename('txt'), result.text);
-        toastr.success('TXT 已导出', 'YaKit-纪实');
     });
 
     root.querySelector('#stce_export_md').addEventListener('click', () => {
         const result = processChat(currentMessages, getOptions(), getRules());
 
         if (!result.text.trim()) {
-            toastr.warning('没有可导出的正文', 'YaKit-纪实');
+            showFeedback('没有可导出的正文', 'warning');
             return;
         }
 
@@ -4530,7 +4883,6 @@ function createExporterContent() {
             result.text,
             'text/markdown;charset=utf-8',
         );
-        toastr.success('Markdown 已导出', 'YaKit-纪实');
     });
 
     renderRules();
@@ -4557,10 +4909,6 @@ function bindPopupBackdropClose(popup) {
 async function openExporter() {
     const context = getContext();
     const { Popup, POPUP_TYPE } = context;
-
-    if (!Array.isArray(context.chat) || context.chat.length === 0) {
-        toastr.warning('当前没有可读取的聊天记录', 'YaKit-纪实');
-    }
 
     const content = createExporterContent();
 
