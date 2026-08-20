@@ -689,3 +689,324 @@
     margin-top: var(--stce-space-4);
     gap: var(--stce-space-3);
 }
+
+/* 自定义提示词沿用 Timeline 的二级卡片和编辑面板层级。 */
+.stce-root .stce-prompt-card {
+    width: 100%;
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--stce-space-3);
+    padding: var(--stce-space-3) var(--stce-space-4);
+    border: 1px solid var(--stce-card-border);
+    border-radius: var(--stce-radius-md);
+    color: var(--stce-text-body);
+    background: var(--stce-card-surface);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        transform var(--stce-transition-fast),
+        color var(--stce-transition-fast),
+        background-color var(--stce-transition),
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition);
+}
+
+.stce-root .stce-prompt-card:hover,
+.stce-root .stce-prompt-card:focus-visible {
+    border-color: var(--stce-card-border-hover);
+    color: var(--stce-text);
+    background: var(--stce-card-surface-hover);
+    box-shadow: var(--stce-shadow-card-hover);
+}
+
+.stce-root .stce-prompt-card:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-shadow-card-hover), var(--stce-focus-ring);
+}
+
+.stce-root .stce-prompt-card:active {
+    transform: translateY(1px) scale(0.99);
+}
+
+.stce-root .stce-prompt-card.is-customized {
+    border-color: color-mix(in srgb, var(--stce-warning) 42%, var(--stce-card-border));
+    background: color-mix(in srgb, var(--stce-warning) 8%, var(--stce-card-surface));
+}
+
+.stce-root .stce-prompt-card.is-customized:hover,
+.stce-root .stce-prompt-card.is-customized:focus-visible {
+    border-color: color-mix(in srgb, var(--stce-warning) 58%, var(--stce-card-border-hover));
+    background: color-mix(in srgb, var(--stce-warning) 12%, var(--stce-card-surface-hover));
+}
+
+.stce-root .stce-prompt-card-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.stce-root .stce-prompt-card-heading {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--stce-space-2);
+}
+
+.stce-root .stce-prompt-card-heading strong,
+.stce-root .stce-prompt-card-copy > small {
+    display: block;
+}
+
+.stce-root .stce-prompt-card-heading strong {
+    min-width: 0;
+    color: var(--stce-text-body);
+    font-size: 14px;
+    font-weight: 680;
+    line-height: 20px;
+}
+
+.stce-root .stce-prompt-card-copy > small {
+    min-width: 0;
+    margin-top: 4px;
+    overflow: hidden;
+    color: var(--stce-text-description);
+    font-size: 11px;
+    line-height: 17px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stce-root .stce-prompt-card-meta {
+    min-width: 132px;
+    display: flex;
+    align-items: flex-end;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 4px;
+    overflow: visible;
+    color: var(--stce-text-description);
+    font-family: var(--stce-font-sans);
+    text-align: right;
+    white-space: normal;
+    opacity: 1;
+}
+
+.stce-root .stce-prompt-card-meta > small {
+    color: var(--stce-text-description);
+    font-size: 10px;
+    line-height: 15px;
+}
+
+.stce-root .stce-prompt-category-status {
+    min-height: 20px;
+    display: inline-flex;
+    align-items: center;
+    margin-left: var(--stce-space-1);
+    padding: 2px 8px;
+    border: 1px solid color-mix(in srgb, var(--stce-warning) 44%, var(--stce-card-border));
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--stce-warning) 58%, var(--stce-text) 42%);
+    background: color-mix(in srgb, var(--stce-warning) 11%, var(--stce-card-surface));
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+    vertical-align: middle;
+}
+
+.stce-root .stce-prompt-category-status[hidden] {
+    display: none;
+}
+
+/* 默认和已修改状态使用低存在感的胶囊，避免抢过提示词名称。 */
+.stce-root .stce-prompt-status {
+    min-height: 22px;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    padding: 2px 9px;
+    border: 1px solid color-mix(in srgb, var(--stce-primary) 34%, var(--stce-card-border));
+    border-radius: 999px;
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    white-space: nowrap;
+    transition:
+        color var(--stce-transition-fast),
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast);
+}
+
+.stce-root .stce-prompt-status.is-default {
+    border-color: var(--stce-card-border);
+    color: var(--stce-text-description);
+    background: var(--stce-surface-inset);
+}
+
+.stce-root .stce-prompt-status.is-customized,
+.stce-root .stce-prompt-card.is-customized .stce-prompt-status {
+    --stce-prompt-modified-color: color-mix(in srgb, var(--stce-warning) 52%, var(--stce-text) 48%);
+    border-color: color-mix(in srgb, var(--stce-prompt-modified-color) 48%, var(--stce-card-border));
+    color: var(--stce-prompt-modified-color);
+    background: color-mix(in srgb, var(--stce-prompt-modified-color) 13%, var(--stce-card-surface));
+}
+
+/* 右箭头保持轻量，只有悬停或聚焦时才向前提示可进入编辑。 */
+.stce-root .stce-prompt-card > i,
+.stce-root .stce-prompt-card > .stce-prompt-card-arrow {
+    flex: 0 0 auto;
+    color: var(--stce-text-description);
+    font-size: 24px;
+    font-style: normal;
+    line-height: 1;
+    transition:
+        color var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-prompt-card:hover > i,
+.stce-root .stce-prompt-card:focus-visible > i,
+.stce-root .stce-prompt-card:hover > .stce-prompt-card-arrow,
+.stce-root .stce-prompt-card:focus-visible > .stce-prompt-card-arrow {
+    color: var(--stce-primary);
+    transform: translateX(2px);
+}
+
+/* 编辑区直接放在插件弹窗内容中，不再叠加一层卡片阴影。 */
+.stce-root .stce-prompt-editor {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--stce-space-4);
+    padding: 0;
+    border: 0;
+    color: var(--stce-text-body);
+    background: transparent;
+    box-shadow: none;
+}
+
+.stce-root .stce-root-dialog.stce-prompt-editor-dialog .stce-secondary-modal-dialog {
+    width: min(720px, 100%) !important;
+}
+
+.stce-root .stce-prompt-editor[hidden] {
+    display: none;
+}
+
+.stce-root .stce-prompt-editor-heading {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--stce-space-3);
+    padding-bottom: var(--stce-space-3);
+    border-bottom: 1px solid var(--stce-border-soft);
+}
+
+.stce-root .stce-prompt-editor-heading > :first-child {
+    min-width: 0;
+}
+
+.stce-root .stce-prompt-editor-heading h2,
+.stce-root .stce-prompt-editor-heading h3,
+.stce-root .stce-prompt-editor-heading strong {
+    margin: 0;
+    color: var(--stce-text);
+    font-size: 18px;
+    font-weight: 720;
+    line-height: 26px;
+}
+
+.stce-root .stce-prompt-editor-heading p,
+.stce-root .stce-prompt-editor-heading small {
+    display: block;
+    margin: 4px 0 0;
+    color: var(--stce-text-description);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-root .stce-prompt-editor-textarea {
+    width: 100%;
+    min-height: 220px;
+    max-height: min(60vh, 560px);
+    padding: var(--stce-space-3) var(--stce-space-4);
+    border: 1px solid var(--stce-border);
+    border-radius: var(--stce-radius-sm);
+    outline: none;
+    resize: vertical;
+    color: var(--stce-text-body);
+    background: var(--stce-surface-inset);
+    font-family: var(--stce-font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    transition:
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        background-color var(--stce-transition-fast);
+}
+
+.stce-root .stce-prompt-editor-textarea:focus {
+    border-color: var(--stce-primary);
+    background: var(--stce-surface-raised);
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-root .stce-prompt-editor-textarea::placeholder {
+    color: var(--stce-text-description);
+}
+
+.stce-root .stce-prompt-editor-help {
+    margin: calc(var(--stce-space-1) * -1) 0 0;
+    color: var(--stce-text-description);
+    font-size: 11px;
+    line-height: 17px;
+}
+
+.stce-root .stce-prompt-reset {
+    align-self: flex-start;
+    margin-right: auto;
+    min-height: 36px;
+    padding: 7px 13px;
+    border: 1px solid var(--stce-card-border);
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-primary);
+    background: var(--stce-button-secondary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 680;
+    line-height: 20px;
+    cursor: pointer;
+    transition:
+        color var(--stce-transition-fast),
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root .stce-prompt-reset:hover,
+.stce-root .stce-prompt-reset:focus-visible {
+    border-color: var(--stce-border-strong);
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-root .stce-prompt-reset:focus-visible {
+    outline: none;
+}
+
+.stce-root .stce-prompt-reset:active {
+    transform: translateY(1px) scale(0.985);
+}
+
+.stce-root .stce-prompt-reset:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+}

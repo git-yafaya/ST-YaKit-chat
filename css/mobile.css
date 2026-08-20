@@ -1133,3 +1133,116 @@
         flex-wrap: wrap;
     }
 }
+
+/* 自定义提示词在窄屏中保持可收缩，标题和状态不会把卡片撑破。 */
+@media (max-width: 720px) {
+    .stce-root .stce-prompt-card,
+    .stce-root .stce-prompt-editor,
+    .stce-root .stce-prompt-editor-textarea {
+        box-sizing: border-box;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .stce-root .stce-prompt-card {
+        width: 100%;
+        min-height: 68px;
+        align-items: flex-start;
+        gap: var(--stce-space-3);
+        padding: 14px;
+    }
+
+    .stce-root .stce-prompt-card > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .stce-root .stce-prompt-card-heading {
+        display: flex;
+        min-width: 0;
+        max-width: 100%;
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--stce-space-2);
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .stce-root .stce-prompt-status {
+        min-width: 44px;
+        min-height: 24px;
+        max-width: 100%;
+        flex: 0 1 auto;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        text-align: center;
+    }
+
+    .stce-root .stce-prompt-card-meta {
+        min-width: 116px;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .stce-root .stce-prompt-reset {
+        min-width: 44px;
+        min-height: 44px;
+        max-width: 100%;
+        padding-inline: 12px;
+    }
+
+    .stce-root .stce-prompt-editor {
+        width: 100%;
+    }
+
+    .stce-root .stce-prompt-editor-textarea {
+        display: block;
+        width: 100%;
+        height: clamp(160px, 34dvh, 300px);
+        min-height: 160px;
+        max-height: calc(100dvh - 220px);
+        resize: vertical;
+        overflow-wrap: anywhere;
+    }
+
+}
+
+@media (max-width: 560px) {
+    .stce-root .stce-prompt-card {
+        flex-wrap: wrap;
+        gap: var(--stce-space-2);
+        padding: 12px;
+    }
+
+    .stce-root .stce-prompt-card-copy {
+        flex-basis: calc(100% - 48px);
+    }
+
+    .stce-root .stce-prompt-card-meta {
+        width: 100%;
+        order: 3;
+    }
+
+    .stce-root .stce-prompt-card-heading {
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .stce-root .stce-prompt-status {
+        min-height: 28px;
+        padding-inline: 8px;
+    }
+
+    .stce-root .stce-prompt-editor-textarea {
+        height: clamp(150px, 32dvh, 260px);
+        min-height: 150px;
+        max-height: calc(100dvh - 200px);
+    }
+
+    .stce-root .stce-prompt-editor-dialog .stce-secondary-modal-footer-actions {
+        grid-template-columns: 1fr;
+    }
+}
