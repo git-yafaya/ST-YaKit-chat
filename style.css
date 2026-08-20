@@ -6895,3 +6895,122 @@ dialog.popup:has(.stce-root[data-theme="follow"]) {
         padding: 22px 16px !important;
     }
 }
+
+/* 导出页复选框使用更清晰的磨砂表面、主题蓝和轻量反馈。 */
+.stce-root .stce-panel[data-panel="export"] {
+    --stce-checkbox-transition: 220ms cubic-bezier(0.2, 0.75, 0.3, 1);
+    --stce-checkbox-surface: var(--stce-card-surface, var(--stce-surface-raised, #f7f9ff));
+    --stce-checkbox-accent: var(--stce-action-primary, #2161b5);
+    --stce-checkbox-accent-border: color-mix(
+        in srgb,
+        var(--stce-checkbox-accent) 84%,
+        #0b3f8d 16%
+    );
+    --stce-checkbox-border: color-mix(
+        in srgb,
+        var(--stce-primary, #245fae) 42%,
+        var(--SmartThemeBodyColor, #f3f6ff) 58%
+    );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"] {
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    margin: 0;
+    border: 1.5px solid var(--stce-checkbox-border);
+    border-radius: 7px;
+    background-color: var(--stce-checkbox-surface);
+    background-image: none;
+    transition:
+        background-color var(--stce-checkbox-transition),
+        border-color var(--stce-checkbox-transition),
+        box-shadow var(--stce-checkbox-transition),
+        transform var(--stce-checkbox-transition);
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:hover:not(:disabled):not(:checked) {
+    border-color: var(--stce-primary, #245fae);
+    box-shadow: 0 0 0 3px color-mix(
+        in srgb,
+        var(--stce-primary, #245fae) 16%,
+        transparent
+    );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:checked {
+    border-color: var(--stce-checkbox-accent-border);
+    background-color: var(--stce-checkbox-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4.2 10.2 8.1 14.1 15.9 5.9' fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.8'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 17px 17px;
+    box-shadow:
+        0 0 0 1px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 72%,
+            transparent
+        ),
+        0 2px 8px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 30%,
+            transparent
+        );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:checked:hover:not(:disabled) {
+    border-color: var(--stce-checkbox-accent-border);
+    box-shadow:
+        0 0 0 1px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 78%,
+            transparent
+        ),
+        0 2px 9px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 36%,
+            transparent
+        );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:not(:disabled):not(:checked):focus-visible {
+    outline: none;
+    box-shadow: var(--stce-focus-ring), 0 0 0 1px color-mix(
+        in srgb,
+        var(--stce-primary, #245fae) 42%,
+        transparent
+    );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:checked:not(:disabled):focus-visible {
+    box-shadow:
+        var(--stce-focus-ring),
+        0 0 0 1px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 78%,
+            transparent
+        ),
+        0 2px 8px color-mix(
+            in srgb,
+            var(--stce-checkbox-accent) 30%,
+            transparent
+        );
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:disabled:not(:checked) {
+    border-color: var(--stce-checkbox-border);
+    background-color: var(--stce-checkbox-surface);
+    background-image: none;
+    box-shadow: none;
+}
+
+.stce-root .stce-panel[data-panel="export"] input[type="checkbox"]:disabled:checked {
+    border-color: var(--stce-checkbox-accent-border);
+    background-color: var(--stce-checkbox-accent);
+    box-shadow: none;
+}
