@@ -1,5 +1,5 @@
 /* =========================
-   ST Chat Exporter
+   YaKit-chat
    v0.4.0 - Large rounded popup + cleaning rules + presets + AI
    ========================= */
 
@@ -148,66 +148,6 @@ dialog.popup:has(.stce-root) .popup-button-close {
         inset 0 -1px 0 rgb(0 0 0 / 0.04);
 }
 
-.stce-tab-glass {
-    position: absolute;
-    z-index: 0;
-    top: 4px;
-    left: 0;
-
-    width: 96px;
-    height: calc(100% - 8px);
-
-    border: 1px solid rgb(255 255 255 / 0.28);
-    border-radius: 10px;
-
-    pointer-events: none;
-    will-change: transform, width;
-    transform: translate3d(4px, 0, 0);
-    transform-origin: center;
-
-    background:
-        linear-gradient(
-            180deg,
-            rgb(255 255 255 / 0.18) 0%,
-            rgb(255 255 255 / 0.07) 42%,
-            rgb(127 127 127 / 0.10) 100%
-        );
-
-    -webkit-backdrop-filter: blur(14px) saturate(1.18);
-    backdrop-filter: blur(14px) saturate(1.18);
-
-    box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 0.38),
-        inset 0 -1px 0 rgb(0 0 0 / 0.08),
-        0 4px 14px rgb(0 0 0 / 0.08);
-}
-
-.stce-tab-glass::before {
-    content: '';
-    position: absolute;
-    inset: 1px 10px auto;
-    height: 42%;
-    border-radius: 999px;
-    opacity: 0.7;
-    background: linear-gradient(
-        180deg,
-        rgb(255 255 255 / 0.26),
-        transparent
-    );
-    filter: blur(0.4px);
-}
-
-.stce-tab-glass::after {
-    content: '';
-    position: absolute;
-    inset: auto 12px 2px;
-    height: 34%;
-    border-radius: 999px;
-    opacity: 0.18;
-    background: rgb(0 0 0 / 0.22);
-    filter: blur(7px);
-}
-
 .stce-tab {
     position: relative;
     z-index: 1;
@@ -247,21 +187,6 @@ dialog.popup:has(.stce-root) .popup-button-close {
 .stce-tab.is-active {
     background: transparent;
     font-weight: 700;
-}
-
-.stce-tabs.is-glass-moving .stce-tab-glass {
-    box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 0.48),
-        inset 0 -1px 0 rgb(0 0 0 / 0.07),
-        0 7px 18px rgb(0 0 0 / 0.10);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .stce-tab,
-    .stce-tab-glass {
-        transition: none !important;
-        animation: none !important;
-    }
 }
 
 /* =========================
@@ -2826,10 +2751,6 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
     min-width: 124px;
 }
 
-body.stce-secondary-modal-open {
-    overflow: hidden;
-}
-
 @media (max-width: 720px) {
     .stce-secondary-modal {
         padding: 12px;
@@ -3782,4 +3703,2191 @@ body.stce-secondary-modal-open {
 #yakit-root .toast .toast-message,
 .stce-root .toast .toast-message {
     font-size: 14px !important;
+}
+
+
+/* =========================
+   v0.9.0 - 参考 Timeline 的界面基础层
+   ========================= */
+
+/*
+ * 上面的历史规则仍按功能保留，以兼容 SillyTavern 的弹窗结构。
+ * 这一层负责当前界面的语义变量、稳定尺寸、轻量动效和滚动区域。
+ */
+.stce-root {
+    --stce-bg: #0f172a;
+    --stce-panel: rgb(33 49 69 / 0.85);
+    --stce-panel-solid: #213145;
+    --stce-panel-soft: rgb(255 255 255 / 0.045);
+    --stce-panel-hover: rgb(255 255 255 / 0.07);
+    --stce-control: rgb(33 49 69 / 0.72);
+    --stce-control-hover: rgb(33 49 69 / 0.9);
+    --stce-listbox: rgb(24 39 58 / 0.98);
+    --stce-text: #f3f6ff;
+    --stce-muted: #b8c1d1;
+    --stce-faint: rgb(184 193 209 / 0.62);
+    --stce-border: rgb(194 198 214 / 0.16);
+    --stce-border-soft: rgb(194 198 214 / 0.1);
+    --stce-border-strong: rgb(173 198 255 / 0.38);
+    --stce-primary: #adc6ff;
+    --stce-primary-deep: #2170e4;
+    --stce-primary-surface: rgb(33 112 228 / 0.18);
+    --stce-primary-selected: rgb(33 112 228 / 0.3);
+    --stce-success: #4edea3;
+    --stce-warning: #ffb370;
+    --stce-danger: #ffb4ab;
+    --stce-danger-surface: rgb(186 26 26 / 0.16);
+    --stce-focus-ring: 0 0 0 2px rgb(173 198 255 / 0.2);
+    --stce-shadow: 0 4px 20px rgb(0 0 0 / 0.15);
+    --stce-shadow-elevated: 0 12px 36px rgb(0 0 0 / 0.3);
+    --stce-shadow-listbox: 0 14px 34px rgb(0 0 0 / 0.34), 0 2px 8px rgb(0 0 0 / 0.22);
+    --stce-radius: 12px;
+
+    --stce-text: var(--SmartThemeBodyColor, #f3f6ff);
+    --stce-muted: color-mix(in srgb, var(--stce-text) 68%, transparent);
+    --stce-faint: color-mix(in srgb, var(--stce-text) 48%, transparent);
+    --stce-border: color-mix(in srgb, var(--stce-text) 17%, transparent);
+    --stce-border-soft: color-mix(in srgb, var(--stce-text) 10%, transparent);
+    --stce-control: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 72%, transparent);
+    --stce-control-hover: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 88%, transparent);
+
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    color: var(--stce-text);
+    background: var(--stce-panel);
+    font-family: Manrope, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.stce-root *,
+.stce-root *::before,
+.stce-root *::after {
+    box-sizing: border-box;
+}
+
+.stce-root button,
+.stce-root input,
+.stce-root select,
+.stce-root textarea {
+    font: inherit;
+}
+
+.stce-root button:focus-visible,
+.stce-root input:focus-visible,
+.stce-root textarea:focus-visible,
+.stce-root .stce-select-trigger:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-focus-ring);
+}
+
+dialog.popup:has(.stce-root) {
+    width: min(1200px, calc(100vw - 48px)) !important;
+    max-width: min(1200px, calc(100vw - 48px)) !important;
+    height: min(80dvh, 860px) !important;
+    max-height: min(80dvh, 860px) !important;
+    padding: 0 !important;
+    border: 1px solid color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 16%, transparent) !important;
+    border-radius: 12px !important;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 86%, transparent) !important;
+    box-shadow: 0 4px 20px rgb(0 0 0 / 0.2) !important;
+}
+
+dialog.popup:has(.stce-root) .popup-body,
+dialog.popup:has(.stce-root) .popup-content {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+}
+
+dialog.popup:has(.stce-root) .popup-controls,
+dialog.popup:has(.stce-root) .popup-button-close {
+    display: none !important;
+}
+
+.stce-header {
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 0 0 auto;
+    gap: 20px;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--stce-border);
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 82%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.stce-brand-lockup {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stce-brand-mark {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--stce-border-strong);
+    border-radius: 10px;
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+}
+
+.stce-brand-mark i {
+    font-size: 14px;
+}
+
+.stce-title {
+    color: var(--stce-text);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 28px;
+    letter-spacing: -0.01em;
+}
+
+.stce-subtitle {
+    margin-top: 2px;
+    color: var(--stce-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-count {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: 999px;
+    color: var(--stce-muted);
+    background: var(--stce-panel-soft);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+}
+
+.stce-tabs {
+    position: relative;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    overflow-x: auto;
+    padding: 7px 24px 5px !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--stce-border) !important;
+    border-radius: 0 !important;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 62%, transparent) !important;
+    box-shadow: none !important;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--stce-primary) 58%, transparent) transparent;
+}
+
+.stce-tabs::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.stce-tabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.stce-tabs::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stce-primary) 58%, transparent);
+}
+
+.stce-tab {
+    position: relative;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 38px;
+    flex: 0 0 auto;
+    padding: 0 12px !important;
+    border: 1px solid transparent !important;
+    border-radius: 8px !important;
+    color: var(--stce-muted) !important;
+    background: transparent !important;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    cursor: pointer;
+    transition: color 180ms ease-out, background-color 180ms ease-out, border-color 180ms ease-out;
+}
+
+.stce-tab:hover {
+    color: var(--stce-primary) !important;
+    background: var(--stce-panel-hover) !important;
+    border-color: var(--stce-border-soft) !important;
+}
+
+.stce-tab:active {
+    transform: none !important;
+}
+
+.stce-tab.is-active {
+    color: var(--stce-primary) !important;
+    background: var(--stce-primary-surface) !important;
+    border-color: color-mix(in srgb, var(--stce-primary) 24%, transparent) !important;
+}
+
+.stce-tab::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    bottom: 2px;
+    left: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--stce-primary);
+    opacity: 0;
+    transform: scaleX(0.6);
+    transition: opacity 180ms ease-out, transform 180ms ease-out;
+}
+
+.stce-tab.is-active::after {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+.stce-panel[hidden],
+.stce-ai-drawer-body[hidden],
+.stce-secondary-modal[hidden] {
+    display: none !important;
+}
+
+.stce-panel {
+    min-width: 0;
+    min-height: 0;
+    margin-top: 0 !important;
+    padding: 24px !important;
+    gap: 16px !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--stce-primary) 54%, transparent) transparent;
+}
+
+.stce-panel.is-active {
+    display: flex;
+    flex-direction: column;
+    animation: stce-panel-enter 180ms ease-out;
+}
+
+@keyframes stce-panel-enter {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stce-panel[data-panel="export"],
+.stce-panel[data-panel="rules"] {
+    overflow: hidden;
+}
+
+.stce-panel::-webkit-scrollbar,
+.stce-preview::-webkit-scrollbar,
+.stce-rules-list::-webkit-scrollbar,
+.stce-secondary-modal-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.stce-panel::-webkit-scrollbar-track,
+.stce-preview::-webkit-scrollbar-track,
+.stce-rules-list::-webkit-scrollbar-track,
+.stce-secondary-modal-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.stce-panel::-webkit-scrollbar-thumb,
+.stce-preview::-webkit-scrollbar-thumb,
+.stce-rules-list::-webkit-scrollbar-thumb,
+.stce-secondary-modal-scroll::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stce-primary) 54%, transparent);
+    background-clip: padding-box;
+}
+
+.stce-panel::-webkit-scrollbar-thumb:hover,
+.stce-preview::-webkit-scrollbar-thumb:hover,
+.stce-rules-list::-webkit-scrollbar-thumb:hover,
+.stce-secondary-modal-scroll::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--stce-primary) 72%, transparent);
+    background-clip: padding-box;
+}
+
+.stce-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.stce-option,
+.stce-preset-bar,
+.stce-rules-toolbar,
+.stce-ai-config,
+.stce-shared-api-card,
+.stce-rules-hint,
+.stce-rule-card,
+.stce-ai-drawer {
+    border-color: var(--stce-border) !important;
+    background: var(--stce-panel-soft) !important;
+}
+
+.stce-option {
+    min-height: 48px;
+    padding: 12px 14px;
+    border-radius: 8px !important;
+    color: var(--stce-text);
+    transition: background-color 160ms ease-out, border-color 160ms ease-out;
+}
+
+.stce-option:hover {
+    border-color: var(--stce-border-strong) !important;
+    background: var(--stce-panel-hover) !important;
+}
+
+.stce-option input,
+.stce-check-row input,
+.stce-rule-toggle input {
+    accent-color: var(--stce-primary-deep);
+}
+
+.stce-section-title,
+.stce-rules-toolbar,
+.stce-preset-bar {
+    color: var(--stce-text);
+}
+
+.stce-meta,
+.stce-preset-label,
+.stce-rules-hint,
+.stce-field > span:first-child,
+.stce-rule-test-head span,
+.stce-ai-config-head > div:first-child > span {
+    color: var(--stce-muted) !important;
+}
+
+.stce-preview {
+    padding: 20px;
+    border-color: var(--stce-border) !important;
+    border-radius: 10px !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-panel-soft) !important;
+    font-size: 15px;
+    line-height: 1.7;
+    scrollbar-gutter: stable;
+}
+
+.stce-root .menu_button,
+.stce-preset-button,
+.stce-icon-button,
+.stce-secondary-add,
+.stce-select-trigger,
+.stce-ai-drawer-trigger {
+    transition: color 160ms ease-out, background-color 160ms ease-out, border-color 160ms ease-out, box-shadow 160ms ease-out, opacity 160ms ease-out;
+}
+
+.stce-root .menu_button {
+    min-height: 40px;
+    border: 1px solid var(--stce-border) !important;
+    border-radius: 8px !important;
+    color: var(--stce-text) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.stce-root .menu_button:hover:not(:disabled) {
+    border-color: var(--stce-border-strong) !important;
+    color: var(--stce-primary) !important;
+    background: var(--stce-panel-hover) !important;
+}
+
+.stce-root .menu_button:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+}
+
+.stce-actions .menu_button,
+.stce-ai-primary,
+.stce-root .stce-secondary-modal-save {
+    border-color: var(--stce-primary-deep) !important;
+    color: #fff !important;
+    background: var(--stce-primary-deep) !important;
+}
+
+.stce-actions .menu_button:first-child,
+.stce-secondary-modal-cancel {
+    color: var(--stce-text) !important;
+    background: transparent !important;
+}
+
+.stce-actions .menu_button:hover:not(:disabled),
+.stce-ai-primary:hover:not(:disabled),
+.stce-secondary-modal-save:hover:not(:disabled) {
+    border-color: var(--stce-primary) !important;
+    color: #fff !important;
+    background: var(--stce-primary-deep) !important;
+    filter: brightness(1.08);
+}
+
+.stce-field > span:first-child {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.stce-field input[type="text"],
+.stce-field input[type="password"],
+.stce-field input[type="number"],
+.stce-field textarea {
+    min-height: 40px;
+    padding: 9px 12px;
+    border: 1px solid var(--stce-border) !important;
+    border-radius: 8px !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-control) !important;
+    box-shadow: none !important;
+}
+
+.stce-field textarea {
+    min-height: 88px;
+    resize: vertical;
+    line-height: 1.55;
+}
+
+.stce-field input:hover,
+.stce-field textarea:hover,
+.stce-select-trigger:hover:not(:disabled) {
+    border-color: var(--stce-border-strong) !important;
+    background: var(--stce-control-hover) !important;
+}
+
+.stce-field input:focus,
+.stce-field textarea:focus,
+.stce-select-trigger:focus-visible,
+.stce-custom-select.is-open .stce-select-trigger {
+    border-color: var(--stce-primary) !important;
+    box-shadow: var(--stce-focus-ring) !important;
+}
+
+.stce-native-select {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.stce-custom-select {
+    min-width: 0;
+}
+
+.stce-select-trigger {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--stce-border) !important;
+    border-radius: 8px !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-control) !important;
+    box-shadow: none !important;
+}
+
+.stce-select-trigger > i {
+    color: var(--stce-muted);
+    transition: transform 160ms ease-out, color 160ms ease-out;
+}
+
+.stce-custom-select.is-open .stce-select-trigger > i {
+    color: var(--stce-primary);
+    transform: rotate(180deg);
+}
+
+.stce-select-menu {
+    max-height: 240px;
+    gap: 3px;
+    padding: 6px;
+    border: 1px solid var(--stce-border-strong) !important;
+    border-radius: 10px !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-listbox) !important;
+    box-shadow: var(--stce-shadow-listbox) !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--stce-primary) 62%, transparent) transparent;
+    animation: stce-listbox-in 160ms ease-out;
+}
+
+.stce-select-option {
+    min-height: 38px;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: var(--stce-muted);
+    background: transparent;
+}
+
+.stce-select-option:hover,
+.stce-select-option.is-active:not(.is-selected) {
+    border-color: var(--stce-border-soft);
+    color: var(--stce-text);
+    background: var(--stce-panel-hover);
+}
+
+.stce-select-option.is-selected {
+    border-color: color-mix(in srgb, var(--stce-primary) 34%, transparent);
+    color: var(--stce-primary);
+    background: var(--stce-primary-selected);
+    font-weight: 600;
+}
+
+.stce-select-option[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+@keyframes stce-listbox-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stce-rule-card {
+    grid-template-columns: 28px 28px minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 10px !important;
+    transition: background-color 160ms ease-out, border-color 160ms ease-out, transform 160ms ease-out, opacity 160ms ease-out;
+}
+
+.stce-rule-card:hover {
+    border-color: var(--stce-border-strong) !important;
+    background: var(--stce-panel-hover) !important;
+    transform: translateY(-1px);
+}
+
+.stce-rule-badges > span,
+.stce-ai-preset-pill,
+.stce-shared-api-status,
+.stce-ai-risk {
+    border: 1px solid var(--stce-border-soft);
+    color: var(--stce-muted);
+    background: var(--stce-panel-soft);
+}
+
+.stce-rules-hint {
+    border-radius: 8px !important;
+    line-height: 1.5;
+}
+
+.stce-ai-drawers {
+    gap: 14px;
+}
+
+.stce-ai-drawer {
+    overflow: hidden;
+    border-radius: 12px !important;
+}
+
+.stce-ai-drawer-trigger {
+    min-height: 64px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    color: var(--stce-text) !important;
+    background: transparent !important;
+}
+
+.stce-ai-drawer-trigger:hover {
+    color: var(--stce-primary) !important;
+    background: var(--stce-panel-hover) !important;
+}
+
+.stce-ai-drawer-trigger:focus-visible {
+    box-shadow: var(--stce-focus-ring) !important;
+}
+
+.stce-ai-drawer-title {
+    font-size: 16px;
+    font-weight: 650;
+    line-height: 24px;
+}
+
+.stce-ai-drawer-chevron {
+    color: var(--stce-muted);
+}
+
+.stce-ai-drawer.is-open .stce-ai-drawer-chevron {
+    color: var(--stce-primary);
+}
+
+.stce-ai-drawer-body {
+    border-top: 1px solid var(--stce-border-soft);
+}
+
+.stce-ai-config-in-drawer {
+    padding: 20px 0 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.stce-ai-results {
+    min-height: 220px;
+}
+
+.stce-secondary-list-wrap {
+    min-height: 0;
+}
+
+.stce-secondary-scrollbar {
+    width: 7px;
+    right: 2px;
+    background: color-mix(in srgb, var(--stce-text) 8%, transparent) !important;
+}
+
+.stce-secondary-scrollbar-thumb {
+    width: 5px;
+    left: 1px;
+    min-height: 34px;
+    background: color-mix(in srgb, var(--stce-primary) 54%, transparent) !important;
+    transition: background 140ms ease, width 140ms ease, left 140ms ease;
+}
+
+.stce-secondary-scrollbar:hover .stce-secondary-scrollbar-thumb,
+.stce-secondary-scrollbar-thumb.is-dragging {
+    width: 7px;
+    left: 0;
+    background: color-mix(in srgb, var(--stce-primary) 76%, transparent) !important;
+}
+
+.stce-secondary-add {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--stce-primary) 42%, transparent);
+    border-radius: 8px;
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.stce-secondary-add:hover {
+    border-color: var(--stce-primary);
+    background: var(--stce-primary-selected);
+}
+
+.stce-secondary-row {
+    min-height: 60px;
+    grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: 8px;
+    color: var(--stce-text);
+    background: var(--stce-panel-soft);
+    transition: background-color 160ms ease-out, border-color 160ms ease-out, transform 160ms ease-out;
+}
+
+.stce-secondary-row:hover {
+    border-color: var(--stce-border-strong);
+    background: var(--stce-panel-hover);
+}
+
+.stce-secondary-row:active {
+    transform: translateY(1px);
+}
+
+.stce-secondary-row.is-active {
+    border-color: color-mix(in srgb, var(--stce-primary) 46%, transparent);
+    background: var(--stce-primary-surface);
+}
+
+.stce-secondary-row-name {
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.stce-secondary-row-model {
+    color: var(--stce-muted);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px;
+}
+
+.stce-ai-suggestion {
+    padding: 14px;
+    border-color: var(--stce-border) !important;
+    border-radius: 10px !important;
+    background: var(--stce-panel-soft) !important;
+}
+
+.stce-ai-suggestion:hover {
+    border-color: var(--stce-border-strong) !important;
+    background: var(--stce-panel-hover) !important;
+}
+
+.stce-ai-pattern {
+    border: 1px solid var(--stce-border-soft);
+    border-radius: 7px;
+    color: var(--stce-primary);
+    background: var(--stce-control);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.stce-ai-suggestion-badges > span {
+    border: 1px solid var(--stce-border-soft);
+    color: var(--stce-muted);
+    background: var(--stce-panel-soft);
+}
+
+.stce-ai-risk.is-medium {
+    border-color: color-mix(in srgb, var(--stce-warning) 34%, transparent);
+    color: var(--stce-warning);
+    background: color-mix(in srgb, var(--stce-warning) 12%, transparent);
+}
+
+.stce-ai-risk.is-high {
+    border-color: color-mix(in srgb, var(--stce-danger) 34%, transparent);
+    color: var(--stce-danger);
+    background: var(--stce-danger-surface);
+}
+
+.stce-secondary-modal {
+    padding: 20px !important;
+    background: rgb(0 0 0 / 0.45) !important;
+    backdrop-filter: blur(2px) !important;
+}
+
+.stce-secondary-modal-dialog {
+    width: min(680px, 100%) !important;
+    max-height: 70vh !important;
+    border: 1px solid var(--stce-border) !important;
+    border-radius: 12px !important;
+    background: var(--stce-panel-solid) !important;
+    box-shadow: var(--stce-shadow-elevated) !important;
+}
+
+.stce-secondary-modal-topbar {
+    min-height: 68px;
+    padding: 16px 20px !important;
+    border-bottom: 1px solid var(--stce-border) !important;
+}
+
+.stce-secondary-modal-topbar #stce_shared_api_title {
+    color: var(--stce-text) !important;
+    font-size: 20px !important;
+    font-weight: 650 !important;
+    line-height: 28px !important;
+}
+
+.stce-secondary-modal-close {
+    width: 34px !important;
+    height: 34px !important;
+    border: 1px solid transparent !important;
+    border-radius: 8px !important;
+    color: var(--stce-muted) !important;
+    background: transparent !important;
+}
+
+.stce-secondary-modal-close:hover {
+    border-color: var(--stce-border) !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-panel-hover) !important;
+}
+
+.stce-secondary-modal-scroll {
+    max-height: calc(70vh - 140px);
+    gap: 20px !important;
+    padding: 20px !important;
+    background: transparent !important;
+}
+
+.stce-secondary-modal-footer {
+    min-height: 68px;
+    padding: 14px 20px !important;
+    border-top: 1px solid var(--stce-border) !important;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #213145) 78%, transparent) !important;
+}
+
+.stce-secondary-modal-footer .menu_button {
+    min-height: 40px !important;
+    padding: 8px 14px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+}
+
+.stce-secondary-modal-delete {
+    border-color: color-mix(in srgb, var(--stce-danger) 38%, transparent) !important;
+    color: var(--stce-danger) !important;
+    background: transparent !important;
+}
+
+.stce-secondary-modal-delete:hover:not(:disabled) {
+    border-color: var(--stce-danger) !important;
+    background: var(--stce-danger-surface) !important;
+}
+
+dialog.popup:has(.stce-rule-editor) {
+    width: min(880px, calc(100vw - 48px)) !important;
+    max-width: min(880px, calc(100vw - 48px)) !important;
+    max-height: min(860px, calc(100vh - 48px)) !important;
+    border-radius: 12px !important;
+    background: var(--stce-panel-solid, #213145) !important;
+}
+
+.stce-rule-editor {
+    color: var(--stce-text);
+    background: var(--stce-panel-solid);
+}
+
+@media (max-width: 820px) {
+    .stce-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stce-preset-bar,
+    .stce-rules-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .stce-preset-picker {
+        width: 100%;
+        max-width: none;
+    }
+
+    .stce-preset-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 720px) {
+    dialog.popup:has(.stce-root) {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 94dvh !important;
+        max-height: 94dvh !important;
+        margin: auto auto 0 !important;
+        border-radius: 12px 12px 0 0 !important;
+    }
+
+    .stce-header {
+        min-height: 60px;
+        padding: 10px 14px;
+    }
+
+    .stce-brand-mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+    }
+
+    .stce-title {
+        font-size: 17px;
+        line-height: 24px;
+    }
+
+    .stce-subtitle {
+        display: none;
+    }
+
+    .stce-count {
+        padding: 5px 8px;
+        font-size: 11px;
+    }
+
+    .stce-tabs {
+        min-height: 50px;
+        padding: 6px 14px 5px !important;
+    }
+
+    .stce-panel {
+        padding: 18px 14px !important;
+    }
+
+    .stce-grid,
+    .stce-ai-options,
+    .stce-editor-grid,
+    .stce-rule-test-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stce-actions,
+    .stce-ai-config-actions {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    .stce-action-spacer {
+        display: none;
+    }
+
+    .stce-actions .menu_button {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .stce-secondary-modal {
+        padding: 8px !important;
+    }
+
+    .stce-secondary-modal-dialog {
+        max-height: calc(100dvh - 16px) !important;
+        border-radius: 12px !important;
+    }
+
+    .stce-secondary-modal-scroll {
+        max-height: calc(100dvh - 150px);
+        padding: 18px !important;
+    }
+
+    .stce-secondary-modal-footer {
+        padding: 12px 18px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stce-root *,
+    .stce-root *::before,
+    .stce-root *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+
+/* =========================
+   v0.9.1 - 视觉层优化
+   ========================= */
+
+/*
+ * 这一层只调整颜色、间距、圆角、阴影和动效，不改变现有功能与布局。
+ * 所有变量和选择器都放在插件自己的命名空间内，方便以后统一换主题。
+ */
+.stce-root {
+    --stce-space-1: 6px;
+    --stce-space-2: 10px;
+    --stce-space-3: 14px;
+    --stce-space-4: 18px;
+    --stce-space-5: 24px;
+
+    --stce-radius-sm: 10px;
+    --stce-radius-md: 14px;
+    --stce-radius-lg: 18px;
+    --stce-radius-xl: 22px;
+
+    /* 前景层使用更高的不透明度，减少聊天背景穿透。 */
+    --stce-surface: var(--SmartThemeBlurTintColor, #213145);
+    --stce-surface: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 94%,
+        transparent
+    );
+    --stce-surface-raised: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 98%,
+        transparent
+    );
+    --stce-surface-inset: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 90%,
+        transparent
+    );
+    --stce-surface-hover: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 96%,
+        transparent
+    );
+
+    --stce-border: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 22%,
+        transparent
+    );
+    --stce-border-soft: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 13%,
+        transparent
+    );
+    --stce-border-strong: color-mix(
+        in srgb,
+        var(--stce-primary, #adc6ff) 48%,
+        transparent
+    );
+
+    --stce-shadow: 0 8px 24px rgb(0 0 0 / 0.16),
+        0 1px 2px rgb(0 0 0 / 0.12);
+    --stce-shadow-elevated: 0 18px 48px rgb(0 0 0 / 0.28),
+        0 4px 12px rgb(0 0 0 / 0.16);
+    --stce-transition-fast: 140ms ease-out;
+    --stce-transition: 180ms ease-out;
+
+    background: var(--stce-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* 主窗口与弹出编辑窗口使用同一套前景层级。 */
+dialog.popup:has(.stce-root) {
+    border-radius: 26px !important;
+    background: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 96%,
+        transparent
+    ) !important;
+    box-shadow: var(--stce-shadow-elevated, 0 18px 48px rgb(0 0 0 / 0.28)) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.stce-header {
+    min-height: 76px;
+    gap: var(--stce-space-5);
+    padding: 16px 26px;
+    border-bottom-color: var(--stce-border);
+    background: var(--stce-surface-raised);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.stce-brand-lockup {
+    gap: 12px;
+}
+
+.stce-brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--stce-radius-sm);
+    background: var(--stce-surface-inset);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+.stce-title {
+    font-size: 21px;
+    font-weight: 720;
+    line-height: 30px;
+}
+
+.stce-subtitle {
+    margin-top: 3px;
+    font-size: 13px;
+    line-height: 19px;
+}
+
+.stce-count {
+    padding: 7px 12px;
+    border-color: var(--stce-border-soft);
+    background: var(--stce-surface-inset);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+    transition:
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-count:hover {
+    border-color: var(--stce-border-strong);
+    background: var(--stce-surface-hover);
+}
+
+.stce-count:active {
+    transform: translateY(1px);
+}
+
+/* Tab 改成紧凑的分段控制，选中项用背景和阴影表达状态。 */
+.stce-tabs {
+    align-self: flex-start;
+    width: fit-content !important;
+    max-width: calc(100% - 52px) !important;
+    min-height: 46px;
+    margin: 14px 26px 0 !important;
+    padding: 4px !important;
+    gap: 3px;
+    border: 1px solid var(--stce-border) !important;
+    border-radius: var(--stce-radius-md) !important;
+    background: var(--stce-surface-inset) !important;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.06),
+        0 3px 12px rgb(0 0 0 / 0.08) !important;
+}
+
+.stce-tab {
+    height: 36px;
+    padding: 0 16px !important;
+    border-radius: var(--stce-radius-sm) !important;
+    transition:
+        color var(--stce-transition),
+        background-color var(--stce-transition),
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition),
+        transform var(--stce-transition-fast);
+}
+
+.stce-tab:hover {
+    background: var(--stce-surface-hover) !important;
+}
+
+.stce-tab:active {
+    transform: scale(0.97) !important;
+}
+
+.stce-tab.is-active {
+    border-color: color-mix(
+        in srgb,
+        var(--stce-primary) 34%,
+        transparent
+    ) !important;
+    background: var(--stce-primary-surface) !important;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.12);
+}
+
+.stce-tab::after {
+    display: none;
+}
+
+.stce-panel {
+    padding: 24px 26px 28px !important;
+    gap: var(--stce-space-4) !important;
+}
+
+/* 卡片、选项和列表统一使用同一组边框、圆角和阴影。 */
+.stce-option,
+.stce-preset-bar,
+.stce-rules-toolbar,
+.stce-ai-config,
+.stce-shared-api-card,
+.stce-rules-hint,
+.stce-rule-card,
+.stce-ai-drawer,
+.stce-ai-suggestion,
+.stce-secondary-row,
+.stce-placeholder,
+.stce-rules-empty {
+    border: 1px solid var(--stce-border) !important;
+    border-radius: var(--stce-radius-md) !important;
+    background: var(--stce-surface-inset) !important;
+    box-shadow: var(--stce-shadow);
+}
+
+.stce-option {
+    min-height: 50px;
+    padding: 12px 14px;
+    transition:
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-option:hover,
+.stce-option:focus-within {
+    border-color: var(--stce-border-strong) !important;
+    background: var(--stce-surface-hover) !important;
+    box-shadow: var(--stce-shadow), 0 0 0 1px rgb(173 198 255 / 0.06);
+    transform: translateY(-1px);
+}
+
+/* 用方形开关替代浏览器默认复选框，同时保留清晰的键盘焦点。 */
+.stce-root input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    margin: 0;
+    border: 1px solid var(--stce-border-strong);
+    border-radius: 6px;
+    background: var(--stce-surface-raised);
+    cursor: pointer;
+    transition:
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-root input[type="checkbox"]:hover {
+    border-color: var(--stce-primary);
+    box-shadow: 0 0 0 3px rgb(173 198 255 / 0.09);
+}
+
+.stce-root input[type="checkbox"]:checked {
+    border-color: var(--stce-primary-deep);
+    background-color: var(--stce-primary-deep);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.2 8.3 3.1 3.1 6.5-6.8' fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 13px 13px;
+}
+
+.stce-root input[type="checkbox"]:active {
+    transform: scale(0.92);
+}
+
+.stce-root input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.stce-section-title {
+    min-height: 24px;
+    padding-inline: 2px;
+}
+
+/* 预览区使用更宽松的中文排版，并让背景成为独立的阅读层。 */
+.stce-preview {
+    padding: 24px 26px !important;
+    border-color: var(--stce-border) !important;
+    border-radius: var(--stce-radius-lg) !important;
+    color: var(--stce-text) !important;
+    background: var(--stce-surface-raised) !important;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.04),
+        var(--stce-shadow);
+    font-family:
+        "Noto Sans CJK SC",
+        "Source Han Sans SC",
+        "PingFang SC",
+        "Microsoft YaHei",
+        "Hiragino Sans GB",
+        system-ui,
+        sans-serif;
+    font-size: 15px;
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+}
+
+.stce-preview:hover,
+.stce-preview:focus {
+    border-color: var(--stce-border-strong) !important;
+    background: var(--stce-surface-hover) !important;
+}
+
+/* 统一所有滚动条的宽度、圆角和低存在感。 */
+.stce-panel,
+.stce-preview,
+.stce-rules-list,
+.stce-secondary-modal-scroll,
+.stce-select-menu {
+    scrollbar-color: color-mix(
+            in srgb,
+            var(--stce-primary) 42%,
+            transparent
+        ) transparent;
+}
+
+.stce-panel::-webkit-scrollbar,
+.stce-preview::-webkit-scrollbar,
+.stce-rules-list::-webkit-scrollbar,
+.stce-secondary-modal-scroll::-webkit-scrollbar,
+.stce-select-menu::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.stce-panel::-webkit-scrollbar-thumb,
+.stce-preview::-webkit-scrollbar-thumb,
+.stce-rules-list::-webkit-scrollbar-thumb,
+.stce-secondary-modal-scroll::-webkit-scrollbar-thumb,
+.stce-select-menu::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--stce-primary) 42%, transparent);
+    background-clip: padding-box;
+}
+
+.stce-panel::-webkit-scrollbar-thumb:hover,
+.stce-preview::-webkit-scrollbar-thumb:hover,
+.stce-rules-list::-webkit-scrollbar-thumb:hover,
+.stce-secondary-modal-scroll::-webkit-scrollbar-thumb:hover,
+.stce-select-menu::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--stce-primary) 64%, transparent);
+    background-clip: padding-box;
+}
+
+/* 输入框、下拉框和按钮共享相同的触感反馈。 */
+.stce-field input[type="text"],
+.stce-field input[type="password"],
+.stce-field input[type="number"],
+.stce-field textarea,
+.stce-select-trigger {
+    border-radius: var(--stce-radius-sm) !important;
+    background: var(--stce-surface-inset) !important;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
+}
+
+.stce-root .menu_button,
+.stce-preset-button,
+.stce-secondary-add,
+.stce-icon-button,
+.stce-head-action {
+    transition:
+        color var(--stce-transition-fast),
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        transform var(--stce-transition-fast),
+        opacity var(--stce-transition-fast);
+}
+
+.stce-root .menu_button {
+    min-height: 42px;
+    padding: 9px 14px;
+    border-radius: var(--stce-radius-sm) !important;
+    background: var(--stce-surface-inset) !important;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+}
+
+.stce-root .menu_button:hover:not(:disabled),
+.stce-preset-button:hover:not(:disabled),
+.stce-secondary-add:hover:not(:disabled),
+.stce-icon-button:hover:not(:disabled),
+.stce-head-action:hover:not(:disabled) {
+    box-shadow: var(--stce-shadow);
+    transform: translateY(-1px);
+}
+
+.stce-root .menu_button:active:not(:disabled),
+.stce-preset-button:active:not(:disabled),
+.stce-secondary-add:active:not(:disabled),
+.stce-icon-button:active:not(:disabled),
+.stce-head-action:active:not(:disabled) {
+    transform: translateY(1px) scale(0.985);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+}
+
+.stce-actions .menu_button:first-child,
+.stce-secondary-modal-cancel {
+    background: var(--stce-surface-inset) !important;
+}
+
+.stce-actions .menu_button:not(:first-child),
+.stce-ai-primary,
+.stce-root .stce-secondary-modal-save {
+    border-color: var(--stce-primary-deep) !important;
+    color: #fff !important;
+    background: var(--stce-primary-deep) !important;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--stce-primary-deep) 28%, transparent);
+}
+
+.stce-actions .menu_button:not(:first-child):hover:not(:disabled),
+.stce-ai-primary:hover:not(:disabled),
+.stce-root .stce-secondary-modal-save:hover:not(:disabled) {
+    border-color: var(--stce-primary) !important;
+    color: #fff !important;
+    background: color-mix(
+        in srgb,
+        var(--stce-primary-deep) 88%,
+        white
+    ) !important;
+}
+
+.stce-preset-button,
+.stce-secondary-add {
+    min-height: 42px !important;
+    padding: 9px 13px !important;
+    border-radius: var(--stce-radius-sm) !important;
+}
+
+.stce-icon-button,
+.stce-head-action {
+    border-radius: var(--stce-radius-sm) !important;
+}
+
+.stce-select-trigger {
+    min-height: 42px;
+    padding: 9px 13px;
+}
+
+.stce-select-menu {
+    border-radius: var(--stce-radius-md) !important;
+    background: var(--stce-surface-raised) !important;
+    box-shadow: var(--stce-shadow-elevated) !important;
+}
+
+.stce-select-option {
+    min-height: 38px;
+    border-radius: var(--stce-radius-sm);
+}
+
+.stce-rule-card,
+.stce-secondary-row,
+.stce-ai-suggestion {
+    box-shadow: var(--stce-shadow);
+    transition:
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        transform var(--stce-transition-fast),
+        opacity var(--stce-transition-fast);
+}
+
+.stce-rule-card:hover,
+.stce-secondary-row:hover,
+.stce-ai-suggestion:hover {
+    box-shadow: var(--stce-shadow), 0 0 0 1px rgb(173 198 255 / 0.05);
+}
+
+.stce-ai-drawer {
+    border-radius: var(--stce-radius-lg) !important;
+}
+
+.stce-ai-drawer-trigger {
+    min-height: 58px;
+    padding: 14px 18px;
+    border-radius: var(--stce-radius-lg);
+}
+
+.stce-ai-config-in-drawer {
+    margin: 0 14px 14px;
+    padding: 18px !important;
+    border: 1px solid var(--stce-border-soft) !important;
+    border-radius: var(--stce-radius-md) !important;
+    background: var(--stce-surface-raised) !important;
+}
+
+.stce-secondary-modal {
+    background: rgb(0 0 0 / 0.5) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.stce-secondary-modal-dialog {
+    border-radius: var(--stce-radius-xl) !important;
+    background: var(--stce-surface-raised) !important;
+    box-shadow: var(--stce-shadow-elevated) !important;
+}
+
+dialog.popup:has(.stce-rule-editor),
+dialog.popup:has(.stce-ai-test-popup) {
+    border-radius: var(--stce-radius-xl) !important;
+    background: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 97%,
+        transparent
+    ) !important;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 0.28) !important;
+}
+
+.stce-rule-editor,
+.stce-ai-test-popup {
+    background: var(--stce-surface-raised, var(--stce-panel-solid, #213145));
+}
+
+/* 窄屏时减少空白，并保证按钮与触控区域仍然足够大。 */
+@media (max-width: 720px) {
+    dialog.popup:has(.stce-root) {
+        border-radius: 22px 22px 0 0 !important;
+    }
+
+    .stce-header {
+        min-height: 64px;
+        padding: 12px 16px;
+    }
+
+    .stce-brand-mark {
+        width: 32px;
+        height: 32px;
+    }
+
+    .stce-title {
+        font-size: 18px;
+        line-height: 25px;
+    }
+
+    .stce-tabs {
+        max-width: calc(100% - 32px) !important;
+        margin: 10px 16px 0 !important;
+    }
+
+    .stce-panel {
+        padding: 20px 16px 22px !important;
+    }
+}
+
+@media (max-width: 560px) {
+    .stce-header {
+        gap: var(--stce-space-2);
+        padding: 12px 14px;
+    }
+
+    .stce-subtitle {
+        display: none;
+    }
+
+    .stce-count {
+        padding: 6px 9px;
+        font-size: 11px;
+    }
+
+    .stce-tabs {
+        width: calc(100% - 28px) !important;
+        max-width: calc(100% - 28px) !important;
+        margin: 10px 14px 0 !important;
+    }
+
+    .stce-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 0 8px !important;
+        font-size: 13px;
+    }
+
+    .stce-panel {
+        padding: 16px 14px 20px !important;
+        gap: var(--stce-space-3) !important;
+    }
+
+    .stce-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .stce-actions .menu_button {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px !important;
+    }
+
+    .stce-actions #stce_refresh {
+        grid-column: 1 / -1;
+    }
+
+    .stce-preview {
+        padding: 20px 18px !important;
+        font-size: 14px;
+        line-height: 1.8;
+    }
+
+    .stce-ai-config-in-drawer {
+        margin: 0 10px 10px;
+        padding: 14px !important;
+    }
+
+    .stce-secondary-modal-dialog {
+        border-radius: 18px !important;
+    }
+}
+
+
+/* =========================
+   v0.10.0 - Shell 设置页与主题
+   ========================= */
+
+/* 深色主题使用兄弟项目的深蓝色表面。 */
+.stce-root[data-theme="dark"] {
+    color-scheme: dark;
+    --stce-surface: rgb(33 49 69 / 0.94);
+    --stce-surface-raised: rgb(33 49 69 / 0.98);
+    --stce-surface-inset: rgb(24 39 58 / 0.92);
+    --stce-surface-hover: rgb(45 63 86 / 0.98);
+    --stce-panel-soft: rgb(255 255 255 / 0.06);
+    --stce-panel-hover: rgb(255 255 255 / 0.09);
+    --stce-panel-solid: #213145;
+    --stce-control: rgb(33 49 69 / 0.92);
+    --stce-control-hover: rgb(45 63 86 / 0.98);
+    --stce-listbox: #18273a;
+    --stce-text: #f3f6ff;
+    --stce-muted: #b8c1d1;
+    --stce-faint: rgb(184 193 209 / 0.62);
+    --stce-border: rgb(194 198 214 / 0.22);
+    --stce-border-soft: rgb(194 198 214 / 0.13);
+    --stce-border-strong: rgb(173 198 255 / 0.48);
+    --stce-primary: #adc6ff;
+    --stce-primary-deep: #2170e4;
+    --stce-primary-surface: rgb(33 112 228 / 0.22);
+    --stce-primary-selected: rgb(33 112 228 / 0.32);
+    --stce-danger: #ffb4ab;
+    --stce-danger-surface: rgb(186 26 26 / 0.18);
+    --stce-focus-ring: 0 0 0 2px rgb(173 198 255 / 0.22);
+    --stce-shadow: 0 8px 24px rgb(0 0 0 / 0.18),
+        0 1px 2px rgb(0 0 0 / 0.12);
+    --stce-shadow-elevated: 0 18px 48px rgb(0 0 0 / 0.3),
+        0 4px 12px rgb(0 0 0 / 0.18);
+}
+
+/* 浅色主题使用高亮度表面，但仍保留前景层级和轻微玻璃感。 */
+.stce-root[data-theme="light"] {
+    color-scheme: light;
+    --stce-surface: rgb(248 250 255 / 0.96);
+    --stce-surface-raised: rgb(248 250 255 / 0.99);
+    --stce-surface-inset: rgb(255 255 255 / 0.94);
+    --stce-surface-hover: rgb(230 238 251 / 0.98);
+    --stce-panel-soft: rgb(33 49 69 / 0.055);
+    --stce-panel-hover: rgb(33 49 69 / 0.085);
+    --stce-panel-solid: #f8faff;
+    --stce-control: rgb(255 255 255 / 0.94);
+    --stce-control-hover: rgb(230 238 251 / 0.98);
+    --stce-listbox: #f8faff;
+    --stce-text: #172033;
+    --stce-muted: #5f6b7d;
+    --stce-faint: rgb(95 107 125 / 0.62);
+    --stce-border: rgb(71 85 105 / 0.18);
+    --stce-border-soft: rgb(71 85 105 / 0.12);
+    --stce-border-strong: rgb(36 95 174 / 0.42);
+    --stce-primary: #245fae;
+    --stce-primary-deep: #2161b5;
+    --stce-primary-surface: rgb(36 95 174 / 0.12);
+    --stce-primary-selected: rgb(36 95 174 / 0.18);
+    --stce-danger: #b3261e;
+    --stce-danger-surface: rgb(179 38 30 / 0.1);
+    --stce-focus-ring: 0 0 0 2px rgb(36 95 174 / 0.2);
+    --stce-shadow: 0 8px 24px rgb(15 23 42 / 0.1),
+        0 1px 2px rgb(15 23 42 / 0.08);
+    --stce-shadow-elevated: 0 18px 48px rgb(15 23 42 / 0.16),
+        0 4px 12px rgb(15 23 42 / 0.1);
+}
+
+/* 跟随模式直接继承 SillyTavern 已应用的主题变量和用户自定义 CSS。 */
+.stce-root[data-theme="follow"] {
+    color-scheme: inherit;
+    --stce-bg: var(--SmartThemeBlurTintColor, #0f172a);
+    --stce-panel: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 94%,
+        transparent
+    );
+    --stce-panel-solid: var(--SmartThemeBlurTintColor, #213145);
+    --stce-panel-soft: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 6%,
+        transparent
+    );
+    --stce-panel-hover: color-mix(
+        in srgb,
+        var(--SmartThemeBodyColor, #f3f6ff) 9%,
+        transparent
+    );
+    --stce-control: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 92%,
+        transparent
+    );
+    --stce-control-hover: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 98%,
+        transparent
+    );
+    --stce-listbox: color-mix(
+        in srgb,
+        var(--SmartThemeBlurTintColor, #213145) 98%,
+        transparent
+    );
+    --stce-text: var(--SmartThemeBodyColor, #f3f6ff);
+    --stce-muted: color-mix(in srgb, var(--stce-text) 68%, transparent);
+    --stce-faint: color-mix(in srgb, var(--stce-text) 48%, transparent);
+    --stce-border: color-mix(
+        in srgb,
+        var(--SmartThemeBorderColor, rgb(194 198 214 / 0.22)) 72%,
+        transparent
+    );
+    --stce-border-soft: color-mix(
+        in srgb,
+        var(--SmartThemeBorderColor, rgb(194 198 214 / 0.22)) 48%,
+        transparent
+    );
+    --stce-border-strong: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 48%,
+        transparent
+    );
+    --stce-primary: var(--SmartThemeQuoteColor, #adc6ff);
+    --stce-primary-deep: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #2170e4) 82%,
+        #000
+    );
+    --stce-primary-surface: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 18%,
+        transparent
+    );
+    --stce-primary-selected: color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 28%,
+        transparent
+    );
+    --stce-focus-ring: 0 0 0 2px color-mix(
+        in srgb,
+        var(--SmartThemeQuoteColor, #adc6ff) 22%,
+        transparent
+    );
+    --stce-shadow: 0 8px 24px var(--SmartThemeShadowColor, rgb(0 0 0 / 0.3)),
+        0 1px 2px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.3)) 72%,
+            transparent
+        );
+    --stce-shadow-elevated: 0 18px 48px var(--SmartThemeShadowColor, rgb(0 0 0 / 0.3)),
+        0 4px 12px color-mix(
+            in srgb,
+            var(--SmartThemeShadowColor, rgb(0 0 0 / 0.3)) 72%,
+            transparent
+        );
+}
+
+/* Shell 桌面端对齐兄弟项目：品牌在左、导航居中、状态在右。 */
+.stce-header {
+    position: relative;
+    z-index: 5;
+    flex-wrap: wrap;
+}
+
+.stce-header > .stce-brand-lockup {
+    flex: 0 0 auto;
+}
+
+.stce-header > .stce-tabs {
+    align-self: center;
+    flex: 0 1 auto;
+    width: fit-content !important;
+    max-width: min(620px, calc(100% - 360px)) !important;
+    margin: 0 auto !important;
+}
+
+.stce-header > .stce-count {
+    flex: 0 0 auto;
+}
+
+/* 设置页沿用兄弟项目的分组手风琴逻辑。 */
+.stce-settings-page {
+    width: min(960px, 100%);
+    min-width: 0;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.stce-settings-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.stce-settings-kicker {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--stce-primary);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.stce-settings-heading h2 {
+    margin: 0;
+    color: var(--stce-text);
+    font-size: 24px;
+    font-weight: 720;
+    line-height: 32px;
+}
+
+.stce-settings-heading p {
+    margin: 4px 0 0;
+    color: var(--stce-muted);
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.stce-settings-status {
+    flex: 0 0 auto;
+    padding: 7px 11px;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: 999px;
+    color: var(--stce-muted);
+    background: var(--stce-surface-inset);
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+}
+
+.stce-settings-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stce-settings-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: var(--stce-radius-md);
+    background: var(--stce-surface);
+    box-shadow: var(--stce-shadow);
+    transition:
+        border-color var(--stce-transition),
+        box-shadow var(--stce-transition),
+        background-color var(--stce-transition);
+}
+
+.stce-settings-card.is-open {
+    border-color: var(--stce-border);
+}
+
+.stce-settings-trigger {
+    width: 100%;
+    min-height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 15px 18px;
+    border: 0;
+    border-radius: var(--stce-radius-md);
+    color: var(--stce-text);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background-color var(--stce-transition-fast),
+        color var(--stce-transition-fast);
+}
+
+.stce-settings-trigger:hover,
+.stce-settings-trigger:focus-visible {
+    color: var(--stce-primary);
+    background: var(--stce-surface-hover);
+}
+
+.stce-settings-trigger:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-settings-trigger-copy {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stce-settings-trigger-icon {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+}
+
+.stce-settings-trigger-copy > span:last-child {
+    min-width: 0;
+}
+
+.stce-settings-trigger strong,
+.stce-settings-trigger small {
+    display: block;
+}
+
+.stce-settings-trigger strong {
+    font-size: 16px;
+    font-weight: 680;
+    line-height: 24px;
+}
+
+.stce-settings-trigger small {
+    margin-top: 3px;
+    color: var(--stce-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-settings-chevron {
+    flex: 0 0 auto;
+    color: var(--stce-muted);
+    font-size: 12px;
+    transition:
+        color var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-settings-card.is-open .stce-settings-chevron {
+    color: var(--stce-primary);
+    transform: rotate(180deg);
+}
+
+.stce-settings-content {
+    border-top: 1px solid var(--stce-border-soft);
+    background: var(--stce-surface-raised);
+    animation: stce-settings-content-in 180ms ease-out;
+}
+
+.stce-settings-content[hidden] {
+    display: none !important;
+}
+
+@keyframes stce-settings-content-in {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stce-settings-inner {
+    min-width: 0;
+    padding: 18px 20px 20px;
+}
+
+.stce-settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.stce-settings-row-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stce-settings-row-copy strong {
+    color: var(--stce-text);
+    font-size: 14px;
+    font-weight: 680;
+    line-height: 20px;
+}
+
+.stce-settings-row-copy span {
+    max-width: 480px;
+    color: var(--stce-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-theme-options {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(104px, 1fr));
+    gap: 8px;
+    flex: 0 1 390px;
+}
+
+.stce-theme-option {
+    min-width: 0;
+    min-height: 76px;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 8px;
+    padding: 10px 11px;
+    border: 1px solid var(--stce-border-soft);
+    border-radius: var(--stce-radius-sm);
+    color: var(--stce-muted);
+    background: var(--stce-surface-inset);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        color var(--stce-transition-fast),
+        background-color var(--stce-transition-fast),
+        border-color var(--stce-transition-fast),
+        box-shadow var(--stce-transition-fast),
+        transform var(--stce-transition-fast);
+}
+
+.stce-theme-option:hover,
+.stce-theme-option:focus-visible {
+    border-color: var(--stce-border-strong);
+    color: var(--stce-text);
+    background: var(--stce-surface-hover);
+}
+
+.stce-theme-option:focus-visible {
+    outline: none;
+    box-shadow: var(--stce-focus-ring);
+}
+
+.stce-theme-option:active {
+    transform: translateY(1px) scale(0.985);
+}
+
+.stce-theme-option.is-active {
+    border-color: var(--stce-primary);
+    color: var(--stce-primary);
+    background: var(--stce-primary-surface);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.1);
+}
+
+.stce-theme-option > i {
+    grid-row: 1 / -1;
+    font-size: 15px;
+}
+
+.stce-theme-option > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 18px;
+}
+
+.stce-theme-option > small {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--stce-muted);
+    font-size: 10px;
+    line-height: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stce-settings-help {
+    margin: 14px 0 0;
+    color: var(--stce-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.stce-settings-card[data-settings-section="secondary"] .stce-shared-api-card {
+    margin: 0;
+    box-shadow: none;
+    background: var(--stce-surface-inset) !important;
+}
+
+.stce-settings-card[data-settings-section="secondary"] .stce-secondary-list {
+    max-height: clamp(190px, 38vh, 390px);
+    padding-right: 18px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scrollbar-gutter: stable;
+}
+
+.stce-settings-card[data-settings-section="secondary"] .stce-secondary-list::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* 设置页在手机端改成上下排列，主题选项仍保持可触控尺寸。 */
+@media (max-width: 820px) {
+    .stce-header > .stce-tabs {
+        max-width: min(520px, calc(100% - 300px)) !important;
+    }
+
+    .stce-settings-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .stce-theme-options {
+        width: 100%;
+        flex-basis: auto;
+    }
+}
+
+@media (max-width: 720px) {
+    .stce-header {
+        align-items: center;
+        padding: 12px 16px 14px;
+    }
+
+    .stce-header > .stce-tabs {
+        order: 3;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 10px 0 0 !important;
+    }
+
+    .stce-settings-heading {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .stce-settings-status {
+        align-self: flex-start;
+    }
+
+    .stce-settings-inner {
+        padding: 16px 14px 18px;
+    }
+}
+
+@media (max-width: 560px) {
+    .stce-header > .stce-brand-lockup {
+        max-width: calc(100% - 110px);
+    }
+
+    .stce-settings-heading h2 {
+        font-size: 22px;
+        line-height: 30px;
+    }
+
+    .stce-theme-options {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .stce-theme-option {
+        min-height: 70px;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        justify-items: start;
+        gap: 2px;
+        padding: 9px 8px;
+    }
+
+    .stce-theme-option > i {
+        grid-row: auto;
+        margin-bottom: 2px;
+    }
+
+    .stce-theme-option > span,
+    .stce-theme-option > small {
+        max-width: 100%;
+    }
 }

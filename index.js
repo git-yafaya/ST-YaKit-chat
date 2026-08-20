@@ -6,9 +6,11 @@ import {
 } from '../../../secrets.js';
 
 const EXTENSION_ID = 'st-YaKit-chat';
-const WAND_BUTTON_ID = 'st_chat_exporter_wand_button';
+const WAND_BUTTON_ID = 'YaKit-chat-wand-button';
+const LEGACY_WAND_BUTTON_ID = 'st_chat_exporter_wand_button';
 const SHARED_SECONDARY_API_KEY = 'yakit-shared-secondary-api';
 const LEGACY_SHARED_SECONDARY_API_KEY = 'yafaya-shared-secondary-api';
+const STCE_THEME_MODES = Object.freeze(['follow', 'light', 'dark']);
 
 const DEFAULT_SETTINGS = Object.freeze({
     version: 6,
@@ -22,6 +24,9 @@ const DEFAULT_SETTINGS = Object.freeze({
         apiMode: 'primary',
         secondaryConnectionId: '',
     },
+    ui: {
+        theme: 'follow',
+    },
     activePresetId: 'default',
     presets: [
         {
@@ -33,6 +38,15 @@ const DEFAULT_SETTINGS = Object.freeze({
 });
 
 let initialized = false;
+
+function normalizeThemeMode(value) {
+    return STCE_THEME_MODES.includes(value) ? value : 'follow';
+}
+
+function getSillyTavernCustomCss() {
+    const customCss = getContext().powerUserSettings?.custom_css;
+    return typeof customCss === 'string' ? customCss : '';
+}
 
 function getContext() {
     return SillyTavern.getContext();
@@ -74,6 +88,18 @@ function getSettings() {
             }
         }
     }
+
+    if (!settings.ui || typeof settings.ui !== 'object') {
+        settings.ui = deepClone(DEFAULT_SETTINGS.ui);
+    } else {
+        for (const [key, value] of Object.entries(DEFAULT_SETTINGS.ui)) {
+            if (!Object.hasOwn(settings.ui, key)) {
+                settings.ui[key] = value;
+            }
+        }
+    }
+
+    settings.ui.theme = normalizeThemeMode(settings.ui.theme);
 
     // v0.6.2: the fallback routing option was removed from the UI.
     // Preserve intent by migrating an old fallback selection to secondary API.
@@ -159,7 +185,7 @@ function cleanupLegacySharedConnectionProfiles(profileIds = []) {
 
     if (manager.profiles.length !== before) {
         console.info(
-            '[YaKit-纪实] removed legacy Connection Manager profiles:',
+            '[YaKit-chat] removed legacy Connection Manager profiles:',
             before - manager.profiles.length,
         );
         return true;
@@ -184,7 +210,7 @@ function getSharedSecondaryApiSettings() {
         getContext().saveSettingsDebounced?.();
 
         console.info(
-            '[YaKit-纪实] migrated shared secondary API namespace:',
+            '[YaKit-chat] migrated shared secondary API namespace:',
             LEGACY_SHARED_SECONDARY_API_KEY,
             '->',
             SHARED_SECONDARY_API_KEY,
@@ -233,7 +259,7 @@ function getSharedSecondaryApiSettings() {
         delete store.secretId;
         delete store.profileId;
 
-        console.info('[YaKit-纪实] migrated shared secondary API store to v3');
+        console.info('[YaKit-chat] migrated shared secondary API store to v3');
     }
 
     if (store.connections.length === 0) {
@@ -357,7 +383,7 @@ async function writeSharedSecondaryApiSecret(connection, value) {
     const secretId = await writeSecret(
         SECRET_KEYS.CUSTOM,
         key,
-        `YaKit 副 API · ${connection.name}`,
+        `YaKit-chat · ${connection.name}`,
     );
 
     if (!secretId) {
@@ -371,7 +397,7 @@ async function writeSharedSecondaryApiSecret(connection, value) {
             await rotateSecret(SECRET_KEYS.CUSTOM, previousActiveId);
         } catch (error) {
             console.warn(
-                '[YaKit-纪实] Failed to restore previous Custom secret.',
+                '[YaKit-chat] Failed to restore previous Custom secret.',
                 error,
             );
         }
@@ -635,7 +661,7 @@ function applyRuleToText(text, rule) {
             return source.replace(regex, replacement);
         }
     } catch (error) {
-        console.warn('[ST Chat Exporter] Failed to apply rule:', rule?.name, error);
+        console.warn('[YaKit-chat] Failed to apply rule:', rule?.name, error);
     }
 
     return source;
@@ -856,8 +882,15 @@ function enhanceSelect(select) {
     const trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'stce-select-trigger';
+    trigger.id = `${select.id || 'stce-select'}-trigger`;
+    trigger.setAttribute(
+        'aria-label',
+        select.getAttribute('aria-label') || select.id || '选择项目',
+    );
     trigger.setAttribute('aria-haspopup', 'listbox');
     trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', `${trigger.id}-listbox`);
+    trigger.setAttribute('aria-activedescendant', '');
 
     trigger.innerHTML = `
         <span class="stce-select-value"></span>
@@ -866,19 +899,96 @@ function enhanceSelect(select) {
 
     const menu = document.createElement('div');
     menu.className = 'stce-select-menu';
+    menu.id = `${trigger.id}-listbox`;
     menu.setAttribute('role', 'listbox');
+    menu.setAttribute(
+        'aria-label',
+        select.getAttribute('aria-label') || select.id || '选择项目',
+    );
 
     wrapper.appendChild(trigger);
     wrapper.appendChild(menu);
+
+    let activeIndex = -1;
 
     function getSelectedOption() {
         return [...select.options].find((option) => option.value === select.value)
             || select.options[0];
     }
 
-    function close() {
+    function getSelectedIndex() {
+        return [...select.options].findIndex(
+            (option) => option.value === select.value,
+        );
+    }
+
+    function getFirstEnabledIndex() {
+        return [...select.options].findIndex((option) => !option.disabled);
+    }
+
+    function getLastEnabledIndex() {
+        for (let index = select.options.length - 1; index >= 0; index -= 1) {
+            if (!select.options[index].disabled) return index;
+        }
+
+        return -1;
+    }
+
+    function scrollActiveOptionIntoView() {
+        if (activeIndex < 0) return;
+
+        menu.querySelector(`[data-index="${activeIndex}"]`)
+            ?.scrollIntoView({ block: 'nearest' });
+    }
+
+    function setActiveIndex(index) {
+        if (index < 0 || index >= select.options.length) return;
+        if (select.options[index].disabled) return;
+
+        activeIndex = index;
+
+        for (const optionButton of menu.querySelectorAll('.stce-select-option')) {
+            optionButton.classList.toggle(
+                'is-active',
+                Number(optionButton.dataset.index) === activeIndex,
+            );
+        }
+
+        trigger.setAttribute(
+            'aria-activedescendant',
+            `${trigger.id}-option-${activeIndex}`,
+        );
+
+        scrollActiveOptionIntoView();
+    }
+
+    function close(restoreFocus = false) {
         wrapper.classList.remove('is-open');
         trigger.setAttribute('aria-expanded', 'false');
+        trigger.setAttribute('aria-activedescendant', '');
+
+        if (restoreFocus) {
+            trigger.focus({ preventScroll: true });
+        }
+    }
+
+    function open() {
+        if (select.disabled || select.options.length === 0) return;
+
+        const selectedIndex = getSelectedIndex();
+        const nextIndex = selectedIndex >= 0
+            && !select.options[selectedIndex].disabled
+            ? selectedIndex
+            : getFirstEnabledIndex();
+
+        if (nextIndex < 0) return;
+
+        closeOpenCustomSelects(wrapper);
+        wrapper.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        setActiveIndex(nextIndex);
+
+        requestAnimationFrame(scrollActiveOptionIntoView);
     }
 
     function sync() {
@@ -903,29 +1013,39 @@ function enhanceSelect(select) {
     function renderOptions() {
         menu.innerHTML = '';
 
-        for (const option of select.options) {
+        [...select.options].forEach((option, index) => {
             const optionButton = document.createElement('button');
             optionButton.type = 'button';
             optionButton.className = 'stce-select-option';
+            optionButton.id = `${trigger.id}-option-${index}`;
+            optionButton.dataset.index = String(index);
             optionButton.dataset.value = option.value;
             optionButton.setAttribute('role', 'option');
+            optionButton.setAttribute(
+                'aria-disabled',
+                option.disabled ? 'true' : 'false',
+            );
             optionButton.textContent = option.textContent;
 
             optionButton.addEventListener('click', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
 
-                if (select.disabled) return;
+                if (select.disabled || option.disabled) return;
 
                 select.value = option.value;
                 select.dispatchEvent(new Event('change', { bubbles: true }));
 
                 sync();
-                close();
+                close(true);
+            });
+
+            optionButton.addEventListener('pointermove', () => {
+                if (!option.disabled) setActiveIndex(index);
             });
 
             menu.appendChild(optionButton);
-        }
+        });
     }
 
     trigger.addEventListener('click', (event) => {
@@ -934,18 +1054,75 @@ function enhanceSelect(select) {
 
         if (select.disabled) return;
 
-        const willOpen = !wrapper.classList.contains('is-open');
+        if (wrapper.classList.contains('is-open')) close(true);
+        else open();
+    });
 
-        closeOpenCustomSelects(wrapper);
+    trigger.addEventListener('keydown', (event) => {
+        if (select.disabled) return;
 
-        wrapper.classList.toggle('is-open', willOpen);
-        trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        const isOpen = wrapper.classList.contains('is-open');
+
+        if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+            event.preventDefault();
+            if (!isOpen) open();
+            else {
+                let next = activeIndex;
+                for (let attempt = 0; attempt < select.options.length; attempt += 1) {
+                    next = (next + 1) % select.options.length;
+                    if (!select.options[next].disabled) {
+                        setActiveIndex(next);
+                        break;
+                    }
+                }
+            }
+        } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+            event.preventDefault();
+            if (!isOpen) open();
+            else {
+                let next = activeIndex;
+                for (let attempt = 0; attempt < select.options.length; attempt += 1) {
+                    next = (next - 1 + select.options.length) % select.options.length;
+                    if (!select.options[next].disabled) {
+                        setActiveIndex(next);
+                        break;
+                    }
+                }
+            }
+        } else if (event.key === 'Home' && isOpen) {
+            event.preventDefault();
+            setActiveIndex(getFirstEnabledIndex());
+        } else if (event.key === 'End' && isOpen) {
+            event.preventDefault();
+            setActiveIndex(getLastEnabledIndex());
+        } else if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+
+            if (!isOpen) {
+                open();
+            } else if (activeIndex >= 0) {
+                const option = select.options[activeIndex];
+
+                if (!option.disabled) {
+                    select.value = option.value;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    sync();
+                    close(true);
+                }
+            }
+        } else if (event.key === 'Escape' && isOpen) {
+            event.preventDefault();
+            event.stopPropagation();
+            close(true);
+        } else if (event.key === 'Tab') {
+            close();
+        }
     });
 
     select.addEventListener('change', sync);
 
     select._stceSync = sync;
-    select._stceClose = close;
+    select._stceClose = () => close();
     select._stceRender = () => {
         renderOptions();
         sync();
@@ -959,9 +1136,7 @@ function closeOpenCustomSelects(except = null) {
     for (const wrapper of document.querySelectorAll('.stce-custom-select.is-open')) {
         if (except && wrapper === except) continue;
 
-        wrapper.classList.remove('is-open');
-        wrapper.querySelector('.stce-select-trigger')
-            ?.setAttribute('aria-expanded', 'false');
+        wrapper.querySelector('select')?._stceClose?.();
     }
 }
 
@@ -1258,6 +1433,7 @@ async function openRuleEditor(rule, currentMessages, getOptions) {
         },
     );
 
+    bindPopupBackdropClose(popup);
     const result = await popup.show();
 
     if (result !== POPUP_RESULT.AFFIRMATIVE) {
@@ -1603,7 +1779,7 @@ function buildAiRulePrompt({
     );
 
     return `
-你正在为 SillyTavern 聊天YaKit-纪实分析聊天格式。
+你正在为 SillyTavern 聊天中的 YaKit-纪实分析聊天格式。
 
 当前清洗预设：${presetName}
 
@@ -1660,7 +1836,7 @@ async function requestPrimaryAiRuleSuggestions(args) {
         parsed = validateAiPayload(parseAiJson(raw));
     } catch (error) {
         console.warn(
-            '[ST Chat Exporter] Structured AI analysis failed, falling back to plain JSON generation.',
+            '[YaKit-chat] Structured AI analysis failed, falling back to plain JSON generation.',
             error,
         );
     }
@@ -1701,7 +1877,7 @@ async function requestSecondaryAiRuleSuggestions(args, connectionId) {
     const connection = getSharedSecondaryConnection(connectionId);
 
     if (!connection) {
-        throw new Error('请选择一个可用的 YaKit 副 API');
+        throw new Error('请选择一个可用的 YaKit-纪实 副 API');
     }
 
     if (!connection.apiUrl) {
@@ -1823,24 +1999,41 @@ function createExporterContent() {
     const settings = getSettings();
     const root = document.createElement('div');
     root.className = 'stce-root';
+    root.setAttribute('role', 'region');
+    root.setAttribute('aria-label', 'YaKit-纪实');
 
     root.innerHTML = `
         <div class="stce-header">
-            <div>
-                <div class="stce-title">YaKit-纪实</div>
-                <div class="stce-subtitle">清洗聊天记录并导出为 TXT / Markdown</div>
+            <div class="stce-brand-lockup">
+                <span class="stce-brand-mark" aria-hidden="true">
+                    <i class="fa-solid fa-book-open"></i>
+                </span>
+                <div>
+                    <div class="stce-title">YaKit-纪实</div>
+                    <div class="stce-subtitle">清洗聊天记录并导出为 TXT / Markdown</div>
+                </div>
             </div>
-            <div class="stce-count" id="stce_message_count">0 条消息</div>
+
+            <div class="stce-tabs" role="tablist" aria-label="YaKit-纪实主导航">
+                <button id="stce_tab_export" class="stce-tab is-active" type="button"
+                    role="tab" aria-selected="true" aria-controls="stce_panel_export"
+                    data-tab="export">导出</button>
+                <button id="stce_tab_rules" class="stce-tab" type="button"
+                    role="tab" aria-selected="false" aria-controls="stce_panel_rules"
+                    data-tab="rules">清洗规则</button>
+                <button id="stce_tab_ai" class="stce-tab" type="button"
+                    role="tab" aria-selected="false" aria-controls="stce_panel_ai"
+                    data-tab="ai">AI 分析</button>
+                <button id="stce_tab_settings" class="stce-tab" type="button"
+                    role="tab" aria-selected="false" aria-controls="stce_panel_settings"
+                    data-tab="settings">设置</button>
+            </div>
+
+            <div class="stce-count" id="stce_message_count" role="status" aria-live="polite">0 条消息</div>
         </div>
 
-        <div class="stce-tabs" role="tablist">
-            <span class="stce-tab-glass" aria-hidden="true"></span>
-            <button class="stce-tab is-active" data-tab="export">导出</button>
-            <button class="stce-tab" data-tab="rules">清洗规则</button>
-            <button class="stce-tab" data-tab="ai">AI 分析</button>
-        </div>
-
-        <section class="stce-panel is-active" data-panel="export">
+        <section id="stce_panel_export" class="stce-panel is-active" role="tabpanel"
+            aria-labelledby="stce_tab_export" data-panel="export">
             <div class="stce-grid">
                 <label class="stce-option">
                     <input id="stce_include_user" type="checkbox">
@@ -1896,7 +2089,8 @@ function createExporterContent() {
             </div>
         </section>
 
-        <section class="stce-panel" data-panel="rules">
+        <section id="stce_panel_rules" class="stce-panel" role="tabpanel"
+            aria-labelledby="stce_tab_rules" data-panel="rules" hidden>
             <div class="stce-preset-bar">
                 <div class="stce-preset-picker">
                     <span class="stce-preset-label">清洗预设</span>
@@ -1943,49 +2137,13 @@ function createExporterContent() {
             </div>
         </section>
 
-        <section class="stce-panel" data-panel="ai">
+        <section id="stce_panel_ai" class="stce-panel" role="tabpanel"
+            aria-labelledby="stce_tab_ai" data-panel="ai" hidden>
             <div class="stce-ai-drawers">
 
-                <section class="stce-ai-drawer" data-ai-drawer="secondary">
-                    <button class="stce-ai-drawer-trigger" type="button" aria-expanded="false">
-                        <span class="stce-ai-drawer-title-group">
-                            <span class="stce-ai-drawer-title">副 API</span>
-                        </span>
-
-                        <i class="fa-solid fa-chevron-down stce-ai-drawer-chevron"></i>
-                    </button>
-
-                    <div class="stce-ai-drawer-body" hidden>
-                <div class="stce-shared-api-card" id="stce_shared_api_card">
-                    <div class="stce-secondary-manager">
-                        <div class="stce-secondary-list-head">
-                            <strong>副 API</strong>
-
-                            <button id="stce_secondary_new" type="button" class="stce-secondary-add">
-                                <i class="fa-solid fa-plus"></i>
-                                <span>添加副 API</span>
-                            </button>
-                        </div>
-
-                        <select id="stce_ai_secondary_connection" hidden></select>
-
-                        <div class="stce-secondary-list-wrap">
-                            <div class="stce-secondary-list" id="stce_secondary_list"></div>
-
-                            <div class="stce-secondary-scrollbar" id="stce_secondary_scrollbar" hidden>
-                                <div class="stce-secondary-scrollbar-thumb"
-                                    id="stce_secondary_scrollbar_thumb"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-
-                    </div>
-                </section>
-
                 <section class="stce-ai-drawer is-open" data-ai-drawer="regex">
-                    <button class="stce-ai-drawer-trigger" type="button" aria-expanded="true">
+                    <button class="stce-ai-drawer-trigger" type="button" aria-expanded="true"
+                        aria-controls="stce_ai_drawer_regex_body">
                         <span class="stce-ai-drawer-title-group">
                             <span class="stce-ai-drawer-title">正则助手</span>
                         </span>
@@ -1993,7 +2151,7 @@ function createExporterContent() {
                         <i class="fa-solid fa-chevron-down stce-ai-drawer-chevron"></i>
                     </button>
 
-                    <div class="stce-ai-drawer-body">
+                    <div id="stce_ai_drawer_regex_body" class="stce-ai-drawer-body">
                         <div class="stce-ai-config stce-ai-config-in-drawer">
                 <div class="stce-ai-config-head">
                     <div>
@@ -2071,13 +2229,127 @@ function createExporterContent() {
                     <span>AI 会读取抽样消息和当前预设已有规则，只建议尚未处理的格式。</span>
                 </div>
             </div>
-        </section>
                     </div>
                 </section>
+            </div>
+        </section>
 
+        <section id="stce_panel_settings" class="stce-panel" role="tabpanel"
+            aria-labelledby="stce_tab_settings" data-panel="settings" hidden>
+            <div class="stce-settings-page">
+                <div class="stce-settings-heading">
+                    <div>
+                        <span class="stce-settings-kicker">YaKit-纪实</span>
+                        <h2>设置</h2>
+                        <p>配置界面主题和副 API 连接。</p>
+                    </div>
+                    <span class="stce-settings-status" id="stce_theme_status" role="status" aria-live="polite">
+                        跟随 SillyTavern
+                    </span>
+                </div>
+
+                <div class="stce-settings-accordion-list">
+                    <section class="stce-settings-card is-open" data-settings-section="appearance">
+                        <button class="stce-settings-trigger" type="button"
+                            aria-expanded="true" aria-controls="stce_settings_appearance_body">
+                            <span class="stce-settings-trigger-copy">
+                                <span class="stce-settings-trigger-icon" aria-hidden="true">
+                                    <i class="fa-solid fa-palette"></i>
+                                </span>
+                                <span>
+                                    <strong>外观</strong>
+                                    <small>主题与界面显示</small>
+                                </span>
+                            </span>
+                            <i class="fa-solid fa-chevron-down stce-settings-chevron" aria-hidden="true"></i>
+                        </button>
+
+                        <div id="stce_settings_appearance_body" class="stce-settings-content"
+                            role="region" aria-label="外观设置">
+                            <div class="stce-settings-inner">
+                                <div class="stce-settings-row stce-settings-theme-row">
+                                    <div class="stce-settings-row-copy">
+                                        <strong>主题</strong>
+                                        <span>选择 YaKit-纪实的颜色主题，不会修改 SillyTavern 全局主题。</span>
+                                    </div>
+
+                                    <div class="stce-theme-options" role="radiogroup" aria-label="主题">
+                                        <button type="button" role="radio" aria-checked="true"
+                                            class="stce-theme-option is-active" data-theme-option="follow">
+                                            <i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
+                                            <span>跟随</span>
+                                            <small>SillyTavern</small>
+                                        </button>
+                                        <button type="button" role="radio" aria-checked="false"
+                                            class="stce-theme-option" data-theme-option="light">
+                                            <i class="fa-solid fa-sun" aria-hidden="true"></i>
+                                            <span>浅色</span>
+                                            <small>明亮阅读</small>
+                                        </button>
+                                        <button type="button" role="radio" aria-checked="false"
+                                            class="stce-theme-option" data-theme-option="dark">
+                                            <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                                            <span>深色</span>
+                                            <small>低亮度</small>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <p class="stce-settings-help">
+                                    跟随模式直接继承 SillyTavern 用户设置的自定义 CSS 和主题变量，不额外判断系统主题。
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="stce-settings-card" data-settings-section="secondary">
+                        <button class="stce-settings-trigger" type="button"
+                            aria-expanded="false" aria-controls="stce_settings_secondary_body">
+                            <span class="stce-settings-trigger-copy">
+                                <span class="stce-settings-trigger-icon" aria-hidden="true">
+                                    <i class="fa-solid fa-plug"></i>
+                                </span>
+                                <span>
+                                    <strong>副 API</strong>
+                                    <small>管理用于 AI 分析的备用连接</small>
+                                </span>
+                            </span>
+                            <i class="fa-solid fa-chevron-down stce-settings-chevron" aria-hidden="true"></i>
+                        </button>
+
+                        <div id="stce_settings_secondary_body" class="stce-settings-content" hidden
+                            role="region" aria-label="副 API 设置">
+                            <div class="stce-settings-inner">
+                                <div class="stce-shared-api-card" id="stce_shared_api_card">
+                                    <div class="stce-secondary-manager">
+                                        <div class="stce-secondary-list-head">
+                                            <strong>已保存的副 API</strong>
+
+                                            <button id="stce_secondary_new" type="button" class="stce-secondary-add">
+                                                <i class="fa-solid fa-plus"></i>
+                                                <span>添加副 API</span>
+                                            </button>
+                                        </div>
+
+                                        <select id="stce_ai_secondary_connection" hidden></select>
+
+                                        <div class="stce-secondary-list-wrap">
+                                            <div class="stce-secondary-list" id="stce_secondary_list"></div>
+
+                                            <div class="stce-secondary-scrollbar" id="stce_secondary_scrollbar" hidden>
+                                                <div class="stce-secondary-scrollbar-thumb"
+                                                    id="stce_secondary_scrollbar_thumb"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
             </div>
 
-                <div class="stce-secondary-modal" id="stce_secondary_modal" hidden>
+            <div class="stce-secondary-modal" id="stce_secondary_modal" hidden>
                     <div class="stce-secondary-modal-dialog" role="dialog" aria-modal="true"
                         aria-labelledby="stce_shared_api_title">
 
@@ -2179,9 +2451,6 @@ function createExporterContent() {
 
     const tabButtons = [...root.querySelectorAll('.stce-tab')];
     const panels = [...root.querySelectorAll('.stce-panel')];
-    const tabsRoot = root.querySelector('.stce-tabs');
-    const tabGlass = root.querySelector('.stce-tab-glass');
-    let tabGlassAnimation = null;
 
     const includeUser = root.querySelector('#stce_include_user');
     const includeAssistant = root.querySelector('#stce_include_assistant');
@@ -2200,6 +2469,10 @@ function createExporterContent() {
     const aiPresetName = root.querySelector('#stce_ai_preset_name');
     const aiDrawers = [...root.querySelectorAll('.stce-ai-drawer')];
     const aiDrawerTriggers = [...root.querySelectorAll('.stce-ai-drawer-trigger')];
+    const settingsCards = [...root.querySelectorAll('.stce-settings-card')];
+    const settingsTriggers = [...root.querySelectorAll('.stce-settings-trigger')];
+    const themeButtons = [...root.querySelectorAll('.stce-theme-option')];
+    const themeStatus = root.querySelector('#stce_theme_status');
     const aiScope = root.querySelector('#stce_ai_scope');
     const aiSampleCount = root.querySelector('#stce_ai_sample_count');
     const aiApiMode = root.querySelector('#stce_ai_api_mode');
@@ -2209,7 +2482,6 @@ function createExporterContent() {
     const secondaryScrollbarThumb = root.querySelector('#stce_secondary_scrollbar_thumb');
     const secondaryNewButton = root.querySelector('#stce_secondary_new');
     const secondaryDeleteButton = root.querySelector('#stce_secondary_delete');
-    const sharedApiCard = root.querySelector('#stce_shared_api_card');
     const secondaryModal = root.querySelector('#stce_secondary_modal');
     const secondaryModalClose = root.querySelector('#stce_secondary_modal_close');
     const secondaryModalCancel = root.querySelector('#stce_secondary_modal_cancel');
@@ -2242,6 +2514,70 @@ function createExporterContent() {
 
     // New secondary APIs stay transient until the user confirms them.
     let secondaryDraft = null;
+
+    const themeLabels = {
+        follow: '跟随 SillyTavern',
+        light: '浅色主题',
+        dark: '深色主题',
+    };
+
+    function applyTheme() {
+        const preference = normalizeThemeMode(settings.ui.theme);
+        const followsSillyTavern = preference === 'follow';
+
+        settings.ui.theme = preference;
+        root.dataset.theme = preference;
+        root.dataset.themePreference = preference;
+        root.dataset.themeSource = followsSillyTavern
+            ? (getSillyTavernCustomCss().trim() ? 'custom-css' : 'silly-tavern')
+            : 'manual';
+
+        if (followsSillyTavern) {
+            // 跟随模式只交给 SillyTavern 的自定义 CSS 和变量处理。
+            root.style.removeProperty('color-scheme');
+        } else {
+            root.style.colorScheme = preference;
+        }
+
+        themeButtons.forEach((button) => {
+            const active = button.dataset.themeOption === preference;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-checked', String(active));
+        });
+
+        if (themeStatus) {
+            themeStatus.textContent = themeLabels[preference];
+        }
+    }
+
+    function setThemePreference(theme) {
+        const preference = normalizeThemeMode(theme);
+
+        settings.ui.theme = preference;
+        applyTheme();
+        saveSettings();
+    }
+
+    function setSettingsSectionState(targetCard, shouldOpen) {
+        settingsCards.forEach((card) => {
+            const open = card === targetCard && shouldOpen;
+            const trigger = card.querySelector('.stce-settings-trigger');
+            const body = card.querySelector('.stce-settings-content');
+
+            card.classList.toggle('is-open', open);
+            trigger?.setAttribute('aria-expanded', String(open));
+
+            if (body) {
+                body.hidden = !open;
+            }
+
+            if (open && card.dataset.settingsSection === 'secondary') {
+                requestAnimationFrame(updateSecondaryScrollbar);
+            }
+        });
+    }
+
+    applyTheme();
 
     function animateAiDrawerBody(body, open) {
         body.getAnimations().forEach(
@@ -2726,19 +3062,6 @@ function createExporterContent() {
 
         renderAiApiSelect();
 
-        // The drawer must follow the list's real content height.
-        // This also releases any stale height left by an interrupted animation.
-        const secondaryDrawerBody = root.querySelector(
-            '[data-ai-drawer="secondary"] .stce-ai-drawer-body',
-        );
-
-        if (secondaryDrawerBody
-            && !secondaryDrawerBody.hidden
-            && secondaryDrawerBody.getAnimations().length === 0) {
-            secondaryDrawerBody.style.height = '';
-            secondaryDrawerBody.style.overflow = '';
-        }
-
         updateSecondaryScrollbar();
     }
 
@@ -2779,7 +3102,6 @@ function createExporterContent() {
     function openSecondaryApiModal() {
         loadSharedApiUi();
         secondaryModal.hidden = false;
-        document.body.classList.add('stce-secondary-modal-open');
 
         requestAnimationFrame(() => {
             sharedApiUrl.focus({ preventScroll: true });
@@ -2790,7 +3112,6 @@ function createExporterContent() {
         const abandonedDraft = secondaryDraft;
 
         secondaryModal.hidden = true;
-        document.body.classList.remove('stce-secondary-modal-open');
 
         sharedApiKey.value = '';
 
@@ -2834,25 +3155,25 @@ function createExporterContent() {
 
                 toastr.success(
                     `“${pendingDraft.name}”已添加`,
-                    'YaKit 副 API',
+                    'YaKit-纪实 副 API',
                 );
             } else {
                 toastr.success(
                     '副 API 配置已保存',
-                    'YaKit 副 API',
+                    'YaKit-纪实 副 API',
                 );
             }
 
             closeSecondaryApiModal();
         } catch (error) {
             console.error(
-                '[YaKit-纪实] Failed to save secondary API config:',
+                '[YaKit-chat] Failed to save secondary API config:',
                 error,
             );
 
             toastr.error(
                 error?.message || String(error),
-                'YaKit 副 API',
+                'YaKit-纪实 副 API',
             );
         } finally {
             secondaryModalSave.disabled = false;
@@ -3004,17 +3325,17 @@ function createExporterContent() {
 
             toastr.success(
                 `“${connection.name}”已获取 ${models.length} 个模型`,
-                'YaKit 副 API',
+                'YaKit-纪实 副 API',
             );
         } catch (error) {
             console.error(
-                '[YaKit-纪实] Failed to fetch secondary API models:',
+                '[YaKit-chat] Failed to fetch secondary API models:',
                 error,
             );
 
             toastr.error(
                 error?.message || String(error),
-                'YaKit 副 API',
+                'YaKit-纪实 副 API',
             );
         } finally {
             sharedFetchModels.disabled = false;
@@ -3054,7 +3375,7 @@ function createExporterContent() {
         if (store.connections.length <= 1) {
             toastr.warning(
                 '至少需要保留一个副 API 配置',
-                'YaKit 副 API',
+                'YaKit-纪实 副 API',
             );
 
             return;
@@ -3094,7 +3415,7 @@ function createExporterContent() {
 
         toastr.success(
             '副 API 已删除',
-            'YaKit 副 API',
+            'YaKit-纪实 副 API',
         );
     }
 
@@ -3310,7 +3631,7 @@ function createExporterContent() {
             } catch (error) {
                 toastr.warning(
                     error?.message || String(error),
-                    'YaKit 副 API',
+                    'YaKit-纪实 副 API',
                 );
 
                 return;
@@ -3358,7 +3679,7 @@ function createExporterContent() {
                 );
             }
         } catch (error) {
-            console.error('[ST Chat Exporter] AI analysis failed:', error);
+            console.error('[YaKit-chat] AI analysis failed:', error);
 
             aiSummary = '';
             aiSuggestions = [];
@@ -3441,6 +3762,7 @@ function createExporterContent() {
             },
         );
 
+        bindPopupBackdropClose(popup);
         await popup.show();
     }
 
@@ -3751,116 +4073,69 @@ function createExporterContent() {
         }
     }
 
-    function syncTabGlass(targetButton, animate = true) {
-        if (!tabsRoot || !tabGlass || !targetButton) {
-            return;
+    function setActiveTab(targetButton, focus = false) {
+        if (!targetButton) return;
+
+        const tab = targetButton.dataset.tab;
+
+        for (const item of tabButtons) {
+            const active = item === targetButton;
+            item.classList.toggle('is-active', active);
+            item.setAttribute('aria-selected', String(active));
+            item.tabIndex = active ? 0 : -1;
         }
 
-        const tabsRect = tabsRoot.getBoundingClientRect();
-        const glassRect = tabGlass.getBoundingClientRect();
-        const targetX = targetButton.offsetLeft;
-        const targetWidth = targetButton.offsetWidth;
-
-        const currentX = glassRect.width
-            ? glassRect.left - tabsRect.left
-            : targetX;
-        const currentWidth = glassRect.width || targetWidth;
-
-        tabGlassAnimation?.cancel();
-        tabGlassAnimation = null;
-
-        tabGlass.style.width = `${targetWidth}px`;
-        tabGlass.style.transform = `translate3d(${targetX}px, 0, 0)`;
-        tabGlass.dataset.x = String(targetX);
-        tabGlass.dataset.width = String(targetWidth);
-
-        const reduceMotion = window.matchMedia?.(
-            '(prefers-reduced-motion: reduce)',
-        )?.matches;
-
-        if (!animate || reduceMotion || !tabsRoot.isConnected) {
-            tabsRoot.classList.remove('is-glass-moving');
-            return;
+        for (const panel of panels) {
+            const active = panel.dataset.panel === tab;
+            panel.classList.toggle('is-active', active);
+            panel.hidden = !active;
         }
 
-        const direction = targetX >= currentX ? 1 : -1;
-        const distance = Math.abs(targetX - currentX);
-        const stretch = Math.min(20, Math.max(8, distance * 0.10));
-        const overshoot = Math.min(4, Math.max(1.5, distance * 0.025));
-        const stretchedX = targetX - direction * stretch * 0.38;
-        const compressedWidth = Math.max(20, targetWidth - 2);
+        if (focus) {
+            targetButton.focus({ preventScroll: true });
+        }
+    }
 
-        tabGlass.style.transformOrigin = direction > 0
-            ? 'right center'
-            : 'left center';
-        tabsRoot.classList.add('is-glass-moving');
-
-        tabGlassAnimation = tabGlass.animate(
-            [
-                {
-                    transform: `translate3d(${currentX}px, 0, 0) scaleX(1)`,
-                    width: `${currentWidth}px`,
-                    offset: 0,
-                },
-                {
-                    transform: `translate3d(${stretchedX}px, 0, 0) scaleX(1.035)`,
-                    width: `${targetWidth + stretch}px`,
-                    offset: 0.46,
-                },
-                {
-                    transform: `translate3d(${targetX + direction * overshoot}px, 0, 0) scaleX(0.985)`,
-                    width: `${compressedWidth}px`,
-                    offset: 0.78,
-                },
-                {
-                    transform: `translate3d(${targetX}px, 0, 0) scaleX(1)`,
-                    width: `${targetWidth}px`,
-                    offset: 1,
-                },
-            ],
-            {
-                duration: 520,
-                easing: 'cubic-bezier(0.22, 0.88, 0.24, 1)',
-                fill: 'none',
-            },
+    function moveTab(step) {
+        const currentIndex = Math.max(
+            0,
+            tabButtons.findIndex((button) => button.classList.contains('is-active')),
         );
+        const nextIndex =
+            (currentIndex + step + tabButtons.length) % tabButtons.length;
 
-        const finishGlassMotion = () => {
-            tabsRoot.classList.remove('is-glass-moving');
-            tabGlass.style.transformOrigin = 'center';
-            tabGlassAnimation = null;
-        };
-
-        tabGlassAnimation.addEventListener(
-            'finish',
-            finishGlassMotion,
-            { once: true },
-        );
-
-        tabGlassAnimation.addEventListener(
-            'cancel',
-            () => {
-                tabsRoot.classList.remove('is-glass-moving');
-            },
-            { once: true },
-        );
+        setActiveTab(tabButtons[nextIndex], true);
     }
 
     for (const button of tabButtons) {
         button.addEventListener('click', () => {
-            const tab = button.dataset.tab;
+            setActiveTab(button);
+        });
 
-            for (const item of tabButtons) {
-                item.classList.toggle('is-active', item === button);
-            }
-
-            syncTabGlass(button, true);
-
-            for (const panel of panels) {
-                panel.classList.toggle('is-active', panel.dataset.panel === tab);
+        button.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                event.preventDefault();
+                moveTab(1);
+            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                moveTab(-1);
+            } else if (event.key === 'Home') {
+                event.preventDefault();
+                setActiveTab(tabButtons[0], true);
+            } else if (event.key === 'End') {
+                event.preventDefault();
+                setActiveTab(tabButtons[tabButtons.length - 1], true);
+            } else if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setActiveTab(button, true);
             }
         });
     }
+
+    setActiveTab(
+        tabButtons.find((button) => button.classList.contains('is-active'))
+            || tabButtons[0],
+    );
 
     for (const input of [
         includeUser,
@@ -3913,6 +4188,25 @@ function createExporterContent() {
             if (drawer) {
                 toggleAiDrawer(drawer);
             }
+        });
+    });
+
+    settingsTriggers.forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+            const card = trigger.closest('.stce-settings-card');
+
+            if (card) {
+                setSettingsSectionState(
+                    card,
+                    !card.classList.contains('is-open'),
+                );
+            }
+        });
+    });
+
+    themeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            setThemePreference(button.dataset.themeOption);
         });
     });
 
@@ -4124,11 +4418,22 @@ function createExporterContent() {
         saveSecondaryApiModal,
     );
 
-    secondaryModal.addEventListener('click', (event) => {
-        if (event.target === secondaryModal) {
-            closeSecondaryApiModal();
+    const closeSecondaryModalFromBackdrop = (event) => {
+        if (secondaryModal.hidden || event.target !== event.currentTarget) {
+            return;
         }
-    });
+
+        closeSecondaryApiModal();
+    };
+
+    secondaryModal.addEventListener(
+        'pointerdown',
+        closeSecondaryModalFromBackdrop,
+    );
+    secondaryModal.addEventListener(
+        'click',
+        closeSecondaryModalFromBackdrop,
+    );
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !secondaryModal.hidden) {
@@ -4231,27 +4536,22 @@ function createExporterContent() {
     renderRules();
     refreshChat();
 
-    const syncActiveTabGlass = () => {
-        const activeTab = tabButtons.find(
-            (button) => button.classList.contains('is-active'),
-        );
-        syncTabGlass(activeTab, false);
-    };
+    return root;
+}
 
-    requestAnimationFrame(() => {
-        requestAnimationFrame(syncActiveTabGlass);
-    });
+// 点击 SillyTavern Popup 的空白区域时关闭当前插件弹窗。
+function bindPopupBackdropClose(popup) {
+    const dialog = popup?.dlg;
 
-    if (typeof ResizeObserver === 'function' && tabsRoot) {
-        const tabsResizeObserver = new ResizeObserver(() => {
-            if (root.isConnected) {
-                syncActiveTabGlass();
-            }
-        });
-        tabsResizeObserver.observe(tabsRoot);
+    if (!dialog) {
+        return;
     }
 
-    return root;
+    dialog.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            void popup.completeCancelled();
+        }
+    });
 }
 
 async function openExporter() {
@@ -4276,18 +4576,20 @@ async function openExporter() {
         },
     );
 
+    bindPopupBackdropClose(popup);
     await popup.show();
 }
 
 function createWandButton() {
-    if (document.getElementById(WAND_BUTTON_ID)) {
+    if (document.getElementById(WAND_BUTTON_ID)
+        || document.getElementById(LEGACY_WAND_BUTTON_ID)) {
         return;
     }
 
     const menu = document.querySelector('#extensionsMenu');
 
     if (!menu) {
-        console.warn('[ST Chat Exporter] #extensionsMenu not found.');
+        console.warn('[YaKit-chat] #extensionsMenu not found.');
         return;
     }
 
@@ -4300,7 +4602,7 @@ function createWandButton() {
 
     item.innerHTML = `
         <div class="fa-solid fa-book-open extensionsMenuExtensionButton"></div>
-        <span>纪实</span>
+        <span>YaKit-纪实</span>
     `;
 
     item.addEventListener('click', openExporter);
@@ -4324,7 +4626,7 @@ function init() {
     installCustomSelectDismissHandler();
     createWandButton();
 
-    console.info('[YaKit-纪实] initialized v0.8.5');
+    console.info('[YaKit-chat] initialized v0.10.0');
 }
 
 jQuery(() => {
