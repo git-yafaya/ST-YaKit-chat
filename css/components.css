@@ -365,7 +365,7 @@
    Rule editor popup
    ========================= */
 
-dialog.popup:has(.stce-rule-editor) {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) {
     width: min(880px, calc(100vw - 48px)) !important;
     max-width: min(880px, calc(100vw - 48px)) !important;
     max-height: min(860px, calc(100vh - 48px)) !important;
@@ -705,7 +705,7 @@ dialog.popup:has(.stce-rule-editor) {
    v0.2.2 - Rule editor actions
    ========================= */
 
-dialog.popup:has(.stce-rule-editor) .popup-controls {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .popup-controls {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -718,8 +718,8 @@ dialog.popup:has(.stce-rule-editor) .popup-controls {
     box-sizing: border-box !important;
 }
 
-dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok,
-dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-cancel {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .popup-controls .popup-button-ok,
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .popup-controls .popup-button-cancel {
     flex: 0 0 auto !important;
 
     width: auto !important;
@@ -741,7 +741,7 @@ dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-cancel {
     white-space: nowrap !important;
 }
 
-dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .popup-controls .popup-button-ok {
     min-width: 128px !important;
 }
 
@@ -3381,7 +3381,7 @@ dialog.popup:has(.stce-ai-test-popup) .popup-content {
     background: var(--stce-danger-surface) !important;
 }
 
-dialog.popup:has(.stce-rule-editor) {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) {
     width: min(880px, calc(100vw - 48px)) !important;
     max-width: min(880px, calc(100vw - 48px)) !important;
     max-height: min(860px, calc(100vh - 48px)) !important;
@@ -3626,7 +3626,7 @@ dialog.popup:has(.stce-rule-editor) {
     box-shadow: var(--stce-shadow-elevated) !important;
 }
 
-dialog.popup:has(.stce-rule-editor),
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor),
 dialog.popup:has(.stce-ai-test-popup) {
     border-radius: var(--stce-radius-xl) !important;
     background: color-mix(
@@ -4238,7 +4238,7 @@ dialog.popup:has(.stce-ai-test-popup) {
 .stce-root .stce-panel[data-panel="export"] {
     --stce-checkbox-surface: var(--stce-card-surface, var(--stce-surface-inset));
     --stce-checkbox-border: var(--stce-card-border-hover, var(--stce-border-strong));
-    --stce-checkbox-accent: var(--stce-primary-deep, var(--stce-action-primary));
+    --stce-checkbox-accent: var(--stce-action-primary, #2161b5);
     --stce-checkbox-accent-border: color-mix(
         in srgb,
         var(--stce-checkbox-accent) 88%,
@@ -4349,291 +4349,6 @@ dialog.popup:has(.stce-ai-test-popup) {
     box-shadow: none;
 }
 
-/* root 内的弹窗遮罩和面板使用同一套主题表面，避免表单变成整片蓝色。 */
-.stce-root:has(.stce-native-dialog) {
-    position: relative;
-}
-
-.stce-root .stce-native-dialog[hidden],
-.stce-root .stce-feedback[hidden] {
-    display: none !important;
-}
-
-.stce-root .stce-native-dialog {
-    --stce-native-dialog-surface: var(--stce-glass-surface, var(--stce-surface-raised));
-    --stce-native-dialog-inset: var(--stce-surface-inset);
-    --stce-native-dialog-border: var(--stce-card-border);
-    --stce-native-dialog-overlay: color-mix(
-        in srgb,
-        var(--stce-surface) 48%,
-        transparent
-    );
-
-    position: absolute;
-    inset: 0;
-    z-index: 40;
-
-    display: grid;
-    align-items: center;
-    justify-items: center;
-    min-width: 0;
-    min-height: 0;
-    padding: var(--stce-space-5);
-    box-sizing: border-box;
-    overflow: auto;
-
-    color: var(--stce-text);
-    background: var(--stce-native-dialog-overlay);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-}
-
-.stce-root .stce-native-dialog-panel,
-.stce-root .stce-native-dialog-content,
-.stce-root .stce-native-dialog > [role="dialog"],
-.stce-root .stce-native-dialog > .stce-dialog-panel {
-    width: min(560px, 100%);
-    max-height: min(720px, 100%);
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-sizing: border-box;
-
-    border: 1px solid var(--stce-native-dialog-border);
-    border-radius: var(--stce-radius-xl);
-    color: var(--stce-text);
-    background: var(--stce-native-dialog-surface);
-    box-shadow: var(--stce-shadow-elevated);
-}
-
-.stce-root .stce-native-dialog-header {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--stce-space-3);
-    padding: var(--stce-space-4) var(--stce-space-5);
-    border-bottom: 1px solid var(--stce-border-soft);
-}
-
-.stce-root .stce-native-dialog-title {
-    min-width: 0;
-    color: var(--stce-text);
-    font-family: var(--stce-font-sans);
-    font-size: 17px;
-    font-weight: 720;
-    line-height: 1.35;
-}
-
-.stce-root .stce-native-dialog-description {
-    margin-top: 4px;
-    color: var(--stce-text-description);
-    font-family: var(--stce-font-sans);
-    font-size: 13px;
-    line-height: 1.6;
-}
-
-.stce-root .stce-native-dialog-close {
-    flex: 0 0 auto;
-    width: 34px;
-    height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    border: 1px solid transparent;
-    border-radius: var(--stce-radius-sm);
-    color: var(--stce-text-description);
-    background: transparent;
-    cursor: pointer;
-    transition:
-        background-color var(--stce-transition-fast),
-        border-color var(--stce-transition-fast),
-        color var(--stce-transition-fast),
-        transform var(--stce-transition-fast);
-}
-
-.stce-root .stce-native-dialog-close:hover:not(:disabled) {
-    border-color: var(--stce-border);
-    color: var(--stce-text);
-    background: var(--stce-surface-hover);
-}
-
-.stce-root .stce-native-dialog-close:active:not(:disabled) {
-    transform: scale(0.96);
-}
-
-.stce-root .stce-native-dialog-body {
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--stce-space-4);
-    padding: var(--stce-space-5);
-    overflow: auto;
-}
-
-.stce-root .stce-native-dialog-actions {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: var(--stce-space-2);
-    padding: var(--stce-space-3) var(--stce-space-5) var(--stce-space-4);
-    border-top: 1px solid var(--stce-border-soft);
-    background: var(--stce-surface-inset);
-}
-
-.stce-root .stce-native-dialog-actions > button,
-.stce-root .stce-native-dialog-actions > .menu_button {
-    min-width: 104px;
-    min-height: 42px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    padding: 9px 15px;
-    border: 1px solid var(--stce-card-border);
-    border-radius: var(--stce-radius-sm);
-    color: var(--stce-text-body);
-    background: var(--stce-button-secondary);
-    font-family: var(--stce-font-sans);
-    font-size: 13px;
-    font-weight: 650;
-    line-height: 20px;
-    white-space: nowrap;
-    cursor: pointer;
-    transition:
-        background-color var(--stce-transition-fast),
-        border-color var(--stce-transition-fast),
-        box-shadow var(--stce-transition-fast),
-        color var(--stce-transition-fast),
-        transform var(--stce-transition-fast);
-}
-
-.stce-root .stce-native-dialog-actions > button:hover:not(:disabled),
-.stce-root .stce-native-dialog-actions > .menu_button:hover:not(:disabled) {
-    border-color: var(--stce-card-border-hover);
-    background: var(--stce-card-surface-hover);
-    box-shadow: var(--stce-shadow-card-hover);
-    transform: translateY(-1px);
-}
-
-.stce-root .stce-native-dialog-actions > button:active:not(:disabled),
-.stce-root .stce-native-dialog-actions > .menu_button:active:not(:disabled) {
-    transform: translateY(1px) scale(0.985);
-}
-
-.stce-root .stce-native-dialog-actions > .stce-native-dialog-primary,
-.stce-root .stce-native-dialog-actions > .stce-native-dialog-confirm,
-.stce-root .stce-native-dialog-actions > .stce-native-dialog-save {
-    border-color: var(--stce-primary-deep);
-    color: #fff;
-    background: var(--stce-primary-deep);
-    box-shadow: 0 4px 12px color-mix(
-        in srgb,
-        var(--stce-primary-deep) 22%,
-        transparent
-    );
-}
-
-.stce-root .stce-native-dialog-actions > .stce-native-dialog-primary:hover:not(:disabled),
-.stce-root .stce-native-dialog-actions > .stce-native-dialog-confirm:hover:not(:disabled),
-.stce-root .stce-native-dialog-actions > .stce-native-dialog-save:hover:not(:disabled) {
-    border-color: var(--stce-primary-deep);
-    background: color-mix(
-        in srgb,
-        var(--stce-primary-deep) 88%,
-        var(--stce-text) 12%
-    );
-}
-
-.stce-root .stce-native-dialog-actions > .stce-native-dialog-danger {
-    border-color: color-mix(
-        in srgb,
-        var(--stce-danger) 48%,
-        var(--stce-card-border) 52%
-    );
-    color: var(--stce-danger);
-    background: var(--stce-danger-surface);
-}
-
-.stce-root .stce-native-dialog-actions > button:focus-visible,
-.stce-root .stce-native-dialog-close:focus-visible {
-    outline: none;
-    box-shadow: var(--stce-focus-ring);
-}
-
-.stce-root .stce-native-dialog-actions > button:disabled,
-.stce-root .stce-native-dialog-close:disabled {
-    cursor: not-allowed;
-    opacity: 0.48;
-}
-
-/* 原生弹窗里的输入框明确使用插件表面，focus 只提亮边框和焦点环。 */
-.stce-root .stce-native-dialog input[type="text"],
-.stce-root .stce-native-dialog input[type="password"],
-.stce-root .stce-native-dialog input[type="number"],
-.stce-root .stce-native-dialog input[type="url"],
-.stce-root .stce-native-dialog textarea,
-.stce-root .stce-native-dialog select:not(.stce-native-select),
-.stce-root .stce-native-dialog .stce-select-trigger {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-    box-sizing: border-box;
-    padding: 10px 12px;
-    border: 1px solid var(--stce-card-border);
-    border-radius: var(--stce-radius-sm);
-    color: var(--stce-text-body);
-    background: var(--stce-native-dialog-inset);
-    font-family: var(--stce-font-sans);
-    font-size: 14px;
-    line-height: 1.45;
-}
-
-.stce-root .stce-native-dialog textarea {
-    min-height: 112px;
-    resize: vertical;
-}
-
-.stce-root .stce-native-dialog input[type="text"]::placeholder,
-.stce-root .stce-native-dialog input[type="password"]::placeholder,
-.stce-root .stce-native-dialog input[type="number"]::placeholder,
-.stce-root .stce-native-dialog textarea::placeholder {
-    color: var(--stce-text-description);
-    opacity: 0.78;
-}
-
-.stce-root .stce-native-dialog input[type="text"]:focus,
-.stce-root .stce-native-dialog input[type="password"]:focus,
-.stce-root .stce-native-dialog input[type="number"]:focus,
-.stce-root .stce-native-dialog input[type="url"]:focus,
-.stce-root .stce-native-dialog textarea:focus,
-.stce-root .stce-native-dialog select:not(.stce-native-select):focus,
-.stce-root .stce-native-dialog .stce-select-trigger:focus-visible {
-    outline: none;
-    border-color: var(--stce-primary);
-    color: var(--stce-text);
-    background: var(--stce-surface-raised);
-    box-shadow: var(--stce-focus-ring);
-}
-
-.stce-root .stce-native-dialog .stce-field > span:first-child {
-    color: var(--stce-text-body);
-    font-family: var(--stce-font-sans);
-    font-size: 13px;
-    font-weight: 650;
-    opacity: 1;
-}
-
-.stce-root .stce-native-dialog .stce-field[hidden],
-.stce-root .stce-native-dialog [hidden] {
-    display: none !important;
-}
 
 /* root 内的规则编辑器不再依赖 SillyTavern Popup 的蓝色默认表面。 */
 .stce-root .stce-rule-editor {
@@ -4657,6 +4372,10 @@ dialog.popup:has(.stce-ai-test-popup) {
 }
 
 /* 插件内反馈区替代宿主 Toast 时，状态色只放在边框、图标和浅底上。 */
+.stce-root .stce-feedback[hidden] {
+    display: none !important;
+}
+
 .stce-root .stce-feedback {
     --stce-feedback-color: var(--stce-primary);
     --stce-feedback-surface: var(--stce-primary-surface);
@@ -4779,7 +4498,7 @@ dialog.popup:has(.stce-ai-test-popup) {
 }
 
 /* 旧版规则编辑仍可能暂时使用宿主 Popup，这里把关键 Token 传入 Popup。 */
-dialog.popup:has(.stce-rule-editor) {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) {
     --stce-surface-raised: color-mix(
         in srgb,
         var(--SmartThemeBlurTintColor, var(--SmartThemeBodyColor)) 96%,
@@ -4835,38 +4554,38 @@ dialog.popup:has(.stce-rule-editor) {
     border-color: var(--stce-border) !important;
 }
 
-dialog.popup:has(.stce-rule-editor) .stce-rule-editor {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-rule-editor {
     color: var(--stce-text);
     background: var(--stce-surface-raised);
 }
 
-dialog.popup:has(.stce-rule-editor) .stce-field input[type="text"],
-dialog.popup:has(.stce-rule-editor) .stce-field input[type="password"],
-dialog.popup:has(.stce-rule-editor) .stce-field input[type="number"],
-dialog.popup:has(.stce-rule-editor) .stce-field textarea,
-dialog.popup:has(.stce-rule-editor) .stce-field .stce-select-trigger {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field input[type="text"],
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field input[type="password"],
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field input[type="number"],
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field textarea,
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field .stce-select-trigger {
     color: var(--stce-text) !important;
     background: var(--stce-surface-inset) !important;
     border-color: var(--stce-border) !important;
 }
 
-dialog.popup:has(.stce-rule-editor) .stce-field input[type="text"]:focus,
-dialog.popup:has(.stce-rule-editor) .stce-field input[type="password"]:focus,
-dialog.popup:has(.stce-rule-editor) .stce-field input[type="number"]:focus,
-dialog.popup:has(.stce-rule-editor) .stce-field textarea:focus,
-dialog.popup:has(.stce-rule-editor) .stce-field .stce-select-trigger:focus-visible {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field input[type="text"]:focus,
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field input[type="password"]:focus,
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field input[type="number"]:focus,
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field textarea:focus,
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .stce-field .stce-select-trigger:focus-visible {
     background: var(--stce-surface-raised) !important;
     border-color: var(--stce-primary) !important;
     box-shadow: var(--stce-focus-ring) !important;
 }
 
-dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-ok {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .popup-controls .popup-button-ok {
     border-color: var(--stce-primary-deep) !important;
     color: #fff !important;
     background: var(--stce-primary-deep) !important;
 }
 
-dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-cancel {
+dialog.popup:not(:has(.stce-root)):has(.stce-rule-editor) .popup-controls .popup-button-cancel {
     border-color: var(--stce-border) !important;
     color: var(--stce-text) !important;
     background: var(--stce-surface-inset) !important;
@@ -4885,7 +4604,7 @@ dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-cancel {
 .stce-root .stce-root-dialog {
     position: absolute !important;
     inset: 0 !important;
-    z-index: 40 !important;
+    z-index: 10060 !important;
     display: grid !important;
     align-items: center;
     justify-items: center;
@@ -4912,6 +4631,20 @@ dialog.popup:has(.stce-rule-editor) .popup-controls .popup-button-cancel {
     color: var(--stce-text);
     background: var(--stce-glass-surface) !important;
     box-shadow: var(--stce-shadow-elevated) !important;
+}
+
+/* 只有真正的规则编辑表单使用宽弹窗，名称输入和确认框保持紧凑。 */
+.stce-root .stce-root-dialog.stce-rule-editor-dialog .stce-secondary-modal-dialog {
+    width: min(880px, 100%) !important;
+}
+
+.stce-root .stce-dialog-form,
+.stce-root .stce-dialog-message {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--stce-space-4);
 }
 
 .stce-root .stce-root-dialog .stce-secondary-modal-topbar {

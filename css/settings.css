@@ -571,6 +571,10 @@
     line-height: 18px;
 }
 
+.stce-root .stce-settings-update-row[hidden] {
+    display: none !important;
+}
+
 .stce-root .stce-settings-update-action {
     min-height: 30px;
     padding: 5px 10px;
@@ -621,9 +625,9 @@
 
 .stce-root .stce-shared-model-action .menu_button {
     width: 100% !important;
-    height: 52px !important;
+    height: 54px !important;
     min-width: 184px !important;
-    min-height: 52px !important;
+    min-height: 54px !important;
     padding-inline: 18px !important;
     font-size: 14px !important;
     font-weight: 650 !important;

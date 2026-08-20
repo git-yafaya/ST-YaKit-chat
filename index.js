@@ -1,4 +1,5 @@
 import {
+    deleteSecret,
     SECRET_KEYS,
     rotateSecret,
     secret_state,
@@ -11,6 +12,7 @@ const LEGACY_WAND_BUTTON_ID = 'st_chat_exporter_wand_button';
 const SHARED_SECONDARY_API_KEY = 'yakit-shared-secondary-api';
 const LEGACY_SHARED_SECONDARY_API_KEY = 'yafaya-shared-secondary-api';
 const STCE_THEME_MODES = Object.freeze(['follow', 'light', 'dark']);
+const EXTENSION_VERSION = '0.10.0';
 const EXTENSION_UPDATE_NAMES = Object.freeze([
     'ST-Yakit-chat',
     'ST-YaKit-chat',
@@ -381,8 +383,7 @@ async function writeSharedSecondaryApiSecret(connection, value) {
         throw new Error('没有选中的副 API');
     }
 
-    // writeSecret() may activate the newly written Custom secret. Preserve the
-    // user's current Custom secret and restore it immediately after saving.
+    // 写入 Secret 可能会切换当前 Custom Secret，保存后要恢复用户原来的选择。
     const previousActiveId = getActiveCustomSecretId();
 
     const secretId = await writeSecret(
@@ -408,7 +409,6 @@ async function writeSharedSecondaryApiSecret(connection, value) {
         }
     }
 
-    saveSettings();
     return secretId;
 }
 
@@ -1169,6 +1169,7 @@ function installCustomSelectDismissHandler() {
 function openRootDialog(root, {
     title,
     content,
+    dialogClass = '',
     confirmText = '确定',
     cancelText = '取消',
     confirmClass = 'stce-secondary-modal-save',
@@ -1180,6 +1181,11 @@ function openRootDialog(root, {
     const overlay = document.createElement('div');
 
     overlay.className = 'stce-secondary-modal stce-root-dialog';
+    if (dialogClass) {
+        overlay.classList.add(
+            ...String(dialogClass).split(/\s+/).filter(Boolean),
+        );
+    }
     overlay.hidden = true;
     overlay.setAttribute('data-stce-dialog', 'true');
     overlay.innerHTML = `
@@ -1336,7 +1342,7 @@ function openRootDialog(root, {
 
 function createRootDialogMessage(message) {
     const content = document.createElement('div');
-    content.className = 'stce-rule-editor';
+    content.className = 'stce-dialog-message';
     content.innerHTML = `
         <div class="stce-editor-title">
             <strong>请确认此操作</strong>
@@ -1366,7 +1372,7 @@ async function openRuleEditor(
     const draft = deepClone(rule || createDefaultRule());
 
     const editor = document.createElement('div');
-    editor.className = 'stce-rule-editor';
+    editor.className = 'stce-rule-editor stce-rule-editor-form';
 
     editor.innerHTML = `
         <div class="stce-editor-title">
@@ -1507,7 +1513,6 @@ async function openRuleEditor(
         editorFeedback.hidden = false;
         editorFeedback.textContent = String(message || '');
         editorFeedback.dataset.tone = tone;
-        editorFeedback.style.display = 'flex';
     }
 
     typeInput.value = draft.type || 'tag';
@@ -1622,7 +1627,6 @@ async function openRuleEditor(
         }
 
         editorFeedback.hidden = true;
-        editorFeedback.style.display = 'none';
 
         if (!beforeInput.value.trim()) {
             beforeInput.value = buildTestSample();
@@ -1641,6 +1645,7 @@ async function openRuleEditor(
     const result = await openDialog({
         title: rule ? '编辑清洗规则' : '添加清洗规则',
         content: editor,
+        dialogClass: 'stce-rule-editor-dialog',
         confirmText: '保存',
         cancelText: '取消',
         focusSelector: '#stce_rule_name',
@@ -1655,7 +1660,6 @@ async function openRuleEditor(
             }
 
             editorFeedback.hidden = true;
-            editorFeedback.style.display = 'none';
 
             return true;
         },
@@ -2003,7 +2007,7 @@ function buildAiRulePrompt({
 当前清洗预设：${presetName}
 
 用户的清洗目标：
-${goal || '只保留可作为小说正文阅读的叙述、动作与人物对白；删除思考、状态栏、变量更新、记忆摘要、元数据、规则说明等非正文内容。'}
+${goal}
 
 你只需要提出“清洗规则建议”，不要改写正文。
 
@@ -2543,26 +2547,30 @@ function createExporterContent() {
             <div class="stce-settings-page">
                 <div class="stce-settings-heading">
                     <div>
-                        <span class="stce-settings-kicker">YaKit-纪实</span>
-                        <h2>配置</h2>
-                        <p>主题与副 API 连接。</p>
+                        <span class="stce-settings-kicker">配置</span>
+                        <p>统一管理主题与副 API 连接。</p>
                         <span class="stce-settings-status" id="stce_theme_status"
                             role="status" aria-live="polite">跟随 SillyTavern</span>
                     </div>
-                    <div class="stce-settings-update-area"
-                        style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:180px;">
-                        <button id="stce_update_button" type="button" class="menu_button"
-                            aria-busy="false">
-                            <i class="fa-solid fa-rotate"></i>
-                            检查更新
+                    <div class="stce-settings-version-area">
+                        <button id="stce_update_button" type="button"
+                            class="stce-settings-version-button is-idle"
+                            aria-label="检查 YaKit-纪实更新" aria-busy="false">
+                            <span>检查更新</span>
+                            <strong>v${EXTENSION_VERSION}</strong>
+                            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
                         </button>
-                        <button id="stce_update_apply" type="button" class="menu_button stce-ai-primary"
-                            aria-busy="false" hidden>
-                            <i class="fa-solid fa-cloud-arrow-down"></i>
-                            更新版本
-                        </button>
-                        <span class="stce-settings-status" id="stce_update_message"
-                            role="status" aria-live="polite">尚未检查</span>
+                        <div id="stce_update_row" class="stce-settings-update-row" hidden>
+                            <span>发现新版本</span>
+                            <button id="stce_update_apply" type="button"
+                                class="stce-settings-update-action" aria-busy="false">
+                                更新版本
+                            </button>
+                        </div>
+                        <small class="stce-settings-version-message is-idle"
+                            id="stce_update_message" role="status" aria-live="polite">
+                            打开设置时自动检查更新。
+                        </small>
                     </div>
                 </div>
 
@@ -2795,6 +2803,7 @@ function createExporterContent() {
     const themeButtons = [...root.querySelectorAll('.stce-theme-option')];
     const themeStatus = root.querySelector('#stce_theme_status');
     const updateButton = root.querySelector('#stce_update_button');
+    const updateRow = root.querySelector('#stce_update_row');
     const updateApplyButton = root.querySelector('#stce_update_apply');
     const updateMessage = root.querySelector('#stce_update_message');
     const aiScope = root.querySelector('#stce_ai_scope');
@@ -2807,6 +2816,7 @@ function createExporterContent() {
     const secondaryNewButton = root.querySelector('#stce_secondary_new');
     const secondaryDeleteButton = root.querySelector('#stce_secondary_delete');
     const secondaryModal = root.querySelector('#stce_secondary_modal');
+    const secondaryModalDialog = secondaryModal.querySelector('[role="dialog"]');
     const secondaryModalClose = root.querySelector('#stce_secondary_modal_close');
     const secondaryModalCancel = root.querySelector('#stce_secondary_modal_cancel');
     const secondaryModalSave = root.querySelector('#stce_secondary_modal_save');
@@ -2836,8 +2846,10 @@ function createExporterContent() {
     let aiSuggestions = [];
     const sharedSecondaryModels = new Map();
 
-    // New secondary APIs stay transient until the user confirms them.
+    // 新建副 API 只保存在草稿里，用户确认后才加入共享连接。
     let secondaryDraft = null;
+    let secondaryEditSnapshot = null;
+    let secondaryPreviousFocus = null;
     let feedbackTimer = 0;
 
     const openDialog = (options) => openRootDialog(root, options);
@@ -2861,46 +2873,20 @@ function createExporterContent() {
         if (!text) {
             targets.forEach((target) => {
                 target.hidden = true;
-                target.style.display = 'none';
             });
             return;
         }
-
-        const toneVariables = {
-            info: '--stce-primary',
-            success: '--stce-success',
-            warning: '--stce-warning',
-            error: '--stce-danger',
-        };
-        const toneVariable = toneVariables[tone] || toneVariables.info;
 
         targets.forEach((target) => {
             target.hidden = false;
             target.textContent = text;
             target.dataset.tone = tone;
-            target.style.display = 'flex';
         });
-
-        feedback.style.alignItems = 'center';
-        feedback.style.minHeight = '36px';
-        feedback.style.margin = '0 0 10px';
-        feedback.style.padding = '8px 12px';
-        feedback.style.border = `1px solid color-mix(in srgb, var(${toneVariable}) 34%, transparent)`;
-        feedback.style.borderRadius = 'var(--stce-radius-sm, 10px)';
-        feedback.style.color = `var(${toneVariable})`;
-        feedback.style.background = 'var(--stce-card-surface, var(--stce-surface-raised))';
-        feedback.style.boxShadow = 'var(--stce-shadow-card, none)';
-        feedback.style.fontSize = '13px';
-        feedback.style.lineHeight = '20px';
-        feedback.style.whiteSpace = 'nowrap';
-        feedback.style.overflow = 'hidden';
-        feedback.style.textOverflow = 'ellipsis';
 
         if (duration > 0) {
             feedbackTimer = window.setTimeout(() => {
                 targets.forEach((target) => {
                     target.hidden = true;
-                    target.style.display = 'none';
                 });
             }, duration);
         }
@@ -2978,6 +2964,7 @@ function createExporterContent() {
 
         if (updateMessage) {
             updateMessage.textContent = message;
+            updateMessage.className = `stce-settings-version-message is-${status}`;
         }
 
         const checking = status === 'checking';
@@ -2987,21 +2974,22 @@ function createExporterContent() {
         if (updateButton) {
             updateButton.disabled = busy;
             updateButton.setAttribute('aria-busy', String(busy));
+            updateButton.className = `stce-settings-version-button is-${status}`;
             updateButton.innerHTML = `
-                <i class="fa-solid ${checking ? 'fa-spinner fa-spin' : 'fa-rotate'}"></i>
-                ${checking ? '检查中…' : status === 'available' ? '重新检查' : '检查更新'}
+                <span>${checking ? '检查中…' : status === 'available' ? '重新检查' : '检查更新'}</span>
+                <strong>v${EXTENSION_VERSION}</strong>
+                <i class="fa-solid ${checking ? 'fa-spinner fa-spin' : 'fa-rotate'}" aria-hidden="true"></i>
             `;
         }
 
+        if (updateRow) {
+            updateRow.hidden = status !== 'available' && status !== 'updating';
+        }
+
         if (updateApplyButton) {
-            updateApplyButton.hidden = status !== 'available'
-                && status !== 'updating';
             updateApplyButton.disabled = updating;
             updateApplyButton.setAttribute('aria-busy', String(updating));
-            updateApplyButton.innerHTML = `
-                <i class="fa-solid ${updating ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-down'}"></i>
-                ${updating ? '更新中…' : '更新版本'}
-            `;
+            updateApplyButton.textContent = updating ? '更新中…' : '更新版本';
         }
     }
 
@@ -3108,7 +3096,7 @@ function createExporterContent() {
 
     async function requestPresetName(title, defaultValue = '') {
         const content = document.createElement('div');
-        content.className = 'stce-rule-editor';
+        content.className = 'stce-dialog-form';
         content.innerHTML = `
             <div class="stce-editor-title">
                 <strong>预设名称</strong>
@@ -3467,6 +3455,13 @@ function createExporterContent() {
     }
 
     function openSecondaryApiModal() {
+        const connection = getSelectedSecondaryConnection();
+
+        secondaryPreviousFocus = document.activeElement;
+        secondaryEditSnapshot = secondaryDraft
+            ? null
+            : deepClone(connection);
+
         loadSharedApiUi();
         secondaryModal.hidden = false;
 
@@ -3475,22 +3470,56 @@ function createExporterContent() {
         });
     }
 
-    function closeSecondaryApiModal() {
+    function closeSecondaryApiModal(discardChanges = true) {
         const abandonedDraft = secondaryDraft;
+        const connection = abandonedDraft
+            ? null
+            : getSelectedSecondaryConnection();
+        const snapshot = secondaryEditSnapshot;
+
+        if (discardChanges !== false && connection && snapshot
+            && connection.id === snapshot.id) {
+            const temporarySecretId = connection.secretId !== snapshot.secretId
+                ? connection.secretId
+                : '';
+
+            Object.assign(connection, deepClone(snapshot));
+            saveSettings();
+
+            if (temporarySecretId) {
+                void deleteSecret(SECRET_KEYS.CUSTOM, temporarySecretId);
+            }
+        }
 
         secondaryModal.hidden = true;
         secondaryFeedback.hidden = true;
         secondaryFeedback.textContent = '';
-        secondaryFeedback.style.display = 'none';
 
         sharedApiKey.value = '';
 
         if (abandonedDraft) {
             sharedSecondaryModels.delete(abandonedDraft.id);
+
+            if (abandonedDraft.secretId) {
+                void deleteSecret(
+                    SECRET_KEYS.CUSTOM,
+                    abandonedDraft.secretId,
+                );
+            }
+
             secondaryDraft = null;
         }
 
+        secondaryEditSnapshot = null;
+        renderSecondaryConnectionSelect();
         loadSharedApiUi();
+
+        if (secondaryPreviousFocus?.isConnected
+            && typeof secondaryPreviousFocus.focus === 'function') {
+            secondaryPreviousFocus.focus({ preventScroll: true });
+        }
+
+        secondaryPreviousFocus = null;
     }
 
     async function saveSecondaryApiModal() {
@@ -3505,12 +3534,12 @@ function createExporterContent() {
         try {
             const pendingDraft = secondaryDraft;
 
-            await persistSharedApiFromUi();
+            await persistSharedApiFromUi({ persist: !pendingDraft });
 
             if (pendingDraft) {
                 const store = getSharedSecondaryApiSettings();
 
-                // The new connection becomes real only after Confirm Add.
+                // 只有点击“确认添加”后，草稿才会进入共享连接列表。
                 store.connections.push(pendingDraft);
                 store.activeConnectionId = pendingDraft.id;
                 settings.ai.secondaryConnectionId = pendingDraft.id;
@@ -3528,7 +3557,7 @@ function createExporterContent() {
                 showFeedback('副 API 配置已保存', 'success');
             }
 
-            closeSecondaryApiModal();
+            closeSecondaryApiModal(false);
         } catch (error) {
             console.error(
                 '[YaKit-chat] Failed to save secondary API config:',
@@ -3595,7 +3624,10 @@ function createExporterContent() {
         updateSharedApiStatus();
     }
 
-    async function persistSharedApiFromUi({ requireReady = false } = {}) {
+    async function persistSharedApiFromUi({
+        requireReady = false,
+        persist = false,
+    } = {}) {
         const connection = getSelectedSecondaryConnection();
 
         const name = sharedApiName.value.trim();
@@ -3637,7 +3669,7 @@ function createExporterContent() {
             }
         }
 
-        if (isDraft) {
+        if (isDraft || !persist) {
             renderSharedModelSelect();
             updateSharedApiStatus();
             return connection.id;
@@ -3664,7 +3696,7 @@ function createExporterContent() {
         `;
 
         try {
-            await persistSharedApiFromUi();
+            await persistSharedApiFromUi({ persist: false });
 
             const models = await fetchSharedSecondaryApiModels(connection);
 
@@ -3675,8 +3707,6 @@ function createExporterContent() {
             }
 
             if (secondaryDraft !== connection) {
-                saveSettings();
-
                 renderSecondaryConnectionSelect();
                 aiSecondaryConnection.value = connection.id;
             }
@@ -3765,7 +3795,7 @@ function createExporterContent() {
 
         renderSecondaryConnectionSelect();
         loadSharedApiUi();
-        closeSecondaryApiModal();
+        closeSecondaryApiModal(false);
 
         showFeedback('副 API 已删除', 'success');
     }
@@ -3936,6 +3966,14 @@ function createExporterContent() {
     }
 
     async function analyzeWithAi() {
+        const goal = aiGoal.value.trim();
+
+        if (!goal) {
+            showFeedback('请先填写清洗目标', 'warning');
+            aiGoal.focus({ preventScroll: true });
+            return;
+        }
+
         const scopeMode = aiScope.value;
         const sampleCount = Number(aiSampleCount.value) || 10;
 
@@ -3998,7 +4036,7 @@ function createExporterContent() {
             const result = await requestAiRuleSuggestions({
                 samples: aiSamples,
                 existingRules: getRules(),
-                goal: aiGoal.value.trim(),
+                goal,
                 presetName: getActivePreset().name,
             }, {
                 mode: apiSelection.mode,
@@ -4793,9 +4831,44 @@ function createExporterContent() {
         closeSecondaryModalFromBackdrop,
     );
 
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !secondaryModal.hidden) {
+    root.addEventListener('keydown', (event) => {
+        if (secondaryModal.hidden) return;
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
             closeSecondaryApiModal();
+            return;
+        }
+
+        if (event.key !== 'Tab'
+            || root.querySelector('.stce-root-dialog')) return;
+
+        const focusable = [
+            ...secondaryModalDialog.querySelectorAll(
+                'button:not([disabled]), input:not([disabled]), '
+                + 'select:not(.stce-native-select):not([disabled]), '
+                + 'textarea:not([disabled]), '
+                + '[tabindex]:not([tabindex="-1"])',
+            ),
+        ].filter((element) => !element.hidden
+            && element.getClientRects().length > 0);
+
+        if (!focusable.length) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const activeInside = secondaryModalDialog.contains(
+            document.activeElement,
+        );
+
+        if (!activeInside
+            || (event.shiftKey && document.activeElement === first)) {
+            event.preventDefault();
+            (event.shiftKey ? last : first).focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
         }
     });
 
@@ -4806,46 +4879,14 @@ function createExporterContent() {
             || (secondaryDraft ? '新建副 API' : '副 API 设置');
     });
 
-    sharedApiUrl.addEventListener('change', () => {
-        const connection = getSelectedSecondaryConnection();
-
-        connection.apiUrl = normalizeOpenAiCompatibleUrl(
-            sharedApiUrl.value,
-        );
-
-        saveSettings();
-        updateSharedApiStatus();
-    });
-
     sharedApiModel.addEventListener('change', () => {
         const isCustom = sharedApiModel.value === '__custom_model__';
         // 自定义模型 ID 永远保留显示，允许用户覆盖自动获取的模型。
         sharedCustomModelField.hidden = false;
 
         if (!isCustom) {
-            const connection = getSelectedSecondaryConnection();
-
-            connection.model = sharedApiModel.value;
             sharedCustomModel.value = sharedApiModel.value;
-
-            saveSettings();
-            renderSecondaryConnectionSelect();
-            aiSecondaryConnection.value = connection.id;
-            updateSharedApiStatus();
         }
-    });
-
-    sharedCustomModel.addEventListener('change', () => {
-        if (sharedApiModel.value !== '__custom_model__') return;
-
-        const connection = getSelectedSecondaryConnection();
-
-        connection.model = sharedCustomModel.value.trim();
-
-        saveSettings();
-        renderSecondaryConnectionSelect();
-        aiSecondaryConnection.value = connection.id;
-        updateSharedApiStatus();
     });
 
     sharedFetchModels.addEventListener('click', handleFetchSharedModels);
