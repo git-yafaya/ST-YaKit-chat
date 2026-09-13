@@ -1,3 +1,10 @@
+// 系统标记和旁白优先于用户标记，兼容宿主的真假值。
+export function getMessageType(message) {
+    return message.is_system || message.extra?.type === 'narrator'
+        ? 'system'
+        : message.is_user ? 'user' : 'ai';
+}
+
 // 按宿主标记筛选消息，保留原顺序和消息对象。
 export function filterMessages(messages, types = { ai: true, user: true, system: true }) {
     if (!Array.isArray(messages)) {
@@ -21,10 +28,6 @@ export function filterMessages(messages, types = { ai: true, user: true, system:
         if (message === null || typeof message !== 'object' || Array.isArray(message)) {
             throw new TypeError('messages 中的消息必须是对象');
         }
-        // 系统标记和旁白优先于用户标记，兼容宿主的真假值。
-        const type = message.is_system || message.extra?.type === 'narrator'
-            ? 'system'
-            : message.is_user ? 'user' : 'ai';
-        return enabled(type);
+        return enabled(getMessageType(message));
     });
 }

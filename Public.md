@@ -4,7 +4,7 @@
 
 - **仓库是什么**：SillyTavern 扩展"纪实"（YaKit 系列）。v0.1.0 只实现"文本导出"核心逻辑：按楼层范围和消息类型筛选当前聊天，导出为 TXT 文件。
 - **技术栈**：原生 JavaScript（ES Modules），无构建步骤，酒馆直接加载。
-- **入口文件**：`index.js`（`manifest.json` 声明加载），注册全局对象 `globalThis.YaKitChat`。
+- **入口文件**：`src/index.js`（`manifest.json` 的 `js` 字段指向），注册全局对象 `globalThis.YaKitChat`。
 - **公开 API 一览**：`YaKitChat.readCurrentChat(range)`、`YaKitChat.filterMessages(messages, types)`、`YaKitChat.saveTxt(messages, format)`，以及只读版本号 `YaKitChat.version`。
 - **当前还没做什么**：没有任何 UI（面板/按钮/设置页），只能通过浏览器控制台调用；不含 AI 处理、标签提取、关键词/正则过滤；只有 TXT 一种导出格式；不支持预设、多 API 配置；不支持群聊（项目长期方向，不计划支持）；不接入 TauriTavern/移动端专用保存；不提供给绘界等同系列扩展复用的公共界面文件。
 
@@ -12,15 +12,16 @@
 
 ```text
 ST-YaKit-chat/
-├── manifest.json                 扩展声明，加载 index.js
-├── index.js                      宿主接入注册，组装并导出 YaKitChat 公开入口
-├── core/
-│   └── text-export/
-│       ├── read-chat.js          按楼层范围读取当前聊天
-│       ├── filter-messages.js    按消息类型过滤
-│       └── export-txt.js         生成 TXT 内容、文件名并触发保存
+├── manifest.json                 扩展声明，"js" 字段指向 src/index.js
+├── src/
+│   ├── index.js                  宿主接入注册，组装并导出 YaKitChat 公开入口
+│   └── features/
+│       └── text-export/
+│           ├── read-chat.js          按楼层范围读取当前聊天
+│           ├── filter-messages.js    按消息类型过滤，提供消息分类辅助函数
+│           └── export-txt.js         生成 TXT 内容（含固定类别标签）、文件名并触发保存
 └── tests/
-    └── text-export/               本地自动化测试，不随扩展加载
+    └── text-export/               本地自动化测试，不随扩展加载，路径未随迁移变化
 ```
 
 <details>
@@ -29,10 +30,10 @@ ST-YaKit-chat/
 ```text
 ST-YaKit-chat/
 ├── manifest.json
-├── index.js
-├── core/text-export/read-chat.js
-├── core/text-export/filter-messages.js
-├── core/text-export/export-txt.js
+├── src/index.js
+├── src/features/text-export/read-chat.js
+├── src/features/text-export/filter-messages.js
+├── src/features/text-export/export-txt.js
 ├── tests/text-export/text-export.test.mjs
 ├── tests/text-export/filter-messages.test.mjs
 ├── tests/text-export/export-txt.test.mjs
@@ -48,7 +49,7 @@ ST-YaKit-chat/
 
 ## 加载与数据流
 
-酒馆按 `manifest.json` 加载 `index.js`；`index.js` 把 `readCurrentChat`、`filterMessages`、`saveTxt` 三个函数和只读的 `version` 挂到 `globalThis.YaKitChat` 上。三个函数需要在浏览器控制台按顺序手动调用：
+酒馆按 `manifest.json` 的 `js` 字段加载 `src/index.js`；`src/index.js` 把 `readCurrentChat`、`filterMessages`、`saveTxt` 三个函数和只读的 `version` 挂到 `globalThis.YaKitChat` 上。三个函数需要在浏览器控制台按顺序手动调用：
 
 1. `readCurrentChat(range)`：用 `SillyTavern.getContext()` 取当前聊天，按闭区间楼层范围（从 1 开始）截取，返回消息快照数组。
 2. `filterMessages(messages, types)`：按类型开关（`ai`/`user`/`system`）筛选上一步的结果。
@@ -71,11 +72,11 @@ ST-YaKit-chat/
 | 类型参数错误 | 非普通对象、未知字段或非布尔开关，抛出 `TypeError`。 |
 | 消息分类 | `is_system` 为真值或 `extra.type === 'narrator'` 优先归系统；其次 `is_user` 为真值归用户；其余归 AI。 |
 | 筛选结果 | 返回新数组，保留顺序及输入消息对象引用，不修改输入。 |
-| 文本格式 | `speaker`：实际说话人姓名 + 中文冒号 + 正文；`plain`：仅正文；两种格式消息间均以两个换行分隔，不剥离 Markdown/标签/空白。 |
+| 文本格式 | `speaker`：按消息分类添加固定前缀"AI："/"用户："/"系统："（不使用消息里的真实姓名）+ 正文；`plain`：仅正文；两种格式消息间均以两个换行分隔，不剥离 Markdown/标签/空白。 |
 | 文件名 | `<调用保存时的角色卡名称><本地时间戳 YYYYMMDDHHmmssSSS>.txt`，非法字符和控制字符替换为 `_`。 |
 | 读取后切换角色再保存 | 文件名使用保存时的角色卡名称，消息快照不绑定原角色身份。 |
 | 空数组保存 | 不加载下载模块、不触发下载，Promise 兑现为提示"无内容"。 |
-| 非空保存参数错误 | 无效格式、空角色卡名、非字符串正文或 `speaker` 格式缺少字符串姓名，均报错且不调用下载。 |
+| 非空保存参数错误 | 无效格式、空角色卡名或非字符串正文均报错且不调用下载；`speaker` 按消息标记分类出固定标签，对消息的 `name` 字段没有字符串要求。 |
 | 保存成功/失败 | 成功后 Promise 返回 `{ filename, text }`；参数或宿主加载/下载错误通过 Promise 拒绝传递。返回成功只表示已触发下载，不代表磁盘落盘状态。 |
 
 </details>
@@ -101,7 +102,7 @@ console.table(YaKitChat.filterMessages(YaKitChat.readCurrentChat(), { ai: true }
 ```
 
 ```js
-// 导出第 1–10 楼，使用实际说话人姓名标注。
+// 导出第 1–10 楼，按类别标注 AI：、用户：或系统：。
 await YaKitChat.saveTxt(
     YaKitChat.filterMessages(YaKitChat.readCurrentChat({ start: 1, end: 10 })),
     'speaker',
@@ -136,7 +137,7 @@ try {
 
 ## 当前接入状态
 
-**已实现**：任务01/02/03——按楼层范围读取当前聊天、按消息类型过滤、生成并保存 TXT（speaker/plain 两种格式），均可在浏览器控制台串联调用。本地三组测试通过：
+**已实现**：任务01/02/03——按楼层范围读取当前聊天、按消息类型过滤、生成并保存 TXT（speaker 固定类别标签/plain 两种格式），均可在浏览器控制台串联调用。入口与源码位于 `src/`，本地三组测试通过：
 
 ```sh
 node tests/text-export/text-export.test.mjs
@@ -162,4 +163,4 @@ node --experimental-vm-modules tests/text-export/export-txt.test.mjs
 
 - **分工**：Claude 负责需求/业务逻辑文档、README.md/Public.md/DESIGN.md 撰写与设计一致性核对；Codex 负责代码实现与自动化测试；人工验收由小主在浏览器控制台完成，Codex 不做浏览器自动化验收。
 - **测试脚本**：见上节"已实现"下的三条命令，对应范围/类型组合/正文格式与旁白识别、消息筛选、下载入口三组检查。
-- **验收记录**：见 `AGENT_LOG.md` 中 2026-09-13T13:21:30+09:00 的人工验收条目——1–10 楼范围、speaker/plain 两种真实下载格式、楼层编号映射均已在浏览器中确认；其余边界行为依据自动化测试，未扩大人工验收范围。
+- **验收记录**：见 `AGENT_LOG.md` 中两条人工验收条目——2026-09-13T13:21:30+09:00 确认 1–10 楼范围、speaker/plain 两种真实下载格式、楼层编号映射；2026-09-13T13:48:13+09:00 确认 speaker 固定类别标签（"AI：/用户：/系统："）的修正结果。其余边界行为依据自动化测试，未扩大人工验收范围。

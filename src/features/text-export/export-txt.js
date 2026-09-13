@@ -1,3 +1,5 @@
+import { getMessageType } from './filter-messages.js';
+
 export function saveTxt(messages, { format = 'speaker', characterName, download, now = new Date() } = {}) {
     if (!Array.isArray(messages)) {
         throw new TypeError('messages 必须是数组');
@@ -23,11 +25,10 @@ export function saveTxt(messages, { format = 'speaker', characterName, download,
         if (!message || typeof message.mes !== 'string') {
             throw new TypeError('每条消息的 mes 必须是字符串');
         }
-        if (format === 'speaker' && typeof message.name !== 'string') {
-            throw new TypeError('带说话人格式要求消息的 name 为字符串');
-        }
-        // 正文保持原样，只按格式添加实际说话人。
-        lines.push(format === 'speaker' ? `${message.name}：${message.mes}` : message.mes);
+        // 正文保持原样，按消息类别添加固定标签。
+        lines.push(format === 'speaker'
+            ? `${{ ai: 'AI', user: '用户', system: '系统' }[getMessageType(message)]}：${message.mes}`
+            : message.mes);
     }
 
     // 使用本地时间，毫秒补足三位。

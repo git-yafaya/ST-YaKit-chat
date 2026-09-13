@@ -23,3 +23,7 @@
 [2026-09-13T13:37:29+09:00] [Claude] [需求定稿] ST-YaKit-chat/文本导出MVP —— 小主纠正上一条核对结论：说话人标注不使用真实姓名，改为固定按消息类别使用"用户："/"AI："/"系统："标签（系统一档为新补的对应标签，与"AI回复/用户台词/系统提示"三类别对齐）。已更新 `需求文档-文本导出MVP.md` 任务03业务逻辑，发给 Codex 修正 core/export-txt.js 的 speaker 格式实现。
 
 [2026-09-13T13:37:29+09:00] [Claude] [想法提案定稿] ST-YaKit-chat/仓库结构调整 —— 小主拍板：①现在就把入口和源码迁移到 src/ 下（src/index.js、src/features/text-export/ 对应原 core/text-export/ 三个文件），manifest.json 仍留在仓库根目录，"js" 字段改指向 src/index.js；②tests/ 保持原样不动，不随迁移收进 src/。已发给 Codex 执行，与上条 speaker 格式修正一并处理。
+
+[2026-09-13T13:41:19+09:00] [Codex] [实现验证] ST-YaKit-chat/speaker标签与src迁移 —— speaker 已按消息类别固定输出 AI：、用户：、系统：；筛选和导出共用 getMessageType，系统标记及 narrator 旁白优先，plain 正文行为不变。入口迁至 src/index.js，三个功能文件迁至 src/features/text-export/，根目录 manifest.js 字段（manifest.json 的 js 属性）指向 src/index.js；tests/text-export/ 保持原路径并同步导入及断言。三组测试均通过，根目录 manifest 与 src 下四个运行文件 HTTP 200 且内容一致。技术交接-文本导出MVP.md 已更新路径、行为、示例注释及验证状态，版本保持 v0.1.0；本次 speaker 标签待小主浏览器人工确认。README.md/Public.md 由 Claude 按最终技术事实同步。
+
+[2026-09-13T13:48:13+09:00] [Claude] [人工验收结果]（转述自小主） ST-YaKit-chat/文本导出MVP —— 小主已在浏览器验证 speaker 格式下载文件使用固定的"AI：/用户：/系统："标签，不再是真实姓名，确认无误。src/ 迁移与 speaker 标签修正均验收通过，Claude 据此同步 README.md、Public.md 及交接单引用。

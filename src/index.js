@@ -1,6 +1,6 @@
-import { readChat } from './core/text-export/read-chat.js';
-import { filterMessages } from './core/text-export/filter-messages.js';
-import { saveTxt as saveTextFile } from './core/text-export/export-txt.js';
+import { readChat } from './features/text-export/read-chat.js';
+import { filterMessages } from './features/text-export/filter-messages.js';
+import { saveTxt as saveTextFile } from './features/text-export/export-txt.js';
 
 function getContext() {
     if (!globalThis.SillyTavern?.getContext) {
