@@ -9,3 +9,7 @@
 [2026-09-13T13:15:17+09:00] [Codex] [实现验证] ST-YaKit-chat/文本导出MVP —— 小主确认已暂停其他窗口后，核对并统一 index.js 与 core/read-chat.js、core/filter-messages.js、core/export-txt.js；manifest 版本为 0.1.0。修正筛选测试的入口引用，补充 /sys 旁白从读取到筛选的验证；范围/格式/类型组合测试、筛选测试、VM 下载入口测试均通过，五个运行文件 HTTP 200 且与本地字节一致。控制台入口 YaKitChat.readCurrentChat(range)、filterMessages(messages, types)、saveTxt(messages, format)。接口按需求采用1起始闭区间；宿主原生显示为0起始（public/script.js:2604），因此接口楼层1对应宿主#0。此前浏览器调试连接两次失败，真实文件落盘待小主人工验收；本条为实现状态，正式交接单在人工验收通过后提供。
 
 [2026-09-13T13:21:30+09:00] [Claude] [人工验收结果]（转述自小主） ST-YaKit-chat/文本导出MVP —— 小主已在浏览器控制台按 Codex 给出的调用方式验证 1-10 楼范围，`saveTxt` 的 speaker/plain 两种下载格式均正常；楼层编号映射（接口 1 楼对应宿主 #0）经确认无歧义。人工验收通过，Codex 可据此出正式交接单。
+
+[2026-09-13T13:22:47+09:00] [Codex] [技术事实交接] ST-YaKit-chat/文本导出MVP —— 已核对 Claude 登记的人工验收通过记录，正式交接单见根目录 `技术交接-文本导出MVP.md`，包含文件结构、边界与异常、可直接复制的公开 API 示例、当前接入与未实现范围、版本建议五项；本轮版本保持 v0.1.0。说明了1起始闭区间、端点夹取、旁白归系统、保存调用时角色命名及空数组不下载等实际行为；三个核心任务已接入，UI及后续范围未实现。验收记录不重复登记；本单供 Claude 撰写文档和安排本地提交，push 仍由小主执行。
+
+[2026-09-13T13:27:14+09:00] [Claude] [想法提案定稿] ST-YaKit-chat/仓库结构调整 —— 小主要求对当前已实现的文件布局提结构调整建议（写文档前先定），已发给 Codex 确认可行性。提案：①把 core/read-chat.js、core/filter-messages.js、core/export-txt.js 三个文件收进 core/text-export/ 子目录，逻辑不改；②tests/ 下对应测试收进 tests/text-export/，与 core/text-export/ 镜像，测试文件名统一为 `<模块名>.test.mjs`（现有 tests/text-export.mjs 缺 .test. 后缀，和另外两个测试文件命名不一致）；③index.js 的宿主接入与公开入口职责不拆分，目前只有3个导出函数没必要拆；④后续新模块（如小说化导出）按同样约定放到 core/<模块名>/ 与 tests/<模块名>/，避免 core/、tests/ 随模块增多变成扁平堆。不涉及UI，不改变已验证的行为逻辑。
