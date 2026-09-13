@@ -1,0 +1,8 @@
+{
+    "display_name": "纪实",
+    "version": "0.1.0",
+    "loading_order": 100,
+    "requires": [],
+    "optional": [],
+    "js": "index.js"
+}
