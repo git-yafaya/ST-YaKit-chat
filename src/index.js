@@ -1,6 +1,11 @@
 import { readChat } from './features/text-export/read-chat.js';
 import { filterMessages } from './features/text-export/filter-messages.js';
+import { cleanMessages } from './features/text-export/clean-messages.js';
 import { saveTxt as saveTextFile } from './features/text-export/export-txt.js';
+import { saveExport, getEpubPreferences, saveEpubPreferences } from './features/text-export/save-export.js';
+import * as apiManagement from './features/api-management/index.js';
+import * as promptManagement from './features/prompt-management/index.js';
+import { initPanelUI } from './ui/panel/index.js';
 
 function getContext() {
     if (!globalThis.SillyTavern?.getContext) {
@@ -13,7 +18,9 @@ export function readCurrentChat(range = 'all') {
     return readChat(getContext(), range);
 }
 
-export { filterMessages };
+export { filterMessages, cleanMessages, saveExport, getEpubPreferences, saveEpubPreferences };
+export * from './features/api-management/index.js';
+export * from './features/prompt-management/index.js';
 
 export async function saveTxt(messages, format = 'speaker') {
     if (Array.isArray(messages) && messages.length === 0) {
@@ -29,10 +36,20 @@ export async function saveTxt(messages, format = 'speaker') {
     return saveTextFile(messages, { format, characterName, download });
 }
 
-// 控制台入口，不注册界面或修改宿主聊天。
+// 控制台和界面共用同一组已验收接口。
 globalThis.YaKitChat = Object.freeze({
-    version: '0.1.0',
+    version: '0.2.0',
     readCurrentChat,
     filterMessages,
+    cleanMessages,
     saveTxt,
+    saveExport,
+    getEpubPreferences,
+    saveEpubPreferences,
+    ...apiManagement,
+    ...promptManagement,
 });
+
+if (typeof document !== 'undefined') {
+    initPanelUI(globalThis.YaKitChat, getContext);
+}

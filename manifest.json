@@ -1,8 +1,9 @@
 {
     "display_name": "纪实",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "loading_order": 100,
     "requires": [],
     "optional": [],
-    "js": "src/index.js"
+    "js": "src/index.js",
+    "css": "src/ui/style.css"
 }

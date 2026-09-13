@@ -1,0 +1,43 @@
+.yk-chat .yk-settings-page,
+.yk-chat .yk-settings-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+}
+
+.yk-chat .yk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.yk-chat .yk-settings-card p {
+    margin: 0;
+}
+
+.yk-chat .yk-secret-field {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.yk-chat .yk-secret-field > .yk-button {
+    flex: 0 0 auto;
+}
+
+.yk-chat textarea.yk-input {
+    resize: vertical;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.yk-chat .yk-validation {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.yk-chat .yk-validation:empty {
+    display: none;
+}

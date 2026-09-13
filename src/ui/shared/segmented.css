@@ -1,0 +1,90 @@
+.yk-chat .yk-segments {
+    display: flex;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--yk-border);
+    border-radius: 6px;
+}
+
+.yk-chat .yk-segment {
+    position: relative;
+    display: flex;
+    flex: 1 0 auto;
+}
+
+.yk-chat .yk-segment + .yk-segment {
+    border-left: 1px solid var(--yk-border);
+}
+
+/* 透明单选框铺满点击区，保留原生键盘操作。 */
+.yk-chat input.yk-segment-input[type="radio"] {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    appearance: none;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.yk-chat .yk-segment-label {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 4px 12px;
+    color: var(--yk-text);
+    white-space: nowrap;
+}
+
+/* 只过渡选中层的透明度，主题颜色直接切换。 */
+.yk-chat .yk-segment-label::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--yk-accent);
+    opacity: 0;
+    transition: opacity 120ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.yk-chat .yk-segment-input:checked + .yk-segment-label {
+    color: var(--yk-on-accent);
+}
+
+.yk-chat .yk-segment-input:checked + .yk-segment-label::before {
+    opacity: 1;
+}
+
+.yk-chat .yk-segment-input:focus-visible + .yk-segment-label {
+    outline: 1px solid var(--yk-primary);
+    outline-offset: -4px;
+}
+
+.yk-chat .yk-segment-input:disabled {
+    cursor: not-allowed;
+}
+
+.yk-chat .yk-segment-input:disabled + .yk-segment-label {
+    background: var(--yk-card);
+    color: var(--yk-muted);
+    opacity: 0.5;
+}
+
+.yk-chat .yk-segment-input:disabled + .yk-segment-label::before {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .yk-chat .yk-segment-label::before {
+        transition: none;
+    }
+}
