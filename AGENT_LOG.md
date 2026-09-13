@@ -81,3 +81,14 @@
 [2026-09-13T15:16:42+09:00] [Claude] [想法提案定稿] ST-YaKit-chat/设置UI接入方式 —— 小主要求想清楚"设置"页怎么接到已有的文本导出面板上。已更新 `需求文档-API管理.md` UI设计一节：现有 `src/ui/text-export/` 目前自己拥有整个弹窗（单页无Tab），这次不把Tab逻辑硬塞进现有模块，而是新增一个外壳模块负责弹窗创建/开关、顶部Tab导航、主题观察、切换动效（扩展菜单图标改为打开外壳）；现有文本导出视图和交互逻辑不变，只是不再自己拥有弹窗，改为作为"文本导出"Tab下的内容被外壳挂载；新增一个"设置"UI模块渲染四张卡片，接到 api-management 和 prompt-management。具体文件拆分、命名和挂载方式留给Codex/UI会话判断，不改变已验收的文本导出交互行为。
 
 [2026-09-13T15:18:30+09:00] [Claude] [设计一致性核对反馈] ST-YaKit-chat/文本导出UI+正则清洗 —— 对照三份技术交接单（文本导出MVP、正则清洗、文本导出UI）与各自需求文档，行为未走样，据此重写 README.md 与 Public.md：README改为面向已有界面的使用说明（不再是"控制台调用"框架），功能特性补入正则清洗；Public.md 速查区/仓库结构/加载与数据流/公开API/当前接入状态全部更新，明确区分"已实现且接入界面"（文本导出全流程）与"已实现但未接入界面/全局入口"（api-management、prompt-management两个模块，附具体函数签名，注明尚不在globalThis.YaKitChat上）。版本号维持0.1.0未改动，是否合并正则清洗+UI发布为v0.2.0待小主与Claude确认，本次未擅自升版。两份文档随本条一并本地提交。
+[2026-09-13T15:19:23+09:00] [Codex] [协作同步] ST-YaKit-chat/提示词target与设置外壳 —— 本窗口仅协调Claude及其他窗口，不编写或修改代码。已在技术评估-API与提示词管理.md同步小主确认的记录自带target/anchor/priority及各类型默认值、taskBody独立元数据；提醒API从当前记录快照读取并保留buildFinalMessages纯函数性质，现有getPromptTemplates的items/activeId可用于获取完整记录。另将Claude新增的独立弹窗外壳、文本导出内容页、设置UI四卡片接入方案补至第4节，共享入口/manifest/UI由UI会话整合。向API和UI两会话的直接投递均返回agent not found，未送达；接手材料已更新并提供分别粘贴的转发指令。管理边界及密钥方案已按API会话既有小主确认记录更新，不再列为待定。
+
+[2026-09-13T15:20:33+09:00] [Codex] [发布决定与交接请求] ST-YaKit-chat/v0.2.0 —— Claude转述小主已拍板：正则清洗与已验收文本导出UI合并发布v0.2.0。按小主既定窗口分工，代码修改交UI会话：manifest.json的version、src/index.js的YaKitChat.version均改为0.2.0，同步tests/text-export/text-export.test.mjs:75固定版本断言，并运行现有相关测试；版本调整应独立于后续设置页/注入开发完成。主窗口核对时两处仍为0.1.0，未修改代码、未声称新版测试通过。向UI线程直接投递仍返回agent not found，未送达，需在现有UI窗口转发本请求；完成后由主窗口核实结果，Claude同步README更新日志和交接单版本引用。
+
+[2026-09-13T15:23:52+09:00] [Codex/UI] [实现验证] ST-YaKit-chat/v0.2.0 —— 已优先完成manifest.json.version、src/index.js的YaKitChat.version及tests/text-export/text-export.test.mjs固定版本断言同步为0.2.0；在后续设置UI改动前运行当前全部8个测试文件均通过，含文本导出5组、API管理、提示词管理及共享设置。版本调整已完成，供主窗口核实、Claude同步发布说明。
+
+[2026-09-13T15:23:52+09:00] [Codex/UI] [接手核对] ST-YaKit-chat/弹窗外壳与设置页 —— 已接手最新需求：独立外壳负责菜单、dialog、Tab及主题，原文本导出作为内容页，新增设置页四卡片；源码边界为src/ui/、src/index.js初始化/模块接线、manifest及UI测试。当前prompt-management尚未实现15:14已确认的记录target/anchor/priority保存与查询，需API会话补齐业务契约，UI不代改业务模块。设置页可先按确认的字段与操作搭建，注入事件和发送不在本轮UI接线范围。
+
+[2026-09-13T15:25:09+09:00] [Claude] [需求定稿] ST-YaKit-chat/设置UI —— 小主要求补充设置Tab内容，确认新增"界面卡片"：主题选择用原生下拉框，选项为DESIGN.md定义的六套主题（三套配色方案+中性深色+中性浅色+跟随酒馆），默认"跟随酒馆"、本轮不改默认值，选择结果同提示词/API配置一样存extensionSettings持久化。设置Tab从四张卡片扩到五张。已更新 `需求文档-API管理.md`：UI设计一节加入界面卡片说明；技术实现一节补充说明现有文本导出面板的theme.js只实现"跟随酒馆"一种映射，加主题选择后需要扩展支持全部六套主题切换，不能只保留跟随酒馆这一条路径。
+
+[2026-09-13T15:25:09+09:00] [Claude] [文档同步] ST-YaKit-chat/v0.2.0发布 —— 已核实UI会话完成版本号同步（manifest.json、YaKitChat.version均为0.2.0，8个测试文件全部通过）。据此把README.md更新日志标题从v0.1.0改为v0.2.0，Public.md未硬编码自身版本号，无需改动。两处改动已本地提交。
