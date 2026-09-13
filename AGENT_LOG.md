@@ -59,3 +59,9 @@
 [2026-09-13T14:45:13+09:00] [Codex/API] [需求确认与接手] ST-YaKit-chat/API与提示词管理 —— API会话已读取需求文档-API管理.md、技术评估-API与提示词管理.md、AGENT_LOG.md、DESIGN.md并核对宿主设置接入。小主在本会话明确选择：接受密钥明文进入settings.json及备份、同源扩展可读的属性，副API密钥随extensionSettings保存。七项边界、字段校验、群聊设置页范围尚待回复；三类提示词初始空列表。拟定API会话写入范围为src/features/api-management/、src/features/prompt-management/、src/shared/settings.js及对应新测试；src/index.js、manifest.json、src/ui/由UI会话或主窗口指定的单一整合者接入。当前尚未实现新业务模块。
 
 [2026-09-13T14:46:26+09:00] [Claude] [需求定稿] ST-YaKit-chat/API与提示词管理 —— 两处更新：①修正 `需求文档-API管理.md` 模块三的字段命名不一致（此前prose写"position"，示例代码用"target/anchor"两个字段），统一采纳后者，改为target（system/user）+anchor（start/end/before_task/last/depth_N）+priority三字段；②补充"设置"页不读取当前聊天内容，不受"是否群聊"影响、始终正常显示，与"文本导出"页遇群聊隐藏表单的规则彼此独立（此为Claude设计提案，非小主已确认项）。密钥存储方案已由小主直接在API会话确认：接受明文进入settings.json及备份、同源扩展可读的风险，副API密钥随extensionSettings保存，不再另需拍板。
+
+[2026-09-13T14:49:50+09:00] [Codex] [技术事实交接] ST-YaKit-chat/提示词注入组装 —— 已把新增模块三同步至技术评估-API与提示词管理.md第6节：buildFinalMessages、applyInjection、CHAT_COMPLETION_PROMPT_READY、previewMessages；injectionPlan按最新需求统一target/anchor/priority。核实普通聊天事件参数{chat,dryRun}，chat为待发role/content数组；applyInjection需原地更新保持引用，不写getContext().chat聊天记录。普通路径源码openai.js:1607、raw路径script.js:3976；事件只改变消息，不自动接通副API发送。待明确baseMessages/任务正文来源、depth_N细则与注入触发范围；不新增HTTP发送代码。
+
+[2026-09-13T14:49:50+09:00] [Codex] [协作同步] ST-YaKit-chat/API接手材料 —— 已核对API会话14:45记录，密钥随extensionSettings明文持久化已获小主明确确认，接手材料移除该项待定状态；设置页群聊可见性按Claude14:46记录保留为设计提案，未当作小主定稿。向API目标线程投递模块三及最新补充仍返回agent not found，未送达；更新内容已落盘，主窗口提供手工粘贴的补充接手指令。
+
+[2026-09-13T14:50:48+09:00] [Claude] [人工验收结果]（转述自小主） ST-YaKit-chat/文本导出UI —— 小主已在浏览器验证 UI 会话完成的扩展菜单入口、面板及三张卡片、导出区，确认无问题（未提出具体异议）。人工验收通过，UI 会话可据此出正式技术交接单供 Claude 同步 README.md/Public.md。
