@@ -14,7 +14,7 @@ import '../components/embed-frame.js';
 import '../components/segmented.js';
 import '../components/icon.js';
 import '../components/theme-list.js';
-import { readTavernTheme, watchTavernTheme } from './tavern-theme.js';
+import { getTavernTheme, watchTavernTheme } from './tavern-theme.js';
 
 const MENU_ID = 'dsh-wand-item';
 const DIALOG_ID = 'dsh-dialog';
@@ -91,10 +91,8 @@ function closePanel(dialog) {
     dialog.addEventListener('animationend', finish, { once: true });
 }
 
-// 「跟随ST」的颜色：第一次读取要让浏览器重算整个酒馆页面的样式，比较慢
-// 所以提前在空闲时读好存起来，切换主题时直接用；酒馆换美化时清掉重读
-let tavernCache = null;
-const getTavernTheme = () => (tavernCache ??= readTavernTheme());
+// 「跟随ST」的颜色：读取要让浏览器重算整个酒馆页面的样式，比较慢
+// 只在第一次使用和美化变了时读取（见 tavern-theme.js），这里趁空闲提前准备好
 const scheduleTavernRead = () => {
     const idle = globalThis.requestIdleCallback || ((fn) => setTimeout(fn, 200));
     idle(() => getTavernTheme());
@@ -292,7 +290,6 @@ function openPanel() {
 
     // 酒馆换了美化时，「跟随ST」跟着变
     watchTavernTheme(() => {
-        tavernCache = null;
         if (currentTheme === 'tavern') applyTheme('tavern');
         else scheduleTavernRead();
     });

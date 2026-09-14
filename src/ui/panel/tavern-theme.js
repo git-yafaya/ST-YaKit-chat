@@ -158,16 +158,75 @@ export function readTavernTheme() {
     };
 }
 
-// 酒馆换美化（改 JSON 颜色或改 CSS）时调用 callback
+/* ---------- 缓存：美化没变就不重读 ---------- */
+
+const CACHE_KEY = 'dsh-tavern-theme';
+
+// 美化的「指纹」：直接从酒馆设置里取美化名、各项颜色和美化 CSS，算一个短字符串
+// 这一步不需要浏览器重算页面样式，很快；指纹不变就说明美化没变
+const SIGNATURE_FIELDS = [
+    'theme', 'main_text_color', 'italics_text_color', 'underline_text_color', 'quote_text_color',
+    'blur_tint_color', 'chat_tint_color', 'user_mes_blur_tint_color', 'bot_mes_blur_tint_color',
+    'shadow_color', 'shadow_width', 'border_color', 'font_scale', 'custom_css',
+];
+
+export function tavernThemeSignature() {
+    const settings = globalThis.SillyTavern?.getContext?.().powerUserSettings || {};
+    const text = JSON.stringify(SIGNATURE_FIELDS.map((key) => settings[key] ?? null));
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 0x01000193);
+    }
+    return `${text.length}-${(hash >>> 0).toString(36)}`;
+}
+
+let memory = null; // { signature, theme }
+
+/**
+ * 取「跟随ST」的颜色：
+ *   美化没变 → 直接用上次存下的结果（本次打开网页内存里的，或浏览器里存着的）
+ *   第一次使用或美化变了 → 重新读取并存下来
+ */
+export function getTavernTheme() {
+    const signature = tavernThemeSignature();
+    if (memory?.signature === signature) return memory.theme;
+
+    try {
+        const saved = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+        if (saved?.signature === signature && saved.theme?.vars) {
+            memory = saved;
+            return saved.theme;
+        }
+    } catch {
+        // 读不到就重新算
+    }
+
+    memory = { signature, theme: readTavernTheme() };
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(memory));
+    } catch {
+        // 存不了只影响下次打开网页时要重读
+    }
+    return memory.theme;
+}
+
+// 酒馆里美化真的变了（指纹变了）才调用 callback
 export function watchTavernTheme(callback) {
     let timer = null;
-    const notify = () => {
+    let last = tavernThemeSignature();
+    const check = () => {
         clearTimeout(timer);
-        timer = setTimeout(callback, 150);
+        timer = setTimeout(() => {
+            const signature = tavernThemeSignature();
+            if (signature === last) return;
+            last = signature;
+            callback();
+        }, 150);
     };
-    new MutationObserver(notify).observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
+    new MutationObserver(check).observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
     new MutationObserver((records) => {
         if (records.some((r) => (r.target.id || r.target.parentNode?.id) === 'custom-style'
-            || [...r.addedNodes].some((n) => n.id === 'custom-style'))) notify();
+            || [...r.addedNodes].some((n) => n.id === 'custom-style'))) check();
     }).observe(document.head, { childList: true, subtree: true, characterData: true });
 }
