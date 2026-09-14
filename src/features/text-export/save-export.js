@@ -22,7 +22,6 @@ export async function saveExport(messages, options = {}) {
         throw new Error('请在 SillyTavern 中调用');
     }
     const context = globalThis.SillyTavern.getContext();
-    if (context.groupId != null) throw new Error('仅支持单人聊天');
     // 在异步加载前固定角色名和时间，书名、作者与文件名使用同一份快照。
     const characterName = context.characters[context.characterId]?.name;
     const now = new Date();

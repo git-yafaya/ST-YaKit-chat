@@ -31,9 +31,6 @@ export async function saveTxt(messages, format = 'speaker') {
         return '无内容';
     }
     const context = getContext();
-    if (context.groupId != null) {
-        throw new Error('仅支持单人聊天');
-    }
     const characterName = context.characters[context.characterId]?.name;
     // 按调用时的角色命名，复用宿主现有下载能力。
     const { download } = await import('/scripts/utils.js');

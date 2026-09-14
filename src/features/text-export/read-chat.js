@@ -1,12 +1,8 @@
-// 读取当前单人聊天，返回独立的消息快照。
+// 读取当前聊天，返回独立的消息快照。
 export function readChat(context, range = 'all') {
-    if (context.groupId != null) {
-        throw new Error('仅支持单人聊天');
-    }
-
     const { chat, characterId } = context;
     // 未选角色时，宿主仍可能放入欢迎消息；索引 0 是有效角色。
-    if (characterId == null || chat.length === 0) {
+    if (characterId == null || !Array.isArray(chat) || chat.length === 0) {
         return [];
     }
 

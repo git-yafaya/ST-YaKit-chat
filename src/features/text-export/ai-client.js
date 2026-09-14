@@ -1,4 +1,5 @@
 import { getLegacyClient } from './ai-legacy-client.js';
+import { getServiceUrlCharacterError } from '../../shared/service-url.js';
 
 function textContent(value) {
     if (typeof value === 'string') return value;
@@ -56,6 +57,8 @@ function requireModel(model) {
 
 export async function generateSecondary(config, messages, signal) {
     const model = requireModel(config?.model);
+    const urlCharacterError = getServiceUrlCharacterError(config.baseUrl);
+    if (urlCharacterError) throw new Error(urlCharacterError);
     let url;
     try {
         url = new URL(config.baseUrl);

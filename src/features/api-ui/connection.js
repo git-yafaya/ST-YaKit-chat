@@ -1,4 +1,5 @@
 import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
+import { getServiceUrlCharacterError } from '../../shared/service-url.js';
 
 function connectionDraft(draft) {
     if (!draft || typeof draft !== 'object' || Array.isArray(draft)) throw new Error('配置内容不对，请重新填写');
@@ -6,6 +7,8 @@ function connectionDraft(draft) {
         throw new Error('请选择自动判断、openai 或 local');
     }
     if (typeof draft.url !== 'string') throw new Error('服务地址格式不对，要以 http:// 或 https:// 开头');
+    const urlCharacterError = getServiceUrlCharacterError(draft.url);
+    if (urlCharacterError) throw new Error(urlCharacterError);
     if (/[\u0000-\u001f\u007f-\u009f]/u.test(draft.url)) throw new Error('服务地址里有不能用的字符');
     let url;
     try { url = new URL(draft.url); } catch { throw new Error('服务地址格式不对，要以 http:// 或 https:// 开头'); }

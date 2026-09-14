@@ -3,11 +3,10 @@ import { filterMessages, getMessageType } from './filter-messages.js';
 import { cleanMessages } from './clean-messages.js';
 import { saveExport } from './save-export.js';
 import { scanTags } from './scan-recent-tags.js';
-import { getAiContext, suggestRules } from './ai-assist.js';
+import { getAiContext, suggestRules, cancelSuggestRules } from './ai-assist.js';
 import { normalizeSettings, parseRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
 
 function chatInfo(context) {
-    if (context?.groupId != null) return { status: 'group', floorCount: 0 };
     if (context?.characterId == null || !Array.isArray(context.chat)) {
         return { status: 'none', floorCount: 0 };
     }
@@ -68,7 +67,6 @@ async function exportFile(settings = {}) {
     const normalized = normalizeSettings(settings);
     const context = globalThis.SillyTavern?.getContext?.();
     const { status } = chatInfo(context);
-    if (status === 'group') throw new Error('仅支持单人聊天');
     if (status === 'none') throw new Error('请先在酒馆里打开一个聊天');
     const messages = readMessages(context, normalized).filter(message => message.mes.trim());
     if (!messages.length) throw new Error('无内容');
@@ -109,5 +107,5 @@ function onChatChanged(callback) {
 
 export const exportUI = Object.freeze({
     getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags,
-    getAiContext, suggestRules,
+    getAiContext, suggestRules, cancelSuggestRules,
 });

@@ -98,7 +98,7 @@ export function remove(id) {
 
 export function suggestName() {
     const context = globalThis.SillyTavern?.getContext?.();
-    if (context?.groupId != null || context?.characterId == null || !Array.isArray(context?.chat)) return '';
+    if (context?.characterId == null || !Array.isArray(context?.chat)) return '';
     const name = context.characters?.[context.characterId]?.name;
     return typeof name === 'string' ? name.trim() : '';
 }

@@ -1,5 +1,6 @@
 import { readSettings, updateSettings } from '../../shared/settings.js';
 import { createRecordId, validateRecordName } from '../../shared/validation.js';
+import { getServiceUrlCharacterError } from '../../shared/service-url.js';
 import { resetAssistantReferences } from '../assistant-management/index.js';
 
 // 仅判断空密钥是否需要提醒，不探测服务是否可用。
@@ -50,7 +51,10 @@ function validateConfig(config, items) {
     const validProvider = [undefined, '', 'openai', 'local'].includes(config.provider);
     if (!validProvider) addError(null, '请选择自动判断、openai 或 local');
     let url;
-    try {
+    const urlCharacterError = getServiceUrlCharacterError(config.baseUrl);
+    if (urlCharacterError) {
+        addError('url', urlCharacterError);
+    } else try {
         if (typeof config.baseUrl !== 'string') throw new TypeError();
         url = new URL(config.baseUrl);
         if (/[\u0000-\u001f\u007f-\u009f]/u.test(config.baseUrl)) addError('url', '服务地址里有不能用的字符');

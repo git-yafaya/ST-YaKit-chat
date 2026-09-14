@@ -38,10 +38,23 @@ export function setRequestSettings(patch) {
 }
 
 // 每次调用单独计时；上游忽略中止信号时也结束本次等待。
-export async function withRequestTimeout(operation, timeoutSeconds, timeoutMessage) {
+export async function withRequestTimeout(operation, timeoutSeconds, timeoutMessage, externalSignal) {
     const controller = new AbortController();
     let timer;
+    let cancel;
     const expired = new Promise((resolve, reject) => {
+        cancel = () => {
+            const error = new Error('已停止生成');
+            error.code = 'AI_CANCELLED';
+            // 先确定取消结果，避免底层中止错误抢先结束等待。
+            reject(error);
+            controller.abort(error);
+        };
+        if (externalSignal?.aborted) {
+            cancel();
+            return;
+        }
+        externalSignal?.addEventListener('abort', cancel, { once: true });
         timer = setTimeout(() => {
             const error = new Error(timeoutMessage);
             error.code = 'AI_TIMEOUT';
@@ -51,8 +64,12 @@ export async function withRequestTimeout(operation, timeoutSeconds, timeoutMessa
         }, timeoutSeconds * 1000);
     });
     try {
-        return await Promise.race([Promise.resolve().then(() => operation(controller.signal)), expired]);
+        return await Promise.race([Promise.resolve().then(() => {
+            controller.signal.throwIfAborted();
+            return operation(controller.signal);
+        }), expired]);
     } finally {
         clearTimeout(timer);
+        externalSignal?.removeEventListener('abort', cancel);
     }
 }
