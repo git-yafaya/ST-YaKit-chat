@@ -22,11 +22,11 @@
  * 1. exportUI.getChatInfo() → { status: 'ok' | 'group' | 'none', floorCount: number }
  *      group = 群聊，none = 没打开聊天
  * 2. exportUI.previewMessages(settings, count) → [{ floor, type: 'ai'|'user'|'system', name, text }]
- *      按 settings 读取、过滤、清洗后，返回最后 count 条；可以是同步值或 Promise
+ *      按 settings 读取、过滤、正则匹配后，返回最后 count 条；可以是同步值或 Promise
  * 3. exportUI.isValidRule(source) → boolean
  *      这条规则能不能用；界面据此显示「这条规则无效，已忽略」
  * 4. exportUI.exportFile(settings) → { count: number }
- *      执行导出并触发下载；清洗后没有内容时 throw new Error('无内容')；可以是 Promise
+ *      执行导出并触发下载；匹配后没有内容时 throw new Error('无内容')；可以是 Promise
  * 5. exportUI.onChatChanged(callback) → unsubscribe()
  *      酒馆里聊天切换或消息变化时调用 callback
  * 6. exportUI.loadSettings() → settings 或 null；exportUI.saveSettings(settings)

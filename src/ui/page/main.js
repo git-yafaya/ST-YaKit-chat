@@ -5,6 +5,9 @@
  *   yakit-theme  event.detail = { theme, selected, tavern }
  *   yakit-nav    event.detail = { mode, resolved }
  *   yakit-tab    event.detail = { tab }
+ *
+ * 面板内部还有：yakit-export-change（导出设置改动，export.js 发出）、yakit-theme-switch-change（从备份恢复主题切换方式）、
+ * yakit-error-log-change（报错记录变化，error-log.js 发出）
  */
 (() => {
   YaKitScrollbar.install(document);

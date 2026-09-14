@@ -2,7 +2,7 @@
  * <yakit-input> 输入框
  *
  * 用法：
- *   <yakit-input label="文件名" placeholder="不填就用聊天名" hint="导出时自动加上日期"></yakit-input>
+ *   <yakit-input label="文件名" placeholder="不填就用角色名加日期" hint="说明小字"></yakit-input>
  *   <yakit-input label="搜索" icon="../icons/search.svg" clearable></yakit-input>
  *   <yakit-input label="备注" multiline rows="3" maxlength="200"></yakit-input>
  *

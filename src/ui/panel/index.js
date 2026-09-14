@@ -2,7 +2,7 @@
  * 界面总文件：入口 src/index.js 调用 initPanelUI(api, getContext)
  * 1. 在魔法棒菜单里加一项「纪实」
  * 2. 点这一项，屏幕中间弹出面板窗口，面板内容渲染在独立 iframe 里（src/ui/page/index.html）
- *    面板页面通过 parent.YaKitChat 调用业务接口（接口说明见 src/ui/page/export.js 开头）
+ *    面板页面通过 parent.YaKitChat 调用业务接口（接口说明写在各页脚本开头，如 src/ui/page/export.js、preset.js、api.js）
  * 3. 弹窗顶部：左边标题，中间页签，右边主题插画按钮和关闭
  *    导航栏可以放上方（文字页签）或下方（图标页签）；「自动」时电脑放上方，其他设备放下方
  *    主题按钮每点一次换到下一个主题，图标跳成对应的插画
