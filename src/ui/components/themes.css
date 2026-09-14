@@ -2,7 +2,7 @@
  * 全局配色主题
  *
  * 生效范围：只在带 class="dsh-scope" 的元素里面生效，不会改动酒馆本身的颜色
- * 切换方式：在同一个元素上写 data-theme="fir" / "fig" / "olive" / "orange" / "miemie" / "light" / "dark"
+ * 切换方式：在同一个元素上写 data-theme="fir" / "fig" / "olive" / "orange" / "miemie" / "neon" / "light" / "dark"
  *          「跟随ST」data-theme="tavern"，颜色由 src/ui/panel/tavern-theme.js 从酒馆美化里取，直接写在元素上
  * 不写 data-theme 时：跟随系统，浅色用「浅色」，深色用「深色」
  *
@@ -188,6 +188,29 @@
   --danger: #D4574B;
 
   --card-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55), 0 0 22px rgba(136, 68, 255, 0.08);
+  --card-border: 1px solid var(--divider);
+
+  color-scheme: dark;
+}
+
+/* ---------- 霓虹夜城 深底，近黑配荧光黄，焦点用青色（赛博朋克风） ---------- */
+.dsh-scope[data-theme="neon"] {
+  --panel-bg: #0A0A0C;
+  --card-bg: #141417;
+  --divider: #2A2A30;
+  --text-title: #F4F4F0;
+  --text-body: #E4E4DE;
+  --text-muted: #9C9C94;
+  --primary: #00E5F0;
+  --on-primary: #0A0A0C;
+  --accent: #FCEE0A;
+  --on-accent: #0A0A0C;
+
+  --success: #4CA97A;
+  --warning: #E0A63C;
+  --danger: #D4574B;
+
+  --card-shadow: none;
   --card-border: 1px solid var(--divider);
 
   color-scheme: dark;

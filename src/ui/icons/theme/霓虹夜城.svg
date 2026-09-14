@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="霓虹夜城">
+<title>霓虹夜城</title>
+<g stroke="#34343C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M84 50A26 26 0 1 0 108 88A21 21 0 0 1 84 50Z" fill="#E6FBFC" stroke="#0FA3AD"/>
+<path d="M58 196V116H96V196" fill="#EDEDE8"/>
+<path d="M96 196V84H138V196" fill="#F4F4F0"/>
+<path d="M117 84V62"/>
+<circle cx="117" cy="57" r="4" fill="#FCEE0A"/>
+<path d="M138 196V130H166V196" fill="#EDEDE8"/>
+<path d="M166 196V104H202V196" fill="#F4F4F0"/>
+<path d="M106 98H114V108H106ZM120 98H128V108H120ZM106 122H114V132H106ZM120 146H128V156H120Z" fill="#FCEE0A"/>
+<path d="M68 132H76V142H68ZM146 144H154V154H146ZM176 170H184V180H176Z" fill="#FCEE0A"/>
+<path d="M176 116H194V148H176Z" fill="#CFF8FA" stroke="#0FA3AD"/>
+<path d="M182 124V140M188 124V140" stroke="#0FA3AD"/>
+<path d="M42 196H216"/>
+<path d="M58 210H96M150 210H200" stroke="#0FA3AD"/>
+<path d="M198 60L201 69L210 72L201 75L198 84L195 75L186 72L195 69Z" fill="#FCEE0A"/>
+<circle cx="164" cy="70" r="2.5" fill="#0FA3AD" stroke="none"/>
+</g>
+</svg>
