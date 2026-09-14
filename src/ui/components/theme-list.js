@@ -4,7 +4,7 @@
  * 弹窗（酒馆页面）和面板（iframe）都会读它，所以挂在全局 DSH_THEMES 上
  */
 globalThis.DSH_THEMES = [
-  { id: 'tavern', label: '跟随酒馆', icon: '跟随酒馆' },
+  { id: 'tavern', label: '跟随ST', icon: '跟随ST' },
   { id: 'light', label: '浅色', icon: '浅色' },
   { id: 'dark', label: '深色', icon: '深色' },
   { id: 'fir', label: '冷杉与海盐', icon: '冷杉与海盐' },

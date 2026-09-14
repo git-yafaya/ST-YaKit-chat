@@ -6,7 +6,7 @@
  * 3. 弹窗顶部：左边标题，中间页签，右边主题插画按钮和关闭
  *    导航栏可以放上方（文字页签）或下方（图标页签）；「自动」时电脑放上方，其他设备放下方
  *    主题按钮每点一次换到下一个主题，图标跳成对应的插画
- *    「跟随酒馆」从用户的酒馆美化里取色（见 src/ui/panel/tavern-theme.js）
+ *    「跟随ST」从用户的酒馆美化里取色（见 src/ui/panel/tavern-theme.js）
  *    切页签、换主题时，通过消息告诉 iframe 里的页面；设置页里选主题也会发消息回来
  */
 
@@ -90,6 +90,15 @@ function closePanel(dialog) {
     const fallback = setTimeout(finish, 160);
     dialog.addEventListener('animationend', finish, { once: true });
 }
+
+// 「跟随ST」的颜色：第一次读取要让浏览器重算整个酒馆页面的样式，比较慢
+// 所以提前在空闲时读好存起来，切换主题时直接用；酒馆换美化时清掉重读
+let tavernCache = null;
+const getTavernTheme = () => (tavernCache ??= readTavernTheme());
+const scheduleTavernRead = () => {
+    const idle = globalThis.requestIdleCallback || ((fn) => setTimeout(fn, 200));
+    idle(() => getTavernTheme());
+};
 
 function openPanel() {
     const existing = document.getElementById(DIALOG_ID);
@@ -205,13 +214,13 @@ function openPanel() {
         const next = THEMES[(THEMES.indexOf(info) + 1) % THEMES.length];
 
         dialog.dataset.theme = theme;
-        // 「跟随酒馆」：把从酒馆美化里取到的颜色直接写到弹窗上；换成别的主题时清掉
+        // 「跟随ST」：把从酒馆美化里取到的颜色直接写到弹窗上；换成别的主题时清掉
         const oldVars = tavern ? Object.keys(tavern.vars) : [];
         oldVars.forEach((name) => dialog.style.removeProperty(name));
         dialog.style.removeProperty('--dsh-font');
         tavern = null;
         if (theme === 'tavern') {
-            tavern = readTavernTheme();
+            tavern = getTavernTheme();
             Object.entries(tavern.vars).forEach(([name, value]) => dialog.style.setProperty(name, value));
             dialog.style.setProperty('--dsh-font', tavern.font);
             dialog.style.colorScheme = tavern.scheme;
@@ -237,9 +246,29 @@ function openPanel() {
         }
     }
 
+    // 等面板里的颜色和字体换好（面板回 dsh:theme-applied），最多等 120ms
+    let themeAppliedResolve = null;
+    const waitPanelTheme = () => new Promise((resolve) => {
+        themeAppliedResolve = resolve;
+        setTimeout(resolve, 120);
+    });
+
+    // 换主题时整个弹窗做一次短淡入淡出，遮住字体变化带来的重新排版和两边前后一帧的差异
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
     function setTheme(theme) {
         saveTheme(theme);
-        applyTheme(theme, { animate: true });
+        const run = () => {
+            applyTheme(theme, { animate: true });
+            return waitPanelTheme();
+        };
+        if (!document.startViewTransition || reduceMotion.matches) {
+            run();
+            return;
+        }
+        dialog.style.viewTransitionName = 'dsh-dialog';
+        document.startViewTransition(run).finished.finally(() => {
+            dialog.style.viewTransitionName = '';
+        });
     }
 
     themeButton.addEventListener('click', () => {
@@ -252,6 +281,7 @@ function openPanel() {
         if (event.source !== frame.iframe.contentWindow) return;
         const data = event.data || {};
         if (data.type === 'dsh:set-theme' && THEMES.some((t) => t.id === data.theme)) setTheme(data.theme);
+        if (data.type === 'dsh:theme-applied') themeAppliedResolve?.();
         if (data.type === 'dsh:set-nav' && NAV_MODES.includes(data.mode)) {
             navMode = data.mode;
             saveSetting(NAV_KEY, navMode);
@@ -260,10 +290,13 @@ function openPanel() {
     };
     window.addEventListener('message', onMessage);
 
-    // 酒馆换了美化时，「跟随酒馆」跟着变
+    // 酒馆换了美化时，「跟随ST」跟着变
     watchTavernTheme(() => {
+        tavernCache = null;
         if (currentTheme === 'tavern') applyTheme('tavern');
+        else scheduleTavernRead();
     });
+    scheduleTavernRead();
 
     /* ---------- 关闭 ---------- */
     dialog.querySelector('[data-action="close"]').addEventListener('click', () => closePanel(dialog));
@@ -284,6 +317,12 @@ function openPanel() {
         tellPanel(themeMessage());
         tellPanel(navMessage());
         tellPanel({ type: 'dsh:tab', tab: currentTab });
+        // 空闲时让面板提前准备「跟随ST」的字体
+        const idle = globalThis.requestIdleCallback || ((fn) => setTimeout(fn, 200));
+        idle(() => {
+            const { font, fontImports } = getTavernTheme();
+            tellPanel({ type: 'dsh:preload-font', font, fontImports });
+        });
     });
 
     document.body.append(dialog);

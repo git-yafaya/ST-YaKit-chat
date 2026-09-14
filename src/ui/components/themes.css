@@ -3,7 +3,7 @@
  *
  * 生效范围：只在带 class="dsh-scope" 的元素里面生效，不会改动酒馆本身的颜色
  * 切换方式：在同一个元素上写 data-theme="fir" / "fig" / "olive" / "orange" / "light" / "dark"
- *          「跟随酒馆」data-theme="tavern"，颜色由 src/tavern-theme.js 从酒馆美化里取，直接写在元素上
+ *          「跟随ST」data-theme="tavern"，颜色由 src/tavern-theme.js 从酒馆美化里取，直接写在元素上
  * 不写 data-theme 时：跟随系统，浅色用「浅色」，深色用「深色」
  *
  * 用色规则见根目录 DESIGN.md

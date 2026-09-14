@@ -36,6 +36,14 @@
     to { opacity: 1; transform: none; }
 }
 
+/* 换主题：弹窗新旧样子交叉淡化 */
+::view-transition-group(dsh-dialog),
+::view-transition-old(dsh-dialog),
+::view-transition-new(dsh-dialog) {
+    animation-duration: 0.22s;
+    animation-timing-function: ease;
+}
+
 /* 关闭：比打开更快地淡出下沉，暗色背景一起淡出 */
 .dsh-dialog[open].is-closing {
     animation: dsh-dialog-out 0.12s ease-in forwards;
