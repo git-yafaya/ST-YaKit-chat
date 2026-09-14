@@ -5,6 +5,7 @@
  *   yakit-theme  event.detail = { theme, selected, tavern }
  *   yakit-nav    event.detail = { mode, resolved }
  *   yakit-tab    event.detail = { tab }
+ *   yakit-closed 弹窗被关掉（面板里的抽屉随之收起）
  *
  * 面板内部还有：yakit-export-change（导出设置改动，export.js 发出）、yakit-theme-switch-change（从备份恢复主题切换方式）、
  * yakit-error-log-change（报错记录变化，error-log.js 发出）
@@ -73,6 +74,10 @@
     if (data.type === 'yakit:preload-font') preloadTavernFont(data);
     if (data.type === 'yakit:nav') {
       window.dispatchEvent(new CustomEvent('yakit-nav', { detail: data }));
+    }
+    if (data.type === 'yakit:closed') {
+      document.querySelectorAll('yakit-drawer').forEach((drawer) => drawer.close());
+      window.dispatchEvent(new CustomEvent('yakit-closed'));
     }
     if (data.type === 'yakit:tab') {
       showTab(data.tab);

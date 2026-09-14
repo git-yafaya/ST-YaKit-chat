@@ -20,8 +20,8 @@
  *     rules: string[],               正则规则，每条是用户原样输入的文字
  *   }
  *
- * 1. exportUI.getChatInfo() → { status: 'ok' | 'group' | 'none', floorCount: number }
- *      group = 群聊，none = 没打开聊天
+ * 1. exportUI.getChatInfo() → { status: 'ok' | 'none', floorCount: number }
+ *      none = 没打开聊天
  * 2. exportUI.previewMessages(settings, count) → [{ floor, type: 'ai'|'user'|'system', name, text }]
  *      按 settings 读取、过滤、正则匹配后，返回最后 count 条；可以是同步值或 Promise
  * 3. exportUI.isValidRule(source) → boolean
@@ -42,7 +42,7 @@
  *   window.YaKitExportPage.getState()        当前导出设置（副本）
  *   window.YaKitExportPage.replaceState(s)   换成另一份导出设置并刷新界面（切换预设、从备份恢复后调用）
  *   window.YaKitExportPage.addRules(rules)   把规则追加到列表末尾并保存（已有的不重复加），返回实际加了几条
- *   window.YaKitExportPage.getChatStatus()   'ok' | 'group' | 'none' | 'unavailable'
+ *   window.YaKitExportPage.getChatStatus()   'ok' | 'none' | 'unavailable'
  *   window 事件 yakit-export-change          导出设置有任何改动时触发，event.detail 是改动后的设置副本
  */
 (() => {
@@ -106,7 +106,6 @@
 
   const EMPTY_TEXT = {
     unavailable: '文本导出还没接入',
-    group: '仅支持单人聊天',
     none: '先在酒馆里打开一个聊天',
   };
 
@@ -187,13 +186,39 @@
       return;
     }
     if (token !== fullToken) return;
-    note.textContent = messages?.length ? `按当前设置导出的全部内容，共 ${messages.length} 条` : '';
     if (!messages?.length) {
+      note.textContent = '';
       box.innerHTML = '<div class="preview-empty">（无可预览内容）</div>';
       return;
     }
-    box.replaceChildren(...messages.map(renderMessage));
+    // 分批显示：先放一批，滑到底部附近再接着放下一批，楼层很多时打开不卡
+    box.replaceChildren();
+    fullShown = 0;
+    const total = messages.length;
+    const appendBatch = () => {
+      if (token !== fullToken || fullShown >= total) return;
+      const next = messages.slice(fullShown, fullShown + FULL_BATCH);
+      fullShown += next.length;
+      box.append(...next.map(renderMessage));
+      note.textContent = fullShown < total
+        ? `按当前设置导出的全部内容，共 ${total} 条，已显示 ${fullShown} 条，往下滑继续加载`
+        : `按当前设置导出的全部内容，共 ${total} 条`;
+      box.append(sentinel);
+      if (fullShown >= total) sentinel.remove();
+    };
+    fullObserver?.disconnect();
+    fullObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) appendBatch();
+    }, { rootMargin: '600px 0px' });
+    appendBatch();
+    fullObserver.observe(sentinel);
   }
+  const FULL_BATCH = 20;
+  const sentinel = document.createElement('div');
+  sentinel.className = 'preview-sentinel';
+  sentinel.setAttribute('aria-hidden', 'true');
+  let fullShown = 0;
+  let fullObserver = null;
 
   // 长消息切成多段（满 30 行或满 1500 字另起一段）；配合 CSS content-visibility，
   // 浏览器只排版滚动框里看得到的段落，换字体（如切到「跟随ST」）或刷新预览时不用把几万字全部重排
@@ -344,13 +369,7 @@
     if (expanded) lockRuleCard(true); // 先按收起时的高度锁住，再展开
     tagsExpanded = expanded;
     updateTagToggle();
-    if (!expanded) {
-      lockRuleCard(false);
-      return;
-    }
-    // 规则很少、借不出空间时标签会被挤在一行里：这时不锁高度，让卡片变高（导出预览相应变矮）
-    const wrap = $('tag-chips').parentElement;
-    if (wrap.scrollHeight > wrap.clientHeight + 1) lockRuleCard(false);
+    if (!expanded) lockRuleCard(false);
   }
 
   // 鼠标或手指点击时不抢焦点，避免出现焦点框；键盘操作不受影响
@@ -467,6 +486,25 @@
       $('floor-range').hidden = state.allFloors;
       changed();
     });
+
+    // 输完离开输入框时整理数字：超出范围收回到有效楼层，起止填反就对调，看到的就是实际导出的范围
+    const tidyRange = () => {
+      const { floorCount } = chatInfo();
+      const last = Math.max((floorCount || 0) - 1, 0);
+      const clamp = (value) => (value === '' || !Number.isFinite(Number(value))
+        ? value
+        : String(Math.min(Math.max(Math.trunc(Number(value)), 0), last)));
+      let start = clamp(state.start.trim());
+      let end = clamp(state.end.trim());
+      if (start !== '' && end !== '' && Number(start) > Number(end)) [start, end] = [end, start];
+      if (start === state.start && end === state.end) return;
+      state.start = start;
+      state.end = end;
+      $('opt-start').value = start;
+      $('opt-end').value = end;
+      changed();
+    };
+    ['opt-start', 'opt-end'].forEach((id) => $(id).addEventListener('change', tidyRange));
 
     [['opt-start', 'start'], ['opt-end', 'end']].forEach(([id, key]) => {
       const input = $(id);

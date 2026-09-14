@@ -47,12 +47,14 @@
 .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 24px; overflow: hidden; }
 .tag-scan.is-expanded .tag-chips { max-height: none; }
 
-/* 电脑上展开时锁住「正则匹配」卡片高度（由脚本写入），多出的标签行从规则列表借空间，导出预览高度不变 */
+/* 电脑上展开时锁住「正则匹配」卡片高度（由脚本写入），多出的标签行从规则列表借空间，导出预览高度始终不变 */
 .rule-card.is-locked { display: flex; flex-direction: column; }
 .rule-card.is-locked::part(body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .rule-card.is-locked .rule-list { flex: 1 1 auto; flex-shrink: 1000; min-height: 0; max-height: none; }
 .rule-card.is-locked .tag-scan { flex: 0 1 auto; min-height: 24px; }
 .rule-card.is-locked .tag-chips-wrap { align-self: stretch; min-height: 24px; overflow-y: auto; }
+/* 规则很少时把「还没有规则」这行也让给标签；放不下的标签在标签区里上下滑动，导出预览高度始终不变 */
+.rule-card.is-locked .rule-empty { display: none; }
 
 .tag-toggle {
   flex: none;
@@ -147,6 +149,7 @@
 /* 放大查看导出预览的宽抽屉 */
 .preview-drawer-note { margin: 0 0 12px; }
 .preview-drawer-body .preview-empty { min-height: 160px; }
+.preview-sentinel { height: 1px; }
 .export-summary {
   min-width: 0;
   overflow: hidden;

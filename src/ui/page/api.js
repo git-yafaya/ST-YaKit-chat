@@ -34,7 +34,8 @@
  * 18. apiUI.getAssistant(kind) → { profile, jailbreak, prompt }
  * 19. apiUI.setAssistant(kind, patch) → 保存后的完整对象   patch 只含要改的项
  * 20. apiUI.resolveAssistant(kind) → 实际生效项（界面用列表里的「使用中」自己算「跟随使用中（…）」的文字）
- *      正则助手只选接口和破限词（定位和输出格式由程序内置）；润色助手另选 prompt 即文风提示词；三个函数都提供时才显示助手卡片
+ *      正则助手只选破限词（接口跟随 API 配置的使用中，定位和输出格式由程序内置）；润色助手选接口、破限词和 prompt 即文风提示词；
+ *      三个函数都提供时才显示助手卡片
  *
  * 参数（所有 AI 请求共用）
  *
@@ -560,8 +561,9 @@
   /* ---------- 助手：各个 AI 功能用哪个接口和提示词 ---------- */
 
   const ASSISTANTS = {
-    regex: { name: '正则助手', use: '导出页「AI 辅助」生成规则时用。', promptKind: null, promptLabel: '' },
-    polish: { name: '润色助手', use: '润色页改写文字时用。', promptKind: 'style', promptLabel: '文风提示词' },
+    // 正则助手只选破限词（接口跟随 API 配置里的使用中）；润色助手选接口、破限词、文风提示词
+    regex: { name: '正则助手', use: '导出页「AI 辅助」生成规则时用，接口跟随上面 API 配置里的使用中。', fields: ['jailbreak'], promptKind: null, promptLabel: '' },
+    polish: { name: '润色助手', use: '润色页改写文字时用。', fields: ['profile', 'jailbreak', 'prompt'], promptKind: 'style', promptLabel: '文风提示词' },
   };
   const hasAssistants = () => ['getAssistant', 'setAssistant', 'resolveAssistant'].every((name) => typeof service()?.[name] === 'function');
 
@@ -636,11 +638,10 @@
       const kind = entry.dataset.kind;
       const options = assistantOptions(kind);
       const current = assistantData.assistants[kind];
-      const profile = pickOption(options.profile, current.profile).actual;
-      const second = ASSISTANTS[kind].promptKind
-        ? `${ASSISTANTS[kind].promptLabel}：${pickOption(options.prompt, current.prompt).actual}`
-        : `破限词：${pickOption(options.jailbreak, current.jailbreak).actual}`;
-      entry.setAttribute('summary', `${profile} · ${second}`);
+      const jailbreak = `破限词：${pickOption(options.jailbreak, current.jailbreak).actual}`;
+      entry.setAttribute('summary', ASSISTANTS[kind].promptKind
+        ? `${pickOption(options.profile, current.profile).actual} · ${ASSISTANTS[kind].promptLabel}：${pickOption(options.prompt, current.prompt).actual}`
+        : jailbreak);
     });
   }
 
@@ -651,11 +652,11 @@
     $('assistant-drawer').setAttribute('title', ASSISTANTS[kind].name);
     $('assistant-use').textContent = ASSISTANTS[kind].use;
     $('assistant-prompt-label').textContent = ASSISTANTS[kind].promptLabel;
-    // 正则助手没有提示词这一项
-    $('assistant-prompt-label').closest('.setting-field').hidden = !ASSISTANTS[kind].promptKind;
     document.querySelectorAll('#assistant-drawer yakit-select').forEach((select) => {
       const field = select.dataset.field;
-      if (!options[field].length) return;
+      // 只显示这个助手能选的项
+      select.closest('.setting-field').hidden = !ASSISTANTS[kind].fields.includes(field);
+      if (!ASSISTANTS[kind].fields.includes(field) || !options[field].length) return;
       select.setAttribute('aria-label', field === 'prompt' ? ASSISTANTS[kind].promptLabel : select.previousElementSibling.textContent);
       select.replaceChildren(...options[field].map((option) => new Option(option.label, option.value)));
       select.value = pickOption(options[field], current[field]).value;

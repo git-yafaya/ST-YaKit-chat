@@ -22,7 +22,7 @@
  * 10. presets.importPreset(text) → 新预设    text 是用户选的文件内容；重名自动加序号
  * 11. presets.exportBackup(uiPrefs)          下载备份文件：全部预设、当前预设、导出设置和界面传入的 uiPrefs
  * 12. presets.restoreBackup(text) → { presetCount, uiPrefs }   覆盖全部预设、当前预设和导出设置
- * 13. presets.suggestName() → string         当前单人聊天角色卡的名字；群聊或没有聊天时返回空字符串
+ * 13. presets.suggestName() → string         当前聊天角色卡的名字；没有聊天时返回空字符串
  *
  * 界面负责：「已修改」比对、确认框、选文件、uiPrefs（主题、导航栏位置、主题切换方式）的读取和应用。
  * 没提供 presets 时，预设页显示「预设还没接入」，导出页不显示预设下拉框。

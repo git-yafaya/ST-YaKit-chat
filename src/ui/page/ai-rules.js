@@ -8,6 +8,7 @@
  *      抽屉顶部显示正则助手正在用的接口和破限词；jailbreakName 为 null 表示不使用
  * 2. exportUI.suggestRules({ request, mode, rules }) → { rules: [{ rule, explanation }] }
  *      request 是用户的描述，mode 是当前匹配方式，rules 是现有规则；失败 reject 中文原因
+ * 3. exportUI.cancelSuggestRules()   停止正在进行的生成（关掉抽屉或弹窗时调用）；没提供时只丢弃结果
  *
  * 候选规则是否有效用 exportUI.isValidRule 判断，效果预览用 exportUI.previewMessages（候选并入当前规则）。
  * 两个接口都提供时才显示「AI 辅助」按钮。
@@ -22,7 +23,7 @@
     delete: '当前匹配方式：删除匹配。<br>生成的规则会删掉匹配到的内容。',
     keep: '当前匹配方式：只保留匹配。<br>生成的规则会只留下匹配到的内容。',
   };
-  const CHAT_NOTES = { group: '仅支持单人聊天', none: '先在酒馆里打开一个聊天', unavailable: '文本导出还没接入' };
+  const CHAT_NOTES = { none: '先在酒馆里打开一个聊天', unavailable: '文本导出还没接入' };
   const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
   const ALERT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>';
 
@@ -44,7 +45,7 @@
     $('ai-error').hidden = !message;
   }
 
-  // 生成按钮：需求没填、不是单人聊天时不能点
+  // 生成按钮：需求没填、没有打开聊天时不能点
   function syncGenerate() {
     const status = page()?.getChatStatus() || 'unavailable';
     const note = status === 'ok' ? '' : (CHAT_NOTES[status] || CHAT_NOTES.none);
@@ -63,8 +64,16 @@
     $('ai-preview').replaceChildren();
   }
 
-  // 改了需求或关掉抽屉：正在等的结果作废
-  function invalidate() {
+  // 改了需求或关掉抽屉：正在等的结果作废；关掉抽屉时还要让业务停止请求，不在后台继续耗额度
+  function invalidate({ cancel = false } = {}) {
+    const busy = $('ai-generate').hasAttribute('loading') || $('ai-regenerate').hasAttribute('loading');
+    if (cancel && busy) {
+      try {
+        service()?.cancelSuggestRules?.();
+      } catch (error) {
+        YaKitErrorLog.warn('停止生成失败', error);
+      }
+    }
     token += 1;
     $('ai-generate').removeAttribute('loading');
     $('ai-regenerate').removeAttribute('loading');
@@ -191,7 +200,7 @@
   $('ai-generate').addEventListener('click', (event) => generate(event.currentTarget));
   $('ai-regenerate').addEventListener('click', (event) => generate(event.currentTarget));
   $('ai-close').addEventListener('click', () => $('ai-drawer').close());
-  $('ai-drawer').addEventListener('close', invalidate);
+  $('ai-drawer').addEventListener('close', () => invalidate({ cancel: true }));
 
   $('ai-apply').addEventListener('click', () => {
     const valid = candidates.filter((item) => item.valid).map((item) => item.rule);
