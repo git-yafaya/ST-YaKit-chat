@@ -59,6 +59,14 @@
     .dsh-dialog[open].is-closing::backdrop { animation-duration: 1ms; }
 }
 
+/* 顶部栏和底部导航是操作区，连点时不选中文字 */
+.dsh-dialog-header,
+.dsh-bottom-nav {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
 /* 顶部栏分三块：左边标题、中间页签（真正居中）、右边按钮 */
 .dsh-dialog-header {
     display: grid;

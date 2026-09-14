@@ -279,6 +279,8 @@ function openPanel() {
         });
     }
 
+    // 鼠标或手指连点时：不让按钮抢焦点（避免出现焦点框），也不触发双击选中旁边的文字；键盘操作不受影响
+    themeButton.addEventListener('mousedown', (event) => event.preventDefault());
     themeButton.addEventListener('click', () => {
         const index = THEMES.findIndex((t) => t.id === (pendingTheme ?? currentTheme));
         setTheme(THEMES[(index + 1) % THEMES.length].id);
