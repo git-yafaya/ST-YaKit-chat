@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="暖橙晨曦">
+<title>暖橙晨曦</title>
+<g stroke="#B77C56" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M82 139A46 46 0 0 1 174 139" fill="#F4DDC6" stroke="#C99663"/>
+<g stroke="#C99663">
+  <path d="M128 77V63M89 89L79 79M73 119L60 115M167 89L177 79M183 119L196 115"/>
+</g>
+<path d="M40 177L88 128L139 180" fill="#F2E5D7"/>
+<path d="M114 170L161 133L215 177" fill="#F8EFE5"/>
+<path d="M75 142L88 149L99 141M148 144L162 154L173 145"/>
+<path d="M46 193H210M83 207H173" stroke="#C99663"/>
+</g>
+</svg>

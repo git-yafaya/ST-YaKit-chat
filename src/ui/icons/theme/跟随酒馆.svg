@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" color="#8B7966" role="img" aria-label="跟随酒馆">
+  <title>跟随酒馆</title>
+  <g stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 125L128 75L192 125"/>
+    <path d="M77 116V185H179V116L128 76Z"/>
+    <path d="M64 125L128 75L192 125"/>
+    <path d="M114 185V156C114 138 142 138 142 156V185"/>
+    <path d="M91 126H106V145H91ZM150 126H165V145H150Z"/>
+    <path d="M168 104V83H157V95"/>
+    <path d="M70 185H186"/>
+  </g>
+  <g stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M48 102A87 87 0 0 1 192 61"/>
+    <path d="M191 45L194 63L176 64"/>
+    <path d="M208 155A87 87 0 0 1 65 199"/>
+    <path d="M65 217L62 199L80 198"/>
+  </g>
+</svg>

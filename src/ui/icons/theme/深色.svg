@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="深色">
+<title>深色</title>
+<g stroke="#555666" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M143 52C108 51 78 76 71 110C63 151 89 190 131 197C158 202 184 191 201 169C166 177 130 155 122 120C116 94 124 69 143 52Z" fill="#E5E4EA"/>
+<path d="M186 59L190 71L202 75L190 79L186 91L182 79L170 75L182 71Z" fill="#D7D4E2"/>
+<circle cx="207" cy="118" r="3" fill="#555666" stroke="none"/>
+<circle cx="160" cy="117" r="2" fill="#555666" stroke="none"/>
+<circle cx="56" cy="73" r="2.5" fill="#555666" stroke="none"/>
+<path d="M55 171V183M49 177H61"/>
+</g>
+</svg>

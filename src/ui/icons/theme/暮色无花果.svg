@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="暮色无花果">
+<title>暮色无花果</title>
+<g stroke="#756277" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M188 52A35 35 0 1 0 215 105A30 30 0 0 1 188 52Z" fill="#EEE4DC" stroke="#AE8C74"/>
+<path d="M120 176C104 174 91 166 86 153C75 156 61 151 54 143L70 127C55 125 47 116 48 105L73 103C69 88 71 75 79 66L101 88C104 69 112 56 124 50C137 63 141 79 137 97L160 84C169 96 166 112 155 124L181 126C180 141 165 150 150 151L155 170C143 178 130 181 120 176Z" fill="#EAE5EB"/>
+<path d="M111 202C122 179 124 148 124 81M124 151L79 119M124 130L101 98M124 149L150 124M121 174L100 152"/>
+<path d="M164 195H207M181 182H219" stroke="#AE8C74"/>
+<circle cx="163" cy="64" r="2" fill="#AE8C74" stroke="none"/>
+</g>
+</svg>

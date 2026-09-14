@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="橄榄岩与日光柠檬">
+<title>橄榄岩与日光柠檬</title>
+<g stroke="#718063" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<g stroke="#BCA052">
+  <circle cx="185" cy="70" r="17" fill="#F5EACA"/>
+  <path d="M185 40V34M185 106V100M155 70H149M221 70H215M164 49L159 44M211 96L206 91M206 49L211 44M159 96L164 91"/>
+</g>
+<path d="M101 193L116 160L151 143L186 157L207 193Z" fill="#E9E8E0" stroke="#848778"/>
+<path d="M116 160L151 178L186 157M151 178L143 193" stroke="#848778"/>
+<path d="M63 190C80 162 91 130 111 67"/>
+<path d="M79 157C53 157 48 142 47 128C65 128 78 138 79 157Z" fill="#E7ECDF"/>
+<path d="M88 135C91 113 108 106 123 108C119 125 106 135 88 135Z" fill="#E7ECDF"/>
+<path d="M96 110C74 107 69 92 71 78C88 82 96 92 96 110Z" fill="#E7ECDF"/>
+<path d="M105 86C106 68 117 56 133 53C134 70 123 83 105 86Z" fill="#E7ECDF"/>
+<path d="M61 201H210" stroke="#848778"/>
+</g>
+</svg>

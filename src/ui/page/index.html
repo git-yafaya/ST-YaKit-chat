@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="zh-CN" class="dsh-scope">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>纪实面板</title>
+  <link rel="stylesheet" href="../components/themes.css">
+  <!-- iframe 是独立沙盒，组件要用普通 script 引入 -->
+  <script src="../components/scrollbar.js"></script>
+  <script src="../components/segmented.js"></script>
+  <script src="../components/card.js"></script>
+  <script src="../components/drawer.js"></script>
+  <script src="../components/icon.js"></script>
+  <script src="../components/button.js"></script>
+  <script src="../components/input.js"></script>
+  <script src="../components/switch.js"></script>
+  <script src="../components/select.js"></script>
+  <script src="../components/collapse.js"></script>
+  <script src="../components/toast.js"></script>
+  <script src="../components/theme-list.js"></script>
+  <style>
+    /* 面板内容页：渲染在独立 iframe 里，酒馆的样式影响不到这里 */
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+      font: 14px/1.6 var(--dsh-font, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif);
+      background: var(--panel-bg);
+      color: var(--text-body);
+    }
+    [hidden] { display: none !important; }
+
+    /* ========== 文本导出页 ========== */
+    /* 电脑上一屏放下：预览占剩余高度，正则清洗和底部操作条按内容高度 */
+    .export-page {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: calc(100vh - 40px);
+      min-height: 460px;
+    }
+    .export-page > dsh-card { flex: none; }
+    .export-page > .preview-card {
+      flex: 1;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+    }
+    .preview-card::part(body) {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding-top: 8px;
+    }
+    .card-extra { font-size: 12px; line-height: 22px; color: var(--text-muted); white-space: nowrap; }
+    .preview-item + .preview-item { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--divider); }
+    .preview-meta { margin-bottom: 4px; font-size: 12px; color: var(--text-muted); }
+    .preview-text { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-body); }
+    .preview-text.is-empty, .preview-empty { color: var(--text-muted); }
+    .preview-empty { display: grid; place-items: center; height: 100%; min-height: 80px; }
+
+    .rule-list { max-height: 132px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+    .rule-row { display: flex; align-items: flex-start; gap: 4px; }
+    .rule-row + .rule-row { margin-top: 8px; }
+    .rule-row dsh-input { flex: 1; min-width: 0; }
+    .rule-empty { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
+    .rule-add { margin-top: 8px; }
+
+    .export-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: none;
+      padding: 10px 12px 10px 8px;
+      border-radius: 12px;
+      border: var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .export-summary {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* 导出设置抽屉 */
+    .drawer-section + .drawer-section { margin-top: 22px; }
+    .drawer-section h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--text-title); }
+    .drawer-rows > * { display: flex; padding: 8px 0; }
+    .range-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+    .drawer-stack > * + * { margin-top: 10px; }
+    /* 状态提示框：危险色 + 图标 + 文字 */
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text-body);
+      background: color-mix(in srgb, var(--danger) 9%, var(--card-bg));
+      border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+    }
+    .notice svg { flex: none; margin-top: 2px; color: var(--danger); }
+
+    /* 手机：不强求一屏，内容自然往下排 */
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .export-page { height: auto; min-height: 0; }
+      .export-page > .preview-card { flex: none; }
+      .preview-card::part(body) { max-height: 280px; }
+    }
+    main { max-width: 760px; margin: 0 auto; }
+
+    .section + .section { margin-top: 28px; }
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* 分段选择器示例行 */
+    .field {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+    }
+    .field + .field { border-top: 1px dashed var(--divider); }
+
+    /* 设置页：一级项目列表 */
+    .settings-list {
+      overflow: hidden;
+      border-radius: 12px;
+      border: var(--card-border);
+      background: var(--card-bg);
+      box-shadow: var(--card-shadow);
+    }
+    .settings-list > dsh-collapse + dsh-collapse { border-top: 1px solid var(--divider); }
+    .setting-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .setting-label { font-size: 13px; color: var(--text-title); }
+    .setting-field + .field-note { margin: 6px 0 12px; }
+    .field-label { color: var(--text-body); }
+    .field-note { margin: 6px 0 0; font-size: 12px; color: var(--text-muted); }
+
+    /* 卡片网格 */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .stat { font-size: 24px; font-weight: 600; color: var(--text-title); line-height: 1.2; }
+    .muted { color: var(--text-muted); font-size: 13px; }
+    .rows { margin: 0; padding: 0; list-style: none; }
+    .rows li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
+    .rows li span:last-child { color: var(--text-title); }
+
+    .btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .demo-rows > * + * { margin-top: 14px; }
+    .demo-label { margin: 0 0 8px; font-size: 12px; color: var(--text-muted); }
+    .inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px 16px;
+    }
+    .inputs .wide { grid-column: 1 / -1; }
+    .switch-list > * { display: flex; padding: 12px 0; }
+    .switch-list > * + * { border-top: 1px solid var(--divider); }
+    .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .switch-row-text { min-width: 0; }
+    .switch-row-title { color: var(--text-title); }
+    .switch-row-note { font-size: 12px; color: var(--text-muted); }
+
+    /* 抽屉里的规则列表 */
+    .rule {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--divider);
+    }
+    .rule:last-child { border-bottom: 0; }
+    .rule-name { color: var(--text-title); font-weight: 500; }
+    .rule code {
+      display: block;
+      margin-top: 4px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--text-title) 5%, transparent);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    /* 设置页：主题插画选择 */
+    .themes {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+      gap: 12px;
+    }
+    .theme-option {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--divider);
+      background: var(--card-bg);
+      color: var(--text-body);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .theme-option:hover { transform: translateY(-2px); border-color: var(--text-muted); }
+    .theme-option:focus { outline: none; }
+    .theme-option:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    /* 当前主题：点睛色描边 + 右上角点睛色小圆块 */
+    .theme-option[aria-checked="true"] {
+      border-color: transparent;
+      box-shadow: 0 0 0 2px var(--accent);
+      color: var(--text-title);
+      font-weight: 500;
+    }
+    .theme-option[aria-checked="true"]::after {
+      content: "";
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <!-- ========== 页签：文本导出 ========== -->
+    <div data-page="export" class="export-page">
+      <!-- 主要内容：清洗预览 -->
+      <dsh-card class="preview-card" title="清洗预览" subtitle="最近 2 条消息清洗后的样子">
+        <span slot="extra" class="card-extra" id="preview-count"></span>
+        <div id="preview-body"></div>
+      </dsh-card>
+
+      <!-- 紧跟其下：正则清洗 -->
+      <dsh-card title="正则清洗">
+        <dsh-segmented slot="extra" id="rule-mode" size="sm" aria-label="清洗方式" value="delete">
+          <option value="delete">删除匹配</option>
+          <option value="keep">只保留匹配</option>
+        </dsh-segmented>
+        <p class="rule-empty" id="rule-empty">还没有规则，导出原文。</p>
+        <div class="rule-list" id="rule-list"></div>
+        <div class="btn-row rule-add">
+          <dsh-button id="rule-add" size="sm" icon="../icons/plus.svg">添加规则</dsh-button>
+          <span class="card-extra" id="rule-count"></span>
+        </div>
+      </dsh-card>
+
+      <!-- 底部操作条 -->
+      <div class="export-bar">
+        <dsh-button id="export-settings" variant="ghost" icon="../icons/settings.svg">导出设置</dsh-button>
+        <span class="export-summary" id="export-summary"></span>
+        <dsh-button id="export-go" variant="primary" icon="../icons/ouput.svg">导出</dsh-button>
+      </div>
+    </div>
+
+    <!-- ========== 页签：润色 ========== -->
+    <div data-page="polish" hidden>
+      <dsh-card title="润色">这里是「润色」页签的内容区。</dsh-card>
+    </div>
+
+    <!-- ========== 页签：设置 ========== -->
+    <!-- 一级项目点开在原地往下展开；同一时间只展开一项，页面保持简短 -->
+    <div data-page="settings" hidden>
+      <div class="settings-list">
+        <dsh-collapse id="set-theme" title="主题">
+          <div class="setting-field">
+            <span class="setting-label">切换方式</span>
+            <dsh-segmented id="theme-switch-mode" size="sm" aria-label="主题切换方式" value="auto">
+              <option value="auto">自动</option>
+              <option value="icon">图标</option>
+              <option value="select">下拉框</option>
+            </dsh-segmented>
+          </div>
+          <p class="field-note" id="theme-switch-note">选主题时显示插画还是下拉框。<br>建议选自动：电脑看插画，手机用下拉框。</p>
+          <div class="themes" id="themes" role="radiogroup" aria-label="主题"></div>
+          <dsh-select id="theme-select" aria-label="主题" hidden></dsh-select>
+        </dsh-collapse>
+        <dsh-collapse id="set-nav" title="导航栏位置" icon="../icons/menu.svg">
+          <div class="setting-field">
+            <span class="setting-label">显示位置</span>
+            <dsh-segmented id="nav-mode" size="sm" aria-label="导航栏位置" value="auto">
+              <option value="auto">自动</option>
+              <option value="top">上方</option>
+              <option value="bottom">下方</option>
+            </dsh-segmented>
+          </div>
+          <p class="field-note">页签放在顶部还是底部。<br>建议选自动：电脑放上方，手机放下方。</p>
+        </dsh-collapse>
+        <dsh-collapse id="set-demo" title="组件示例" summary="按钮、输入框、开关等" icon="../icons/folder.svg" link></dsh-collapse>
+      </div>
+    </div>
+
+    <!-- ========== 页签：预设 ========== -->
+    <div data-page="preset" hidden>
+      <dsh-card title="预设">这里是「预设」页签的内容区。</dsh-card>
+    </div>
+
+    <!-- ========== 页签：API 管理 ========== -->
+    <div data-page="api" hidden>
+      <dsh-card title="API 管理">这里是「API 管理」页签的内容区。</dsh-card>
+    </div>
+  </main>
+
+  <!-- 文本导出：导出设置抽屉 -->
+  <dsh-drawer id="export-drawer" title="导出设置">
+    <section class="drawer-section">
+      <h3>楼层范围</h3>
+      <dsh-switch id="opt-all-floors" label="导出全部楼层"></dsh-switch>
+      <div id="floor-range">
+        <div class="range-inputs">
+          <dsh-input id="opt-start" label="起始楼层" type="number" size="sm" placeholder="0"></dsh-input>
+          <dsh-input id="opt-end" label="结束楼层" type="number" size="sm" placeholder="最后一楼"></dsh-input>
+        </div>
+      </div>
+      <p class="field-note" id="floor-hint"></p>
+    </section>
+
+    <section class="drawer-section">
+      <h3>消息类型</h3>
+      <div class="drawer-rows">
+        <dsh-switch id="opt-type-ai" label="AI 回复"></dsh-switch>
+        <dsh-switch id="opt-type-user" label="用户台词"></dsh-switch>
+        <dsh-switch id="opt-type-system" label="系统提示"></dsh-switch>
+      </div>
+      <div class="notice" id="type-warning" role="alert" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+        <span>请至少选择一种消息类型</span>
+      </div>
+    </section>
+
+    <section class="drawer-section drawer-stack">
+      <h3>导出格式</h3>
+      <dsh-segmented id="opt-format" block aria-label="文件格式" value="txt">
+        <option value="txt">TXT</option>
+        <option value="md">Markdown</option>
+        <option value="epub">EPUB</option>
+      </dsh-segmented>
+      <dsh-segmented id="opt-labels" block aria-label="内容格式" value="with">
+        <option value="with">带类别标注</option>
+        <option value="plain">仅正文</option>
+      </dsh-segmented>
+    </section>
+
+    <section class="drawer-section">
+      <h3>文件名</h3>
+      <dsh-input id="opt-file-name" size="sm" placeholder="不填就用聊天名" hint="会自动加上日期和扩展名"></dsh-input>
+    </section>
+
+    <dsh-button slot="footer" id="export-drawer-done" variant="primary">完成</dsh-button>
+  </dsh-drawer>
+
+  <!-- 组件示例：收在设置里的宽抽屉 -->
+  <dsh-drawer id="demo-drawer" title="组件示例" width="760">
+      <section class="section">
+      <h2 class="section-title">按钮</h2>
+      <dsh-card>
+        <div class="demo-rows">
+          <div>
+            <p class="demo-label">三种样式：主操作（一块区域最多一个）/ 普通 / 只有文字</p>
+            <div class="btn-row">
+              <dsh-button variant="primary">开始导出</dsh-button>
+              <dsh-button>预览</dsh-button>
+              <dsh-button variant="ghost">取消</dsh-button>
+            </div>
+          </div>
+          <div>
+            <p class="demo-label">三种大小：小 / 中 / 大</p>
+            <div class="btn-row">
+              <dsh-button size="sm">小号</dsh-button>
+              <dsh-button>中号</dsh-button>
+              <dsh-button size="lg">大号</dsh-button>
+            </div>
+          </div>
+          <div>
+            <p class="demo-label">带图标 / 只有图标</p>
+            <div class="btn-row">
+              <dsh-button icon="../icons/plus.svg">新建规则</dsh-button>
+              <dsh-button icon="../icons/ouput.svg">导入</dsh-button>
+              <dsh-button variant="ghost" icon="../icons/edit.svg" aria-label="编辑"></dsh-button>
+              <dsh-button variant="ghost" icon="../icons/trash.svg" aria-label="删除"></dsh-button>
+            </div>
+          </div>
+          <div>
+            <p class="demo-label">加载中 / 禁用（点「保存」试试加载效果）</p>
+            <div class="btn-row">
+              <dsh-button variant="primary" id="save-demo">保存</dsh-button>
+              <dsh-button loading>加载中</dsh-button>
+              <dsh-button disabled>不能点</dsh-button>
+            </div>
+          </div>
+          <div>
+            <p class="demo-label">撑满整行</p>
+            <dsh-button variant="primary" size="lg" block icon="../icons/input.svg">下载导出文件</dsh-button>
+          </div>
+        </div>
+      </dsh-card>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">输入框</h2>
+      <dsh-card>
+        <div class="inputs">
+          <dsh-input label="文件名" placeholder="不填就用聊天名" hint="导出时会自动加上日期"></dsh-input>
+          <dsh-input label="搜索消息" placeholder="输入关键词" icon="../icons/search.svg" clearable value="妖精"></dsh-input>
+          <dsh-input id="url-demo" label="接口地址" type="url" required placeholder="https://" value="api.example"
+            hint="以 https:// 开头"></dsh-input>
+          <dsh-input label="每页条数（小号）" type="number" size="sm" value="50"></dsh-input>
+          <dsh-input class="wide" label="备注" multiline rows="3" maxlength="200"
+            placeholder="写几句话，内容多了输入框会自动变高"></dsh-input>
+          <dsh-input label="只读" readonly value="双色盒子-浅色毛玻璃"></dsh-input>
+          <dsh-input label="禁用" disabled placeholder="现在不能填"></dsh-input>
+        </div>
+      </dsh-card>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">开关</h2>
+      <dsh-card>
+        <div class="switch-list">
+          <dsh-switch checked label="导出时去掉思维链" description="删掉 &lt;thinking&gt; 标签里的内容"></dsh-switch>
+          <dsh-switch id="switch-demo" label="保留角色头像" description="关闭后导出文件更小"></dsh-switch>
+          <div class="switch-row">
+            <div class="switch-row-text">
+              <div class="switch-row-title">开关放在右边（小号）</div>
+              <div class="switch-row-note" id="switch-note">设置列表常用这种排法，当前：关</div>
+            </div>
+            <dsh-switch id="switch-right" size="sm" aria-label="示例开关"></dsh-switch>
+          </div>
+          <dsh-switch checked disabled label="禁用（打开）"></dsh-switch>
+          <dsh-switch disabled label="禁用（关闭）"></dsh-switch>
+        </div>
+      </dsh-card>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">下拉选择</h2>
+      <dsh-card>
+        <div class="inputs">
+          <dsh-select id="select-demo" label="导出格式" value="md" hint="当前选择：Markdown">
+            <option value="txt" description="纯文字，哪里都能打开">TXT</option>
+            <option value="md" description="保留标题和粗体">Markdown</option>
+            <option value="epub" description="适合在阅读器里看">EPUB</option>
+            <option value="pdf" disabled description="还没做">PDF</option>
+          </dsh-select>
+          <dsh-select label="角色（可搜索、分组）" searchable placeholder="选择一个角色">
+            <optgroup label="エロマンガ先生">
+              <option value="sagiri">和泉纱雾</option>
+              <option value="elf">山田妖精</option>
+              <option value="muramasa">千寿村征</option>
+              <option value="megumi">神野惠</option>
+            </optgroup>
+            <optgroup label="其他">
+              <option value="masamune">和泉正宗</option>
+              <option value="kyouka">和泉京香</option>
+              <option value="tomoe">高砂智惠</option>
+            </optgroup>
+          </dsh-select>
+          <dsh-select id="select-required" label="API 来源" required placeholder="请选择" error="请选择一个 API 来源">
+            <option value="openai">OpenAI 兼容</option>
+            <option value="claude">Claude</option>
+            <option value="gemini">Gemini</option>
+          </dsh-select>
+          <dsh-select label="禁用" disabled value="a">
+            <option value="a">现在不能选</option>
+          </dsh-select>
+        </div>
+      </dsh-card>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">分段选择器</h2>
+      <dsh-card>
+        <div class="field">
+          <span class="field-label">导出格式</span>
+          <div>
+            <dsh-segmented id="format" value="md" aria-label="导出格式">
+              <option value="txt">TXT</option>
+              <option value="md">Markdown</option>
+              <option value="epub">EPUB</option>
+            </dsh-segmented>
+            <p class="field-note" id="format-note">当前选择：Markdown</p>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">导出范围</span>
+          <dsh-segmented block value="all" aria-label="导出范围">
+            <option value="all">全部消息</option>
+            <option value="recent">最近 50 条</option>
+            <option value="custom">自定义</option>
+          </dsh-segmented>
+        </div>
+        <div class="field">
+          <span class="field-label">排序（小号）</span>
+          <div>
+            <dsh-segmented size="sm" value="asc" aria-label="排序">
+              <option value="asc">正序</option>
+              <option value="desc">倒序</option>
+            </dsh-segmented>
+          </div>
+        </div>
+      </dsh-card>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">卡片</h2>
+      <div class="cards">
+        <dsh-card title="当前聊天" subtitle="和泉纱雾 · 今天 18:35">
+          <div class="stat">128</div>
+          <div class="muted">条消息可导出</div>
+        </dsh-card>
+
+        <dsh-card title="导出设置" subtitle="带底部按钮的卡片">
+          <ul class="rows">
+            <li><span>格式</span><span>Markdown</span></li>
+            <li><span>范围</span><span>全部消息</span></li>
+          </ul>
+          <div slot="footer" class="btn-row">
+            <dsh-button variant="ghost">重置</dsh-button>
+            <dsh-button variant="primary">开始导出</dsh-button>
+          </div>
+        </dsh-card>
+
+        <dsh-card id="rules-card" interactive title="正则规则" subtitle="可点击的卡片">
+          <div class="stat">3</div>
+          <div class="muted">条规则，点击在抽屉里查看</div>
+        </dsh-card>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">抽屉</h2>
+      <div class="btn-row">
+        <dsh-button data-open="drawer-right">从右侧打开</dsh-button>
+        <dsh-button data-open="drawer-left">从左侧打开</dsh-button>
+        <dsh-button data-open="drawer-bottom">从底部打开</dsh-button>
+      </div>
+    </section>
+  </dsh-drawer>
+
+  <!-- 抽屉示例 -->
+  <dsh-drawer id="drawer-right" title="正则规则">
+    <div class="rule">
+      <div class="rule-name">去掉思维链</div>
+      <code>/&lt;thinking&gt;[\s\S]*?&lt;\/thinking&gt;/g</code>
+    </div>
+    <div class="rule">
+      <div class="rule-name">合并多余空行</div>
+      <code>/\n{3,}/g → \n\n</code>
+    </div>
+    <div class="rule">
+      <div class="rule-name">去掉状态栏</div>
+      <code>/&lt;status&gt;[\s\S]*?&lt;\/status&gt;/g</code>
+    </div>
+    <div slot="footer" class="btn-row">
+      <dsh-button variant="ghost" data-close>取消</dsh-button>
+      <dsh-button variant="primary" data-close>保存</dsh-button>
+    </div>
+  </dsh-drawer>
+
+  <dsh-drawer id="drawer-left" title="左侧抽屉" side="left" width="320">
+    <p>宽度可以用 width 属性调整，这个是 320。</p>
+  </dsh-drawer>
+
+  <dsh-drawer id="drawer-bottom" title="底部抽屉" side="bottom">
+    <p>从底部弹出，适合手机上做快捷操作。顶上有一个小横条。</p>
+    <dsh-segmented block value="md" aria-label="导出格式">
+      <option value="txt">TXT</option>
+      <option value="md">Markdown</option>
+      <option value="epub">EPUB</option>
+    </dsh-segmented>
+    <div slot="footer" class="btn-row">
+      <dsh-button variant="primary" data-close>确定</dsh-button>
+    </div>
+  </dsh-drawer>
+
+  <script>
+    // 分段选择器：切换时更新下面的提示文字
+    const format = document.getElementById('format');
+    format.addEventListener('change', (event) => {
+      const label = format.querySelector(`option[value="${event.detail.value}"]`).textContent;
+      document.getElementById('format-note').textContent = `当前选择：${label}`;
+    });
+
+    // 按钮示例：点保存后显示 1.5 秒加载中
+    const saveDemo = document.getElementById('save-demo');
+    saveDemo.addEventListener('click', () => {
+      saveDemo.setAttribute('loading', '');
+      setTimeout(() => saveDemo.removeAttribute('loading'), 1500);
+    });
+
+    // 输入框示例：接口地址不是 https:// 开头时显示出错提示
+    const urlDemo = document.getElementById('url-demo');
+    const checkUrl = () => {
+      const ok = !urlDemo.value || urlDemo.value.startsWith('https://');
+      if (ok) urlDemo.removeAttribute('error');
+      else urlDemo.setAttribute('error', '地址要以 https:// 开头');
+    };
+    urlDemo.addEventListener('input', checkUrl);
+    checkUrl();
+
+    // 开关示例
+    document.getElementById('switch-right').addEventListener('change', (event) => {
+      document.getElementById('switch-note').textContent = `设置列表常用这种排法，当前：${event.detail.checked ? '开' : '关'}`;
+    });
+
+    // 下拉示例：选完更新说明；必选项选了之后出错提示消失
+    const selectDemo = document.getElementById('select-demo');
+    selectDemo.addEventListener('change', (event) => {
+      const label = selectDemo.querySelector(`option[value="${event.detail.value}"]`).textContent;
+      selectDemo.setAttribute('hint', `当前选择：${label}`);
+    });
+    document.getElementById('select-required').addEventListener('change', (event) => {
+      event.currentTarget.removeAttribute('error');
+    });
+
+    // 打开 / 关闭抽屉
+    document.querySelectorAll('[data-open]').forEach((button) => {
+      button.addEventListener('click', () => document.getElementById(button.dataset.open).show());
+    });
+    document.getElementById('rules-card').addEventListener('click', () => {
+      document.getElementById('drawer-right').show();
+    });
+    document.querySelectorAll('[data-close]').forEach((button) => {
+      button.addEventListener('click', () => button.closest('dsh-drawer').close());
+    });
+
+    // 设置页：主题插画列表，点一下通知外面的弹窗换主题
+    const themeList = document.getElementById('themes');
+    themeList.innerHTML = DSH_THEMES.map((theme) => `
+      <button type="button" class="theme-option" role="radio" aria-checked="false" data-theme-id="${theme.id}">
+        <dsh-icon src="../icons/theme/${theme.icon}.svg" size="72" line="1.6"></dsh-icon>
+        <span>${theme.label}</span>
+      </button>
+    `).join('');
+    themeList.addEventListener('click', (event) => {
+      const option = event.target.closest('.theme-option');
+      if (option) parent.postMessage({ type: 'dsh:set-theme', theme: option.dataset.themeId }, '*');
+    });
+
+    // 换主题；「跟随酒馆」时外面会带上从酒馆美化里取到的颜色和字体
+    let tavernVars = [];
+    function applyTheme({ theme, tavern }) {
+      const root = document.documentElement;
+      root.dataset.theme = theme;
+      tavernVars.forEach((name) => root.style.removeProperty(name));
+      root.style.removeProperty('--dsh-font');
+      root.style.removeProperty('color-scheme');
+      tavernVars = [];
+      if (!tavern) return;
+
+      Object.entries(tavern.vars).forEach(([name, value]) => root.style.setProperty(name, value));
+      tavernVars = Object.keys(tavern.vars);
+      root.style.setProperty('--dsh-font', tavern.font);
+      root.style.colorScheme = tavern.scheme;
+      // 美化 CSS 里引入的字体，面板这边也加载一份
+      tavern.fontImports.forEach((href) => {
+        if (document.querySelector(`link[data-tavern-font="${CSS.escape(href)}"]`)) return;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.dataset.tavernFont = href;
+        document.head.append(link);
+      });
+    }
+
+    // 设置页：同一时间只展开一项
+    const settingItems = [...document.querySelectorAll('.settings-list dsh-collapse:not([link])')];
+    settingItems.forEach((item) => item.addEventListener('toggle', (event) => {
+      if (event.detail.open) settingItems.forEach((other) => { if (other !== item) other.open = false; });
+    }));
+    document.getElementById('set-demo').addEventListener('activate', () => {
+      document.getElementById('demo-drawer').show();
+    });
+
+    // 设置页：导航栏位置
+    const NAV_LABELS = { auto: '自动', top: '上方', bottom: '下方' };
+    const navMode = document.getElementById('nav-mode');
+    navMode.addEventListener('change', (event) => {
+      parent.postMessage({ type: 'dsh:set-nav', mode: event.detail.value }, '*');
+    });
+
+    // 设置页：主题的选择方式——图标（插画格子）/ 下拉框；自动时电脑用图标，手机和平板用下拉框
+    const SWITCH_KEY = 'dsh-theme-switch';
+    const switchMode = document.getElementById('theme-switch-mode');
+    const themeSelect = document.getElementById('theme-select');
+    const pcQuery = parent.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 768px)');
+    themeSelect.innerHTML = DSH_THEMES.map((theme) =>
+      `<option value="${theme.id}" icon="../icons/theme/${theme.icon}.svg">${theme.label}</option>`).join('');
+    themeSelect.addEventListener('change', (event) => {
+      parent.postMessage({ type: 'dsh:set-theme', theme: event.detail.value }, '*');
+    });
+
+    function applySwitchMode() {
+      let mode = 'auto';
+      try { mode = localStorage.getItem(SWITCH_KEY) || 'auto'; } catch {}
+      if (!['auto', 'icon', 'select'].includes(mode)) mode = 'auto';
+      const resolved = mode === 'auto' ? (pcQuery.matches ? 'icon' : 'select') : mode;
+      switchMode.value = mode;
+      themeList.hidden = resolved !== 'icon';
+      themeSelect.hidden = resolved !== 'select';
+    }
+    switchMode.addEventListener('change', (event) => {
+      try { localStorage.setItem(SWITCH_KEY, event.detail.value); } catch {}
+      applySwitchMode();
+    });
+    pcQuery.addEventListener('change', applySwitchMode);
+    window.addEventListener('pagehide', () => pcQuery.removeEventListener('change', applySwitchMode));
+    applySwitchMode();
+
+    // 接收外面弹窗发来的消息：换主题、切页签、导航栏位置
+    window.addEventListener('message', (event) => {
+      if (event.source !== parent) return;
+      const data = event.data || {};
+      if (data.type === 'dsh:theme') {
+        applyTheme(data);
+        themeList.querySelectorAll('.theme-option').forEach((option) => {
+          option.setAttribute('aria-checked', String(option.dataset.themeId === data.selected));
+        });
+        themeSelect.value = data.selected;
+        const info = DSH_THEMES.find((theme) => theme.id === data.selected);
+        const themeRow = document.getElementById('set-theme');
+        themeRow.setAttribute('summary', info ? info.label : '');
+        if (info) themeRow.setAttribute('icon', `../icons/theme/${info.icon}.svg`);
+      }
+      if (data.type === 'dsh:nav') {
+        navMode.value = data.mode;
+        document.getElementById('set-nav').setAttribute('summary',
+          data.mode === 'auto' ? `自动 · 当前${NAV_LABELS[data.resolved]}` : NAV_LABELS[data.mode]);
+      }
+      if (data.type === 'dsh:tab') {
+        // 切换页签时，收起开着的抽屉
+        document.querySelectorAll('dsh-drawer').forEach((drawer) => drawer.close());
+        document.querySelectorAll('[data-page]').forEach((page) => {
+          page.hidden = page.dataset.page !== data.tab;
+        });
+      }
+    });
+  </script>
+  <script>DshScrollbar.install(document);</script>
+  <script src="export.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="冷杉与海盐">
+<title>冷杉与海盐</title>
+<g stroke="#40685F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<g stroke="#40685F">
+  <path d="M67 159C89 134 116 98 140 58"/>
+  <path d="M83 140L59 126M88 134L67 110M93 127L73 94M101 116L87 79M110 102L104 66M121 84L121 56"/>
+  <path d="M84 139L111 143M92 128L124 129M101 115L133 115M110 101L145 98M122 83L148 77M132 69L152 58"/>
+</g>
+<g stroke="#6F929D">
+  <path d="M47 175C65 161 79 161 96 174S125 187 144 174S173 161 191 174S207 181 213 177"/>
+  <path d="M57 194C71 185 81 185 96 195S123 204 139 194S164 185 180 195"/>
+  <path d="M169 117L184 108L199 117V135L184 144L169 135Z" fill="#E4EDF0"/>
+  <path d="M169 117L184 126L199 117M184 126V144"/>
+  <path d="M155 151L163 147L171 151V161L163 165L155 161Z" fill="#EFF3F2"/>
+</g>
+</g>
+</svg>
