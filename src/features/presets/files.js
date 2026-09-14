@@ -24,12 +24,14 @@ async function downloadFile(value, filename) {
 export async function exportPreset(id) {
     const preset = (await list()).find(item => item.id === id);
     if (!preset) throw new Error('预设不存在');
+    // 单套文件保留预设原名，只替换文件名非法字符。
+    const filename = `${preset.name.replace(/[<>:"/\\|?*\u0000-\u001f\u007f-\u009f]/g, '_')}.yakit-preset.json`;
     return downloadFile({
         type: 'ST-YaKit-chat/preset',
         schemaVersion: 1,
         name: preset.name,
         content: preset.content,
-    }, createExportFilename(preset.name, 'yakit-preset.json'));
+    }, filename);
 }
 
 export async function importPreset(text) {
