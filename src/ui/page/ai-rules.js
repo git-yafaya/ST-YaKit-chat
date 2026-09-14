@@ -8,7 +8,9 @@
  *      抽屉顶部显示正则助手正在用的接口和破限词；jailbreakName 为 null 表示不使用
  * 2. exportUI.suggestRules({ request, mode, rules }) → { rules: [{ rule, explanation }] }
  *      request 是用户的描述，mode 是当前匹配方式，rules 是现有规则；失败 reject 中文原因
- * 3. exportUI.cancelSuggestRules()   停止正在进行的生成（关掉抽屉或弹窗时调用）；没提供时只丢弃结果
+ *
+ * 关掉抽屉或整个弹窗时生成照常进行：结果留在抽屉里，再打开就能看到，并弹提示告知（弹窗关着时用酒馆自己的提示）。
+ * 生成中需求输入框锁住，结果出来后再改。
  *
  * 候选规则是否有效用 exportUI.isValidRule 判断，效果预览用 exportUI.previewMessages（候选并入当前规则）。
  * 两个接口都提供时才显示「AI 辅助」按钮。
@@ -64,19 +66,17 @@
     $('ai-preview').replaceChildren();
   }
 
-  // 改了需求或关掉抽屉：正在等的结果作废；关掉抽屉时还要让业务停止请求，不在后台继续耗额度
-  function invalidate({ cancel = false } = {}) {
-    const busy = $('ai-generate').hasAttribute('loading') || $('ai-regenerate').hasAttribute('loading');
-    if (cancel && busy) {
-      try {
-        service()?.cancelSuggestRules?.();
-      } catch (error) {
-        YaKitErrorLog.warn('停止生成失败', error);
-      }
+  // 抽屉没开着时生成结束：提示一声，打开抽屉就能看到结果
+  function notify(text, type) {
+    if ($('ai-drawer').open) return;
+    // 面板在酒馆弹窗的 embed-frame 里；弹窗关着时面板里的提示看不到，交给酒馆显示
+    const windowOpen = frameElement?.getRootNode()?.host?.closest('dialog')?.open !== false;
+    const host = parent.toastr;
+    if (!windowOpen && host) {
+      host[type === 'success' ? 'success' : 'warning'](text, '纪实');
+    } else {
+      YaKitToast.show(text, type);
     }
-    token += 1;
-    $('ai-generate').removeAttribute('loading');
-    $('ai-regenerate').removeAttribute('loading');
   }
 
   async function renderContext() {
@@ -160,6 +160,7 @@
     if (!state || !request || button.hasAttribute('loading')) return;
     const runToken = ++token;
     button.setAttribute('loading', '');
+    $('ai-request').setAttribute('disabled', '');
     showError('');
     try {
       const result = await service().suggestRules({ request, mode: state.mode, rules: [...state.rules] });
@@ -170,6 +171,7 @@
       if (!candidates.length) {
         clearResult();
         showError('AI 没有给出规则，换个说法再试试');
+        notify('AI 没有给出规则，打开 AI 辅助查看', 'warning');
         return;
       }
       $('ai-result').hidden = false;
@@ -179,20 +181,25 @@
       $('ai-apply').hidden = false;
       $('ai-apply').toggleAttribute('disabled', !candidates.some((item) => item.valid));
       renderCandidates();
+      notify('规则已生成，打开 AI 辅助查看', 'success');
       await renderPreview(runToken);
     } catch (error) {
       if (runToken !== token) return;
       showError(error?.message || '生成规则失败');
       YaKitErrorLog.add({ message: error?.message || '生成规则失败', detail: error });
+      // 报错记录上面已经记过，这里用提醒类型，不重复记
+      notify(`生成规则失败：${error?.message || '未知原因'}`, 'warning');
     } finally {
-      if (runToken === token) button.removeAttribute('loading');
+      if (runToken === token) {
+        button.removeAttribute('loading');
+        $('ai-request').removeAttribute('disabled');
+      }
       syncGenerate();
     }
   }
 
   $('ai-open').addEventListener('click', open);
   $('ai-request').addEventListener('input', () => {
-    invalidate();
     clearResult();
     showError('');
     syncGenerate();
@@ -200,7 +207,6 @@
   $('ai-generate').addEventListener('click', (event) => generate(event.currentTarget));
   $('ai-regenerate').addEventListener('click', (event) => generate(event.currentTarget));
   $('ai-close').addEventListener('click', () => $('ai-drawer').close());
-  $('ai-drawer').addEventListener('close', () => invalidate({ cancel: true }));
 
   $('ai-apply').addEventListener('click', () => {
     const valid = candidates.filter((item) => item.valid).map((item) => item.rule);

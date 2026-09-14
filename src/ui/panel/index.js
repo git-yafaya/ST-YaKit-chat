@@ -325,7 +325,7 @@ function openPanel() {
         event.preventDefault();
         closePanel(dialog);
     });
-    // 弹窗关掉后告诉面板：收起抽屉、停止正在进行的 AI 请求
+    // 弹窗关掉后告诉面板：收起抽屉
     dialog.addEventListener('close', () => tellPanel({ type: 'yakit:closed' }));
 
     applyTheme(currentTheme);
