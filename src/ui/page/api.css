@@ -3,7 +3,7 @@
 
 .prompt-kind-note { margin: 0 0 8px; }
 .list-add { margin-top: 10px; }
-#prompt-target-section .setting-field[hidden] + .field-note { margin-top: 0; }
+#prompt-target-note { margin-top: 0; }
 
 /* 抽屉里：模型名称输入框右边放「获取模型」按钮，按钮和输入框底边对齐 */
 .api-model-row { display: flex; align-items: flex-end; gap: 8px; }

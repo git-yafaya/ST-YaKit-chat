@@ -18,7 +18,7 @@
  *  9. apiUI.testConnection(draft) → { message }        用抽屉里填写的内容试连，失败 reject 中文原因
  * 10. apiUI.fetchModels(draft) → string[]
  *
- * prompt 的形状：{ id, name, target: 'system' | 'user', text, builtin }；kind 为 'jailbreak' | 'constraint' | 'style'
+ * prompt 的形状：{ id, name, target: 'system' | 'user', text, builtin }；kind 为 'jailbreak'（破限词，固定 system）| 'style'（文风提示词，固定 user）
  *   builtin 为 true 的是内置破限词（Gemini、DeepSeek）：不能删除，正文可以为空（空的不加入请求）
  *
  * 11. apiUI.listPrompts(kind) → [prompt]
@@ -34,7 +34,7 @@
  * 18. apiUI.getAssistant(kind) → { profile, jailbreak, prompt }
  * 19. apiUI.setAssistant(kind, patch) → 保存后的完整对象   patch 只含要改的项
  * 20. apiUI.resolveAssistant(kind) → 实际生效项（界面用列表里的「使用中」自己算「跟随使用中（…）」的文字）
- *      正则助手的 prompt 是正则提示词，润色助手的是文风提示词；三个函数都提供时才显示助手卡片
+ *      正则助手只选接口和破限词（定位和输出格式由程序内置）；润色助手另选 prompt 即文风提示词；三个函数都提供时才显示助手卡片
  *
  * 参数（所有 AI 请求共用）
  *
@@ -55,8 +55,7 @@
   ];
   const KINDS = {
     jailbreak: { label: '破限词', note: '放在 system 最前面，固定不可改。' },
-    constraint: { label: '正则提示词', note: '约束输出格式，默认放在 user 的任务正文前。' },
-    style: { label: '文风提示词', note: '决定文字风格，默认放在 user 末尾。' },
+    style: { label: '文风提示词', note: '写你对文字风格的要求，固定放在 user 消息里。' },
   };
 
   let profiles = [];
@@ -385,7 +384,8 @@
 
   function renderPrompts() {
     $('prompt-kind-note').textContent = KINDS[promptKind].note;
-    const noneRow = YaKitChoice.row({
+    // 破限词已经内置，不需要「不使用」这一行；文风提示词可以不使用
+    const noneRow = promptKind === 'jailbreak' ? null : YaKitChoice.row({
       name: '不使用',
       summary: `不加入${KINDS[promptKind].label}`,
       active: activePromptId === null,
@@ -400,10 +400,11 @@
       actions: prompt.builtin ? ROW_ACTIONS.filter((item) => item.action !== 'delete') : ROW_ACTIONS,
       onAction: (action) => onPromptAction(prompt, action),
     }));
-    [noneRow, ...rows].forEach((row) => {
+    const allRows = noneRow ? [noneRow, ...rows] : rows;
+    allRows.forEach((row) => {
       if (row.classList.contains('is-active')) row.tools.innerHTML = '<span class="choice-state">使用中</span>';
     });
-    $('prompt-list').replaceChildren(noneRow, ...rows);
+    $('prompt-list').replaceChildren(...allRows);
   }
 
   async function activatePrompt(id) {
@@ -477,7 +478,7 @@
     const draft = {
       name: $('prompt-name').value,
       text: $('prompt-text').value,
-      target: promptKind === 'jailbreak' ? 'system' : $('prompt-target').value,
+      target: promptKind === 'jailbreak' ? 'system' : 'user',
     };
     if (editingPromptId) draft.id = editingPromptId;
     return draft;
@@ -496,12 +497,10 @@
     $('prompt-text').toggleAttribute('required', !prompt?.builtin);
     if (prompt?.builtin) $('prompt-text').setAttribute('hint', '内置破限词，可以先空着；空着时不会加入请求。');
     else $('prompt-text').removeAttribute('hint');
-    const locked = promptKind === 'jailbreak';
-    $('prompt-target').value = locked ? 'system' : (prompt?.target || 'user');
-    $('prompt-target').closest('.setting-field').hidden = locked;
-    $('prompt-target-note').innerHTML = locked
+    // 注入位置固定：破限词放 system 最前面，文风提示词放 user
+    $('prompt-target-note').textContent = promptKind === 'jailbreak'
       ? '破限词固定放在 system 最前面。'
-      : '提示词放进 system 还是 user 消息。<br>建议保持 user，模型不遵守时再试 system。';
+      : '文风提示词固定放在 user 消息里。';
     $('prompt-drawer').show();
   }
 
@@ -561,7 +560,7 @@
   /* ---------- 助手：各个 AI 功能用哪个接口和提示词 ---------- */
 
   const ASSISTANTS = {
-    regex: { name: '正则助手', use: '导出页「AI 辅助」生成规则时用。', promptKind: 'constraint', promptLabel: '正则提示词' },
+    regex: { name: '正则助手', use: '导出页「AI 辅助」生成规则时用。', promptKind: null, promptLabel: '' },
     polish: { name: '润色助手', use: '润色页改写文字时用。', promptKind: 'style', promptLabel: '文风提示词' },
   };
   const hasAssistants = () => ['getAssistant', 'setAssistant', 'resolveAssistant'].every((name) => typeof service()?.[name] === 'function');
@@ -577,7 +576,7 @@
     const api = service();
     const token = ++assistantToken;
     try {
-      const kinds = ['jailbreak', 'constraint', 'style'];
+      const kinds = ['jailbreak', 'style'];
       const [profileList, activeProfile, promptLists, activePrompts, regex, polish] = await Promise.all([
         api.listProfiles(),
         api.getActiveProfileId(),
@@ -609,7 +608,7 @@
     const promptKind = ASSISTANTS[kind].promptKind;
     const followProfile = nameOf(profileList, activeProfile) || '主 API';
     const followJailbreak = nameOf(promptLists.jailbreak, activePrompts.jailbreak) || '不使用';
-    const followPrompt = nameOf(promptLists[promptKind], activePrompts[promptKind]) || '不使用';
+    const followPrompt = promptKind ? (nameOf(promptLists[promptKind], activePrompts[promptKind]) || '不使用') : '';
     return {
       profile: [
         { value: 'follow', label: `跟随使用中（${followProfile}）`, actual: followProfile },
@@ -621,11 +620,11 @@
         { value: 'none', label: '不使用', actual: '不使用' },
         ...promptLists.jailbreak.map((item) => ({ value: item.id, label: item.name, actual: item.name })),
       ],
-      prompt: [
+      prompt: promptKind ? [
         { value: 'follow', label: `跟随使用中（${followPrompt}）`, actual: followPrompt },
         { value: 'none', label: '不使用', actual: '不使用' },
         ...promptLists[promptKind].map((item) => ({ value: item.id, label: item.name, actual: item.name })),
-      ],
+      ] : [],
     };
   }
 
@@ -638,8 +637,10 @@
       const options = assistantOptions(kind);
       const current = assistantData.assistants[kind];
       const profile = pickOption(options.profile, current.profile).actual;
-      const prompt = pickOption(options.prompt, current.prompt).actual;
-      entry.setAttribute('summary', `${profile} · ${ASSISTANTS[kind].promptLabel}：${prompt}`);
+      const second = ASSISTANTS[kind].promptKind
+        ? `${ASSISTANTS[kind].promptLabel}：${pickOption(options.prompt, current.prompt).actual}`
+        : `破限词：${pickOption(options.jailbreak, current.jailbreak).actual}`;
+      entry.setAttribute('summary', `${profile} · ${second}`);
     });
   }
 
@@ -650,8 +651,11 @@
     $('assistant-drawer').setAttribute('title', ASSISTANTS[kind].name);
     $('assistant-use').textContent = ASSISTANTS[kind].use;
     $('assistant-prompt-label').textContent = ASSISTANTS[kind].promptLabel;
+    // 正则助手没有提示词这一项
+    $('assistant-prompt-label').closest('.setting-field').hidden = !ASSISTANTS[kind].promptKind;
     document.querySelectorAll('#assistant-drawer yakit-select').forEach((select) => {
       const field = select.dataset.field;
+      if (!options[field].length) return;
       select.setAttribute('aria-label', field === 'prompt' ? ASSISTANTS[kind].promptLabel : select.previousElementSibling.textContent);
       select.replaceChildren(...options[field].map((option) => new Option(option.label, option.value)));
       select.value = pickOption(options[field], current[field]).value;

@@ -4,8 +4,8 @@
  *
  * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat.exportUI 上提供）─────────
  *
- * 1. exportUI.getAiContext() → { apiName, model, usingMainApi, jailbreakName, constraintName }
- *      抽屉顶部显示正在用的接口和提示词；jailbreakName / constraintName 为 null 表示不使用
+ * 1. exportUI.getAiContext() → { apiName, model, usingMainApi, jailbreakName }
+ *      抽屉顶部显示正则助手正在用的接口和破限词；jailbreakName 为 null 表示不使用
  * 2. exportUI.suggestRules({ request, mode, rules }) → { rules: [{ rule, explanation }] }
  *      request 是用户的描述，mode 是当前匹配方式，rules 是现有规则；失败 reject 中文原因
  *
@@ -78,7 +78,6 @@
       el.textContent = [
         `${api}${info?.model ? ` · ${info.model}` : ''}`,
         `破限词：${info?.jailbreakName || '不使用'}`,
-        `正则提示词：${info?.constraintName || '不使用'}`,
       ].join(' ｜ ');
     } catch (error) {
       el.textContent = '读取当前接口失败';

@@ -201,7 +201,6 @@
       <yakit-card class="prompt-card" id="prompt-card" title="提示词">
         <yakit-segmented slot="extra" id="prompt-kind" size="sm" aria-label="提示词类别" value="jailbreak">
           <option value="jailbreak">破限词</option>
-          <option value="constraint">正则提示词</option>
           <option value="style">文风提示词</option>
         </yakit-segmented>
         <p class="field-note prompt-kind-note" id="prompt-kind-note"></p>
@@ -375,13 +374,6 @@
       <yakit-input id="prompt-name" label="名称" required maxlength="64" placeholder="给提示词起个名字"></yakit-input>
     </section>
     <section class="drawer-section" id="prompt-target-section">
-      <div class="setting-field">
-        <span class="setting-label">注入位置</span>
-        <yakit-segmented id="prompt-target" size="sm" aria-label="注入位置" value="user">
-          <option value="system">system</option>
-          <option value="user">user</option>
-        </yakit-segmented>
-      </div>
       <p class="field-note" id="prompt-target-note"></p>
     </section>
     <section class="drawer-section">
