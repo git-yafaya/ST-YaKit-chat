@@ -18,7 +18,8 @@
  *  9. apiUI.testConnection(draft) → { message }        用抽屉里填写的内容试连，失败 reject 中文原因
  * 10. apiUI.fetchModels(draft) → string[]
  *
- * prompt 的形状：{ id, name, target: 'system' | 'user', text }；kind 为 'jailbreak' | 'constraint' | 'style'
+ * prompt 的形状：{ id, name, target: 'system' | 'user', text, builtin }；kind 为 'jailbreak' | 'constraint' | 'style'
+ *   builtin 为 true 的是内置破限词（Gemini、DeepSeek）：不能删除，正文可以为空（空的不加入请求）
  *
  * 11. apiUI.listPrompts(kind) → [prompt]
  * 12. apiUI.getActivePromptId(kind) → id | null         null 表示这一类不使用
@@ -354,7 +355,8 @@
 
   const promptSummary = (prompt) => {
     const text = String(prompt.text || '').replace(/\s+/g, ' ').trim();
-    return `注入 ${prompt.target} · ${text}`;
+    if (prompt.builtin && !text) return '内置 · 待填写';
+    return `${prompt.builtin ? '内置 · ' : ''}注入 ${prompt.target} · ${text}`;
   };
 
   async function loadPrompts() {
@@ -388,7 +390,8 @@
       summary: promptSummary(prompt),
       active: prompt.id === activePromptId,
       onPick: () => activatePrompt(prompt.id),
-      actions: ROW_ACTIONS,
+      // 内置破限词不能删除
+      actions: prompt.builtin ? ROW_ACTIONS.filter((item) => item.action !== 'delete') : ROW_ACTIONS,
       onAction: (action) => onPromptAction(prompt, action),
     }));
     [noneRow, ...rows].forEach((row) => {
@@ -483,6 +486,10 @@
     $('prompt-name').value = prompt?.name ?? '';
     $('prompt-text').value = prompt?.text ?? '';
     Object.values(PROMPT_FIELDS).forEach((id) => $(id).removeAttribute('error'));
+    // 内置破限词：正文可以先空着
+    $('prompt-text').toggleAttribute('required', !prompt?.builtin);
+    if (prompt?.builtin) $('prompt-text').setAttribute('hint', '内置破限词，可以先空着；空着时不会加入请求。');
+    else $('prompt-text').removeAttribute('hint');
     const locked = promptKind === 'jailbreak';
     $('prompt-target').value = locked ? 'system' : (prompt?.target || 'user');
     $('prompt-target').closest('.setting-field').hidden = locked;
