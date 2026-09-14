@@ -278,9 +278,9 @@
 /* 手机上是从底部滑出的抽屉：贴底、顶部留一点空隙和圆角；导航在上方时页签换到第二行 */
 @media (max-width: 600px) {
     .dsh-dialog {
-        width: 100vw;
-        height: calc(100dvh - 12px);
-        margin: auto 0 0;
+        width: calc(100vw - 4px);
+        height: calc(100dvh - 8px);
+        margin: auto 2px 0;
         border: 0;
         border-radius: 16px 16px 0 0;
     }
