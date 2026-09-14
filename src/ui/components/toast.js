@@ -77,6 +77,11 @@
     if (host?.isConnected) return host;
     host = document.createElement('div');
     host.setAttribute('aria-live', 'polite');
+    // 放进浏览器的最上层（popover），抽屉、确认框这类弹出层打开时提示也不会被挡住
+    if ('popover' in host) {
+      host.popover = 'manual';
+      host.style.cssText = 'position:fixed;inset:12px 16px auto 16px;width:auto;height:auto;margin:0;padding:0;border:0;background:transparent;overflow:visible;color:inherit';
+    }
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = `<style>${styles}</style>`;
     document.body.append(host);
@@ -85,7 +90,13 @@
 
   globalThis.YaKitToast = {
     show(message, type = 'success', { duration = 2500 } = {}) {
-      const root = container().shadowRoot;
+      const box = container();
+      const root = box.shadowRoot;
+      // 每次弹出都重新放到最上层，盖过之后才打开的抽屉
+      if (box.popover) {
+        if (box.matches(':popover-open')) box.hidePopover();
+        box.showPopover();
+      }
       const toast = document.createElement('div');
       toast.className = 'toast';
       toast.dataset.type = ICONS[type] ? type : 'success';
@@ -101,8 +112,13 @@
 
       const leave = () => {
         toast.classList.add('leaving');
-        toast.addEventListener('animationend', () => toast.remove(), { once: true });
-        setTimeout(() => toast.remove(), 300);
+        const remove = () => {
+          toast.remove();
+          // 没有提示了就退出最上层
+          if (box.popover && !root.querySelector('.toast') && box.matches(':popover-open')) box.hidePopover();
+        };
+        toast.addEventListener('animationend', remove, { once: true });
+        setTimeout(remove, 300);
       };
       setTimeout(leave, duration);
     },
