@@ -34,7 +34,7 @@
  * 18. apiUI.getAssistant(kind) → { profile, jailbreak, prompt }
  * 19. apiUI.setAssistant(kind, patch) → 保存后的完整对象   patch 只含要改的项
  * 20. apiUI.resolveAssistant(kind) → 实际生效项（界面用列表里的「使用中」自己算「跟随使用中（…）」的文字）
- *      正则助手只选破限词（接口跟随 API 配置的使用中，定位和输出格式由程序内置）；润色助手选接口、破限词和 prompt 即文风提示词；
+ *      正则助手选接口和破限词（定位和输出格式由程序内置）；润色助手选接口、破限词和 prompt 即文风提示词；
  *      三个函数都提供时才显示助手卡片
  *
  * 参数（所有 AI 请求共用）
@@ -562,7 +562,7 @@
 
   const ASSISTANTS = {
     // 正则助手只选破限词（接口跟随 API 配置里的使用中）；润色助手选接口、破限词、文风提示词
-    regex: { name: '正则助手', use: '导出页「AI 辅助」生成规则时用，接口跟随上面 API 配置里的使用中。', fields: ['jailbreak'], promptKind: null, promptLabel: '' },
+    regex: { name: '正则助手', use: '导出页「AI 辅助」生成规则时用。', fields: ['profile', 'jailbreak'], promptKind: null, promptLabel: '' },
     polish: { name: '润色助手', use: '润色页改写文字时用。', fields: ['profile', 'jailbreak', 'prompt'], promptKind: 'style', promptLabel: '文风提示词' },
   };
   const hasAssistants = () => ['getAssistant', 'setAssistant', 'resolveAssistant'].every((name) => typeof service()?.[name] === 'function');
@@ -638,10 +638,10 @@
       const kind = entry.dataset.kind;
       const options = assistantOptions(kind);
       const current = assistantData.assistants[kind];
-      const jailbreak = `破限词：${pickOption(options.jailbreak, current.jailbreak).actual}`;
+      const profile = pickOption(options.profile, current.profile).actual;
       entry.setAttribute('summary', ASSISTANTS[kind].promptKind
-        ? `${pickOption(options.profile, current.profile).actual} · ${ASSISTANTS[kind].promptLabel}：${pickOption(options.prompt, current.prompt).actual}`
-        : jailbreak);
+        ? `${profile} · ${ASSISTANTS[kind].promptLabel}：${pickOption(options.prompt, current.prompt).actual}`
+        : `${profile} · 破限词：${pickOption(options.jailbreak, current.jailbreak).actual}`);
     });
   }
 
