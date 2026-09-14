@@ -336,7 +336,8 @@ function addMenuItem() {
     item.className = 'list-group-item flex-container flexGap5 interactable';
     item.tabIndex = 0;
     item.setAttribute('role', 'button');
-    item.innerHTML = `<i class="fa-solid fa-table-columns extensionsMenuExtensionButton" aria-hidden="true"></i><span>${PANEL_TITLE}</span>`;
+    // 图标用 icons/menu.svg，大小与菜单里其他扩展的图标一致
+    item.innerHTML = `<span class="extensionsMenuExtensionButton" aria-hidden="true"><span class="dsh-icon dsh-menu-entry-icon" style="--dsh-icon: url('${iconUrl('menu')}')"></span></span><span>${PANEL_TITLE}</span>`;
     item.addEventListener('click', openPanel);
     item.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {

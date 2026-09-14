@@ -158,6 +158,12 @@
     mask: var(--dsh-icon) center / contain no-repeat;
 }
 
+/* 魔法棒菜单入口的图标：跟菜单里其他扩展的字体图标一样大 */
+.dsh-icon.dsh-menu-entry-icon {
+    width: 1em;
+    height: 1em;
+}
+
 /* ---------- 主题插画按钮 ---------- */
 .dsh-theme-switch {
     position: relative;
