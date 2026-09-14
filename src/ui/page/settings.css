@@ -7,7 +7,8 @@
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
 }
-.settings-list > dsh-collapse + dsh-collapse { border-top: 1px solid var(--divider); }
+/* 隐藏的行不算，避免列表顶部多出一条分隔线 */
+.settings-list > dsh-collapse:not([hidden]) ~ dsh-collapse:not([hidden]) { border-top: 1px solid var(--divider); }
 .setting-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .setting-label { font-size: 13px; color: var(--text-title); }
 .setting-field + .field-note { margin: 6px 0 12px; }

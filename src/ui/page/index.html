@@ -68,6 +68,13 @@
     <!-- 一级项目点开在原地往下展开；同一时间只展开一项，页面保持简短 -->
     <div data-page="settings" hidden>
       <div class="settings-list">
+        <dsh-collapse id="set-update" title="插件更新" icon="../icons/input.svg" hidden>
+          <div class="setting-field">
+            <span class="setting-label">更新纪实插件</span>
+            <dsh-button id="update-go" size="sm" disabled>更新</dsh-button>
+          </div>
+          <p class="field-note">从仓库拉取纪实的最新版本，只更新本插件。<br>更新完成后会自动刷新网页。</p>
+        </dsh-collapse>
         <dsh-collapse id="set-theme" title="主题">
           <div class="setting-field">
             <span class="setting-label">切换方式</span>

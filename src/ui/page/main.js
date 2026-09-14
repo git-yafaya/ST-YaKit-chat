@@ -4,6 +4,7 @@
  * 收到消息后在 window 上派发事件，给各页脚本使用：
  *   dsh-theme  event.detail = { theme, selected, tavern }
  *   dsh-nav    event.detail = { mode, resolved }
+ *   dsh-tab    event.detail = { tab }
  */
 (() => {
   DshScrollbar.install(document);
@@ -68,7 +69,10 @@
     if (data.type === 'dsh:nav') {
       window.dispatchEvent(new CustomEvent('dsh-nav', { detail: data }));
     }
-    if (data.type === 'dsh:tab') showTab(data.tab);
+    if (data.type === 'dsh:tab') {
+      showTab(data.tab);
+      window.dispatchEvent(new CustomEvent('dsh-tab', { detail: data }));
+    }
   }
 
   // 弹窗优先直接调用 dshReceive（同一帧更新）；也兼容 postMessage

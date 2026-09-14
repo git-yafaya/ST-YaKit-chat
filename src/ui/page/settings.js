@@ -11,6 +11,87 @@
   }));
   $('set-demo').addEventListener('activate', () => $('demo-drawer').show());
 
+  /* ---------- 插件更新：打开设置页时检查，有新版本时可点更新，更新完自动刷新网页 ----------
+   * 需要业务层在 YaKitChat 上提供 updater（由 Codex 实现）：
+   *   updater.checkUpdate() → Promise<{ isUpToDate: boolean, canUpdate: boolean }>
+   *     isUpToDate：本插件是否已是仓库最新；canUpdate：能否在线更新（如不是 git 安装则为 false）
+   *     检查失败时 reject，message 为给用户看的中文原因
+   *   updater.update() → Promise<{ updated: boolean }>
+   *     只更新本插件；updated=false 表示本来就是最新；失败时 reject，message 为中文原因
+   * 没有 updater 时不显示这一行。
+   */
+  const updater = () => parent.YaKitChat?.updater;
+  const updateRow = $('set-update');
+  const updateButton = $('update-go');
+  const version = parent.YaKitChat?.version ? `v${parent.YaKitChat.version}` : '';
+  const CHECK_INTERVAL = 60 * 1000;
+  let lastCheck = 0;
+  let checking = false;
+  let updating = false;
+
+  function setUpdateState(text, { canClick = false, primary = false } = {}) {
+    updateRow.setAttribute('summary', [version, text].filter(Boolean).join(' · '));
+    updateButton.toggleAttribute('disabled', !canClick);
+    if (primary) updateButton.setAttribute('variant', 'primary');
+    else updateButton.removeAttribute('variant');
+  }
+
+  async function checkUpdate({ force = false } = {}) {
+    const service = updater();
+    updateRow.hidden = !service;
+    if (!service || checking || updating) return;
+    if (!force && Date.now() - lastCheck < CHECK_INTERVAL) return;
+    checking = true;
+    lastCheck = Date.now();
+    setUpdateState('检查中…');
+    updateButton.setAttribute('loading', '');
+    try {
+      const { isUpToDate, canUpdate } = await service.checkUpdate();
+      if (!canUpdate) setUpdateState('无法在线更新');
+      else if (isUpToDate) setUpdateState('已是最新');
+      else setUpdateState('有新版本', { canClick: true, primary: true });
+    } catch (error) {
+      console.warn('[纪实] 检查更新失败', error);
+      setUpdateState('检查失败');
+      lastCheck = 0;
+    } finally {
+      checking = false;
+      updateButton.removeAttribute('loading');
+    }
+  }
+
+  updateButton.addEventListener('click', async () => {
+    const service = updater();
+    if (!service || updating) return;
+    updating = true;
+    updateButton.setAttribute('loading', '');
+    setUpdateState('更新中…');
+    try {
+      const { updated } = await service.update();
+      if (updated) {
+        setUpdateState('已更新，正在刷新');
+        DshToast.show('纪实已更新，正在刷新网页', 'success');
+        setTimeout(() => parent.location.reload(), 1200);
+        return;
+      }
+      setUpdateState('已是最新');
+      DshToast.show('已经是最新版本', 'success');
+    } catch (error) {
+      setUpdateState('更新失败', { canClick: true });
+      DshToast.show(error?.message || '更新失败', 'danger');
+    } finally {
+      updating = false;
+      updateButton.removeAttribute('loading');
+    }
+  });
+
+  // 切到设置页时检查（一分钟内不重复检查）
+  window.addEventListener('dsh-tab', (event) => {
+    if (event.detail.tab === 'settings') checkUpdate();
+  });
+  updateRow.hidden = !updater();
+  if (updater()) setUpdateState('');
+
   /* ---------- 主题：插画格子 / 下拉框，点选后通知弹窗换主题 ---------- */
   const themeList = $('themes');
   const themeSelect = $('theme-select');
