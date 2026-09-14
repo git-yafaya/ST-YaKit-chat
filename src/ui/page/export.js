@@ -133,7 +133,7 @@
       item.innerHTML = '<div class="preview-meta"></div><div class="preview-text"></div>';
       item.querySelector('.preview-meta').textContent = `第 ${message.floor} 楼 · ${TYPE_LABELS[message.type] || ''}${message.name ? ` · ${message.name}` : ''}`;
       const text = item.querySelector('.preview-text');
-      text.textContent = message.text || '（清洗后为空）';
+      text.textContent = message.text || '（匹配后为空）';
       text.classList.toggle('is-empty', !message.text);
       return item;
     }));
@@ -224,6 +224,15 @@
     $('floor-hint').textContent = floorCount ? `当前聊天共 ${floorCount} 条，楼层 0–${last}` : '当前聊天没有消息';
   }
 
+  // 导出设置抽屉里的小示例：让用户看懂「带类别标注 / 仅正文」的区别（只是示意，实际格式以导出结果为准）
+  const FORMAT_EXAMPLES = {
+    with: '用户：我们今天去海边吧。\n\nAI：好呀，我去准备泳衣！',
+    plain: '我们今天去海边吧。\n\n好呀，我去准备泳衣！',
+  };
+  function renderFormatExample() {
+    $('format-example-text').textContent = FORMAT_EXAMPLES[state.labels] || FORMAT_EXAMPLES.with;
+  }
+
   function changed() {
     $('type-warning').hidden = anyType();
     save();
@@ -265,8 +274,10 @@
       changed();
     });
     $('opt-labels').value = state.labels;
+    renderFormatExample();
     $('opt-labels').addEventListener('change', (event) => {
       state.labels = event.detail.value;
+      renderFormatExample();
       changed();
     });
 

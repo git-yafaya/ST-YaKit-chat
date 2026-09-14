@@ -28,14 +28,14 @@
     <!-- ========== 页签：文本导出 ========== -->
     <div data-page="export" class="export-page">
       <!-- 主要内容：导出预览 -->
-      <dsh-card class="preview-card" title="导出预览" subtitle="最近 2 条消息清洗后的样子">
+      <dsh-card class="preview-card" title="导出预览" subtitle="最近 2 条消息导出后的样子">
         <span slot="extra" class="card-extra" id="preview-count"></span>
         <div id="preview-body"></div>
       </dsh-card>
 
       <!-- 紧跟其下：正则匹配 -->
       <dsh-card title="正则匹配">
-        <dsh-segmented slot="extra" id="rule-mode" size="sm" aria-label="清洗方式" value="delete">
+        <dsh-segmented slot="extra" id="rule-mode" size="sm" aria-label="匹配方式" value="delete">
           <option value="delete">删除匹配</option>
           <option value="keep">只保留匹配</option>
         </dsh-segmented>
@@ -141,6 +141,10 @@
         <option value="with">带类别标注</option>
         <option value="plain">仅正文</option>
       </dsh-segmented>
+      <figure class="format-example" aria-label="导出效果示例">
+        <figcaption>示例</figcaption>
+        <pre id="format-example-text"></pre>
+      </figure>
     </section>
 
     <section class="drawer-section">
