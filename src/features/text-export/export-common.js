@@ -21,13 +21,20 @@ export function validateMessages(messages, labelMode) {
     }
 }
 
-export function createExportFilename(characterName, extension, now = new Date()) {
+export function createExportFilename(characterName, extension, now = new Date(), fileName = '') {
     if (typeof characterName !== 'string' || !characterName.trim()) {
         throw new TypeError('characterName 必须是非空字符串');
     }
     if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
         throw new TypeError('now 必须是有效的 Date');
     }
+    if (typeof fileName !== 'string') {
+        throw new TypeError('fileName 必须是字符串');
+    }
+    // 自定义名称统一后缀，文件路径字符沿用默认名称的替换规则。
+    const customName = fileName.trim().replace(/\.(txt|md|epub)$/i, '')
+        .replace(/[<>:"/\\|?*\u0000-\u001f\u007f-\u009f]/g, '_').replace(/[. ]+$/, '');
+    if (customName) return `${customName}.${extension}`;
     // 沿用 TXT 的本地时间和文件名替换规则。
     const timestamp = String(now.getFullYear()).padStart(4, '0')
         + [now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()]

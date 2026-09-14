@@ -13,7 +13,7 @@ export async function saveExport(messages, options = {}) {
     if (!options || typeof options !== 'object' || Array.isArray(options)) {
         throw new TypeError('导出选项必须是对象');
     }
-    const { fileType = 'txt', labelMode = 'speaker', epub } = options;
+    const { fileType = 'txt', labelMode = 'speaker', epub, fileName = '' } = options;
     if (!['txt', 'md', 'epub'].includes(fileType)) {
         throw new TypeError('fileType 仅支持 txt、md 或 epub');
     }
@@ -26,14 +26,14 @@ export async function saveExport(messages, options = {}) {
     // 在异步加载前固定角色名和时间，书名、作者与文件名使用同一份快照。
     const characterName = context.characters[context.characterId]?.name;
     const now = new Date();
-    const filename = createExportFilename(characterName, fileType, now);
+    const filename = createExportFilename(characterName, fileType, now, fileName);
     const chapters = fileType === 'epub'
         ? createEpubChapters(messages, epub === undefined ? getEpubPreferences() : epub)
         : null;
     const markdown = fileType === 'md' ? buildMarkdown(messages, labelMode) : null;
     const { download, uuidv4 } = await import('/scripts/utils.js');
     if (fileType === 'txt') {
-        return saveTxt(messages, { format: labelMode, characterName, now, download });
+        return saveTxt(messages, { format: labelMode, characterName, now, download, fileName });
     }
     if (fileType === 'md') {
         download(markdown, filename, 'text/markdown;charset=utf-8');

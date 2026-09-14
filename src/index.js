@@ -5,6 +5,7 @@ import { saveTxt as saveTextFile } from './features/text-export/export-txt.js';
 import { saveExport, getEpubPreferences, saveEpubPreferences } from './features/text-export/save-export.js';
 import * as apiManagement from './features/api-management/index.js';
 import * as promptManagement from './features/prompt-management/index.js';
+import { exportUI } from './features/text-export/export-ui.js';
 import { initPanelUI } from './ui/panel/index.js';
 
 function getContext() {
@@ -39,6 +40,7 @@ export async function saveTxt(messages, format = 'speaker') {
 // 控制台和界面共用同一组已验收接口。
 globalThis.YaKitChat = Object.freeze({
     version: '0.2.0',
+    exportUI,
     readCurrentChat,
     filterMessages,
     cleanMessages,

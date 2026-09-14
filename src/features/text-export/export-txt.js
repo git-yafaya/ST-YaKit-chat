@@ -1,6 +1,7 @@
 import { getMessageType } from './filter-messages.js';
+import { createExportFilename } from './export-common.js';
 
-export function saveTxt(messages, { format = 'speaker', characterName, download, now = new Date() } = {}) {
+export function saveTxt(messages, { format = 'speaker', characterName, download, now = new Date(), fileName = '' } = {}) {
     if (!Array.isArray(messages)) {
         throw new TypeError('messages 必须是数组');
     }
@@ -31,12 +32,7 @@ export function saveTxt(messages, { format = 'speaker', characterName, download,
             : message.mes);
     }
 
-    // 使用本地时间，毫秒补足三位。
-    const timestamp = String(now.getFullYear()).padStart(4, '0')
-        + [now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()]
-            .map(value => String(value).padStart(2, '0')).join('')
-        + String(now.getMilliseconds()).padStart(3, '0');
-    const filename = `${characterName.replace(/[<>:"/\\|?*\u0000-\u001f\u007f-\u009f]/g, '_')}${timestamp}.txt`;
+    const filename = createExportFilename(characterName, 'txt', now, fileName);
     const text = lines.join('\n\n');
     download(text, filename, 'text/plain;charset=utf-8');
     return { filename, text };
