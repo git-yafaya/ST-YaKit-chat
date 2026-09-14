@@ -145,8 +145,16 @@
 
       confirmButton.addEventListener('click', submit);
       $('.cancel').addEventListener('click', cancel);
+      // 点暗处取消：按下和松开都在小窗外面才算（在输入框里拖选文字拖到外面松开不会关）
+      const outside = (event) => {
+        const rect = dialog.getBoundingClientRect();
+        return event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+      };
+      let pressedOutside = false;
+      dialog.addEventListener('pointerdown', (event) => { pressedOutside = event.target === dialog && outside(event); });
       dialog.addEventListener('click', (event) => {
-        if (event.target === dialog) cancel();
+        if (pressedOutside && event.target === dialog && outside(event)) cancel();
+        pressedOutside = false;
       });
       dialog.addEventListener('cancel', (event) => {
         event.preventDefault();

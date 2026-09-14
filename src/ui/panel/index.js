@@ -309,9 +309,16 @@ function openPanel() {
 
     /* ---------- 关闭 ---------- */
     dialog.querySelector('[data-action="close"]').addEventListener('click', () => closePanel(dialog));
-    // 点弹窗外面的暗色区域也能关闭
+    // 点弹窗外面的暗色区域也能关闭：按下和松开都在弹窗外面才算（拖选文字拖到外面松开不会关）
+    const outside = (event) => {
+        const rect = dialog.getBoundingClientRect();
+        return event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+    };
+    let pressedOutside = false;
+    dialog.addEventListener('pointerdown', (event) => { pressedOutside = event.target === dialog && outside(event); });
     dialog.addEventListener('click', (event) => {
-        if (event.target === dialog) closePanel(dialog);
+        if (pressedOutside && event.target === dialog && outside(event)) closePanel(dialog);
+        pressedOutside = false;
     });
     // 按 Esc 也走带动画的关闭
     dialog.addEventListener('cancel', (event) => {

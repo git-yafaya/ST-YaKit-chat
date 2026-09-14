@@ -180,9 +180,16 @@
       this.$ = (sel) => root.querySelector(sel);
 
       this.$('.close').addEventListener('click', () => this.close());
-      // 点暗色区域关闭
+      // 点暗色区域关闭：按下和松开都在抽屉外面才算（在输入框里拖选文字拖到外面松开不会关）
+      const outside = (event) => {
+        const rect = this.dialog.getBoundingClientRect();
+        return event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+      };
+      let pressedOutside = false;
+      this.dialog.addEventListener('pointerdown', (event) => { pressedOutside = event.target === this.dialog && outside(event); });
       this.dialog.addEventListener('click', (event) => {
-        if (event.target === this.dialog) this.close();
+        if (pressedOutside && event.target === this.dialog && outside(event)) this.close();
+        pressedOutside = false;
       });
       // 按 Esc 时也走带动画的关闭
       this.dialog.addEventListener('cancel', (event) => {
