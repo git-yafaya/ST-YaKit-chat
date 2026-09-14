@@ -28,6 +28,13 @@
  * 16. apiUI.duplicatePrompt(kind, id) → 新 prompt
  * 17. apiUI.removePrompt(kind, id)                      删掉正在用的提示词时这一类变为不使用
  *
+ * 助手（kind 为 'regex' 正则助手 | 'polish' 润色助手；每项取值 'follow' 跟随使用中 / 'main' 主 API / 'none' 不使用 / 具体 id）
+ *
+ * 18. apiUI.getAssistant(kind) → { profile, jailbreak, prompt }
+ * 19. apiUI.setAssistant(kind, patch) → 保存后的完整对象   patch 只含要改的项
+ * 20. apiUI.resolveAssistant(kind) → 实际生效项（界面用列表里的「使用中」自己算「跟随使用中（…）」的文字）
+ *      正则助手的 prompt 是正则提示词，润色助手的是文风提示词；三个函数都提供时才显示助手卡片
+ *
  * 没提供 apiUI 时，页面显示「API 管理还没接入」。
  */
 (() => {
@@ -86,6 +93,7 @@
       activeProfileId = null;
     }
     renderProfiles();
+    loadAssistants();
   }
 
   function renderProfiles() {
@@ -364,6 +372,7 @@
       activePromptId = null;
     }
     renderPrompts();
+    loadAssistants();
   }
 
   function renderPrompts() {
@@ -535,6 +544,92 @@
   });
 
   $('prompt-create').addEventListener('click', () => openPromptDrawer());
+
+  /* ---------- 助手：各个 AI 功能用哪个接口和提示词 ---------- */
+
+  const ASSISTANT_PROMPT_KIND = { regex: 'constraint', polish: 'style' };
+  const hasAssistants = () => ['getAssistant', 'setAssistant', 'resolveAssistant'].every((name) => typeof service()?.[name] === 'function');
+
+  let assistantToken = 0;
+  async function loadAssistants() {
+    const card = $('assistant-card');
+    card.hidden = !hasAssistants();
+    if (card.hidden) return;
+    const api = service();
+    const token = ++assistantToken;
+    let data;
+    try {
+      const kinds = ['jailbreak', 'constraint', 'style'];
+      const [profileList, activeProfile, promptLists, activePrompts, regex, polish] = await Promise.all([
+        api.listProfiles(),
+        api.getActiveProfileId(),
+        Promise.all(kinds.map((kind) => api.listPrompts(kind))),
+        Promise.all(kinds.map((kind) => api.getActivePromptId(kind))),
+        api.getAssistant('regex'),
+        api.getAssistant('polish'),
+      ]);
+      data = {
+        profiles: Array.isArray(profileList) ? profileList : [],
+        activeProfile,
+        prompts: Object.fromEntries(kinds.map((kind, i) => [kind, Array.isArray(promptLists[i]) ? promptLists[i] : []])),
+        activePrompts: Object.fromEntries(kinds.map((kind, i) => [kind, activePrompts[i]])),
+        assistants: { regex, polish },
+      };
+    } catch (error) {
+      YaKitErrorLog.warn('读取助手配置失败', error);
+      return;
+    }
+    if (token !== assistantToken) return;
+    renderAssistants(data);
+  }
+
+  function renderAssistants({ profiles: profileList, activeProfile, prompts: promptLists, activePrompts, assistants }) {
+    const nameOf = (list, id) => list.find((item) => item.id === id)?.name;
+    document.querySelectorAll('#assistant-card .assistant').forEach((block) => {
+      const kind = block.dataset.kind;
+      const current = assistants[kind] || {};
+      const options = {
+        profile: [
+          new Option(`跟随使用中（${nameOf(profileList, activeProfile) || '主 API'}）`, 'follow'),
+          new Option('主 API（跟随ST）', 'main'),
+          ...profileList.map((item) => new Option(item.name, item.id)),
+        ],
+        jailbreak: [
+          new Option(`跟随使用中（${nameOf(promptLists.jailbreak, activePrompts.jailbreak) || '不使用'}）`, 'follow'),
+          new Option('不使用', 'none'),
+          ...promptLists.jailbreak.map((item) => new Option(item.name, item.id)),
+        ],
+        prompt: (() => {
+          const promptKind = ASSISTANT_PROMPT_KIND[kind];
+          return [
+            new Option(`跟随使用中（${nameOf(promptLists[promptKind], activePrompts[promptKind]) || '不使用'}）`, 'follow'),
+            new Option('不使用', 'none'),
+            ...promptLists[promptKind].map((item) => new Option(item.name, item.id)),
+          ];
+        })(),
+      };
+      block.querySelectorAll('yakit-select').forEach((select) => {
+        const field = select.dataset.field;
+        select.replaceChildren(...options[field]);
+        const value = current[field] || 'follow';
+        select.value = options[field].some((option) => option.value === value) ? value : 'follow';
+      });
+    });
+  }
+
+  document.querySelectorAll('#assistant-card yakit-select').forEach((select) => {
+    select.addEventListener('change', async (event) => {
+      const kind = select.closest('.assistant').dataset.kind;
+      const name = select.closest('.assistant').querySelector('.assistant-name').textContent;
+      try {
+        await service().setAssistant(kind, { [select.dataset.field]: event.detail.value });
+        YaKitToast.show(`已保存${name}`, 'success');
+      } catch (error) {
+        showError(error, '保存助手失败');
+      }
+      loadAssistants();
+    });
+  });
 
   /* ---------- 切到本页时刷新 ---------- */
 

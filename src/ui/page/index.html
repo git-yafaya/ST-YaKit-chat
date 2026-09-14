@@ -166,6 +166,46 @@
         <p class="list-empty" id="api-unavailable" hidden>API 管理还没接入</p>
       </yakit-card>
 
+      <!-- 助手：各个 AI 功能分别用哪个接口和提示词；默认跟随列表里的「使用中」 -->
+      <yakit-card class="assistant-card" id="assistant-card" title="助手" subtitle="各个 AI 功能用哪个接口和提示词" hidden>
+        <div class="assistant" data-kind="regex">
+          <div class="assistant-head">
+            <span class="assistant-name">正则助手</span>
+            <span class="assistant-note">导出页「AI 辅助」生成规则时用</span>
+          </div>
+          <div class="setting-field">
+            <span class="setting-label">接口</span>
+            <yakit-select size="sm" data-field="profile" aria-label="正则助手的接口"></yakit-select>
+          </div>
+          <div class="setting-field">
+            <span class="setting-label">破限词</span>
+            <yakit-select size="sm" data-field="jailbreak" aria-label="正则助手的破限词"></yakit-select>
+          </div>
+          <div class="setting-field">
+            <span class="setting-label">正则提示词</span>
+            <yakit-select size="sm" data-field="prompt" aria-label="正则助手的正则提示词"></yakit-select>
+          </div>
+        </div>
+        <div class="assistant" data-kind="polish">
+          <div class="assistant-head">
+            <span class="assistant-name">润色助手</span>
+            <span class="assistant-note">润色页改写文字时用</span>
+          </div>
+          <div class="setting-field">
+            <span class="setting-label">接口</span>
+            <yakit-select size="sm" data-field="profile" aria-label="润色助手的接口"></yakit-select>
+          </div>
+          <div class="setting-field">
+            <span class="setting-label">破限词</span>
+            <yakit-select size="sm" data-field="jailbreak" aria-label="润色助手的破限词"></yakit-select>
+          </div>
+          <div class="setting-field">
+            <span class="setting-label">文风提示词</span>
+            <yakit-select size="sm" data-field="prompt" aria-label="润色助手的文风提示词"></yakit-select>
+          </div>
+        </div>
+      </yakit-card>
+
       <!-- 提示词：三类各自一份列表 -->
       <yakit-card class="prompt-card" id="prompt-card" title="提示词">
         <yakit-segmented slot="extra" id="prompt-kind" size="sm" aria-label="提示词类别" value="jailbreak">
