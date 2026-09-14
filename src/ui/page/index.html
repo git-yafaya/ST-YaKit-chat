@@ -37,7 +37,7 @@
         <div slot="extra" class="preview-extra">
           <span class="export-summary" id="export-summary"></span>
           <yakit-button id="export-settings" size="sm" variant="ghost" icon="../icons/settings.svg">导出设置</yakit-button>
-          <yakit-button id="preview-expand" size="sm" variant="ghost" icon="../icons/expand.svg" aria-label="放大查看导出预览"></yakit-button>
+          <yakit-button id="preview-expand" size="sm" variant="ghost" icon="../icons/expand.svg" aria-label="查看全部楼层的导出预览"></yakit-button>
         </div>
         <div id="preview-body"></div>
       </yakit-card>
@@ -267,7 +267,7 @@
 
   <!-- 文本导出：放大查看导出预览 -->
   <yakit-drawer id="preview-drawer" title="导出预览" width="760">
-    <p class="field-note preview-drawer-note">最近 2 条消息导出后的样子</p>
+    <p class="field-note preview-drawer-note" id="preview-drawer-note"></p>
     <div class="preview-drawer-body" id="preview-drawer-body"></div>
   </yakit-drawer>
 

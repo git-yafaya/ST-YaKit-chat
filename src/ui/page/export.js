@@ -126,6 +126,8 @@
       return;
     }
 
+    // 放大查看开着时一起刷新全部楼层
+    if ($('preview-drawer').open) renderFullPreview();
     const token = ++previewToken;
     let messages;
     try {
@@ -142,20 +144,55 @@
       return;
     }
     const body = $('preview-body');
-    body.replaceChildren(...messages.map((message) => {
-      const item = document.createElement('article');
-      item.className = 'preview-item';
-      item.innerHTML = '<div class="preview-meta"></div><div class="preview-text"></div>';
-      item.querySelector('.preview-meta').textContent = `第 ${message.floor} 楼 · ${TYPE_LABELS[message.type] || ''}${message.name ? ` · ${message.name}` : ''}`;
-      const text = item.querySelector('.preview-text');
-      text.classList.toggle('is-empty', !message.text);
-      if (message.text) text.replaceChildren(...splitIntoChunks(message.text));
-      else text.textContent = '（匹配后为空）';
-      return item;
-    }));
+    body.replaceChildren(...messages.map(renderMessage));
     body.scrollTop = body.scrollHeight;
     // 分段的高度在排版后才准确，下一帧再滚一次到底
     requestAnimationFrame(() => { body.scrollTop = body.scrollHeight; });
+  }
+
+  function renderMessage(message) {
+    const item = document.createElement('article');
+    item.className = 'preview-item';
+    item.innerHTML = '<div class="preview-meta"></div><div class="preview-text"></div>';
+    item.querySelector('.preview-meta').textContent = `第 ${message.floor} 楼 · ${TYPE_LABELS[message.type] || ''}${message.name ? ` · ${message.name}` : ''}`;
+    const text = item.querySelector('.preview-text');
+    text.classList.toggle('is-empty', !message.text);
+    if (message.text) text.replaceChildren(...splitIntoChunks(message.text));
+    else text.textContent = '（匹配后为空）';
+    return item;
+  }
+
+  // 放大查看：按当前设置显示全部楼层导出后的样子（楼层范围、消息类型、规则都生效）
+  let fullToken = 0;
+  async function renderFullPreview() {
+    const box = $('preview-drawer-body');
+    const note = $('preview-drawer-note');
+    const info = chatInfo();
+    if (info.status !== 'ok') {
+      note.textContent = '';
+      box.innerHTML = '<div class="preview-empty"></div>';
+      box.firstChild.textContent = EMPTY_TEXT[info.status] || EMPTY_TEXT.none;
+      return;
+    }
+    const token = ++fullToken;
+    note.textContent = '正在生成全部楼层的预览…';
+    let messages;
+    try {
+      messages = await service().previewMessages(structuredClone(state), Math.max(info.floorCount || 0, 0));
+    } catch (error) {
+      if (token !== fullToken) return;
+      note.textContent = '';
+      box.innerHTML = '<div class="preview-empty">预览加载失败</div>';
+      YaKitErrorLog.warn('全部楼层预览失败', error);
+      return;
+    }
+    if (token !== fullToken) return;
+    note.textContent = messages?.length ? `按当前设置导出的全部内容，共 ${messages.length} 条` : '';
+    if (!messages?.length) {
+      box.innerHTML = '<div class="preview-empty">（无可预览内容）</div>';
+      return;
+    }
+    box.replaceChildren(...messages.map(renderMessage));
   }
 
   // 长消息切成多段（满 30 行或满 1500 字另起一段）；配合 CSS content-visibility，
@@ -468,17 +505,10 @@
     });
 
     $('export-settings').addEventListener('click', () => $('export-drawer').show());
-    // 放大查看：把导出预览里现在的内容搬进宽抽屉，关掉前跟着预览刷新
-    const fillPreviewDrawer = () => {
-      $('preview-drawer-body').replaceChildren(...[...$('preview-body').childNodes].map((node) => node.cloneNode(true)));
-    };
     $('preview-expand').addEventListener('click', () => {
-      fillPreviewDrawer();
+      renderFullPreview();
       $('preview-drawer').show();
     });
-    new MutationObserver(() => {
-      if ($('preview-drawer').open) fillPreviewDrawer();
-    }).observe($('preview-body'), { childList: true, subtree: true, characterData: true });
     $('export-drawer-done').addEventListener('click', () => $('export-drawer').close());
   }
 
