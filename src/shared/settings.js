@@ -33,7 +33,7 @@ function snapshot(context) {
     settings.apiProfiles = readGroup(settings.apiProfiles);
     settings.prompts ??= {};
     if (!isObject(settings.prompts)) throw new Error('纪实提示词设置格式不正确');
-    for (const category of ['jailbreak', 'regex', 'style']) {
+    for (const category of ['jailbreak', 'style']) {
         settings.prompts[category] = readGroup(settings.prompts[category]);
     }
     ensureBuiltinJailbreaks(settings);

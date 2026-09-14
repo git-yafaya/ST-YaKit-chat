@@ -21,6 +21,6 @@ export async function resolveAssistant(kind) {
             usingMainApi,
         },
         jailbreak: jailbreak ? { id: jailbreak.id, name: jailbreak.name } : null,
-        prompt: prompt ? { id: prompt.id, name: prompt.name } : null,
+        ...(kind === 'polish' ? { prompt: prompt ? { id: prompt.id, name: prompt.name } : null } : {}),
     };
 }

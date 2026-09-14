@@ -5,10 +5,10 @@ import { createDuplicateName, validateRecordName } from '../../shared/validation
 import { isBuiltinJailbreak } from '../../shared/builtin-prompts.js';
 
 function categoryFor(kind) {
-    if (!['jailbreak', 'constraint', 'style'].includes(kind)) {
+    if (!['jailbreak', 'style'].includes(kind)) {
         throw new Error('请选择提示词类型');
     }
-    return kind === 'constraint' ? 'regex' : kind;
+    return kind;
 }
 
 function findRecord(group, id) {
@@ -32,9 +32,6 @@ function inspectDraft(kind, draft) {
     }
     const group = getPromptTemplates(category);
     if (draft.id !== undefined) findRecord(group, draft.id);
-    if (category !== 'jailbreak' && draft.target !== undefined && !['system', 'user'].includes(draft.target)) {
-        throw new Error('请重新选择注入位置');
-    }
     const errors = {};
     const names = validateRecordName(draft.name, group.items, draft.id, '已有同名提示词');
     if (names.length) errors.name = names.join('；');
@@ -69,7 +66,7 @@ export function savePrompt(kind, draft) {
     // 只传界面字段，其余元数据由原管理模块保留。
     return publicRecord(category, savePromptTemplate({
         category, id: draft.id, name: draft.name, content: draft.text,
-        target: category === 'jailbreak' ? 'system' : draft.target,
+        target: category === 'jailbreak' ? 'system' : 'user',
     }));
 }
 
@@ -81,7 +78,7 @@ export function duplicatePrompt(kind, id) {
     const name = createDuplicateName(record.name, group.items);
     return publicRecord(category, savePromptTemplate({
         ...record, category, id: undefined, name,
-        target: category === 'jailbreak' ? 'system' : record.target,
+        target: category === 'jailbreak' ? 'system' : 'user',
     }));
 }
 

@@ -1,3 +1,5 @@
+import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
+
 function connectionDraft(draft) {
     if (!draft || typeof draft !== 'object' || Array.isArray(draft)) throw new Error('配置内容不对，请重新填写');
     if (![undefined, '', 'auto', 'openai', 'local'].includes(draft.provider)) {
@@ -95,40 +97,37 @@ export async function testConnection(draft) {
         body.max_completion_tokens = body.max_tokens;
         delete body.max_tokens;
     }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    let response;
-    let data;
-    try {
-        response = await fetch('/api/backends/chat-completions/generate', {
-            method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal,
-        });
-        if (response.ok) data = await response.json();
-    } catch {
-        if (controller.signal.aborted) {
-            throw new Error('等了 15 秒模型还没回复，请检查地址、模型和网络后重试');
+    const { timeoutSeconds } = getRequestSettings();
+    const timeoutMessage = `等了 ${timeoutSeconds} 秒模型还没回复，请检查地址、模型和网络后重试`;
+    // 连接测试也使用统一生成期限，但不生成规则，因此不做规则格式重试。
+    return withRequestTimeout(async signal => {
+        let response;
+        let data;
+        try {
+            response = await fetch('/api/backends/chat-completions/generate', {
+                method: 'POST', headers, body: JSON.stringify(body), signal,
+            });
+            if (response.ok) data = await response.json();
+        } catch {
+            if (signal.aborted) throw new Error(timeoutMessage);
+            if (response?.ok) throw new Error('没能读懂模型的回复，请检查服务地址和模型后重试');
+            throw new Error('无法连接酒馆，请检查网络后重试');
         }
-        if (response?.ok) throw new Error('没能读懂模型的回复，请检查服务地址和模型后重试');
-        throw new Error('无法连接酒馆，请检查网络后重试');
-    } finally {
-        clearTimeout(timeout);
-    }
-    if (response.status === 401 || response.status === 403) {
-        throw new Error('酒馆拒绝请求，请检查登录状态、账号权限或刷新页面后重试');
-    }
-    if (response.status === 404) throw new Error('酒馆未提供模型生成接口，请检查宿主版本');
-    // 上游错误只用于判断已知状态，不把服务返回的任意文字带给界面。
-    if (data?.quota_error === true) throw new Error('模型服务的额度不足，请补充额度后重试');
-    if (!response.ok || data?.error) {
-        throw new Error('模型没有成功回复，请检查服务地址、密钥和模型名称后重试');
-    }
-    const choice = Array.isArray(data?.choices) ? data.choices[0] : undefined;
-    const content = choice?.message?.content;
-    const hasText = typeof content === 'string' ? Boolean(content.trim())
-        : Array.isArray(content) && content.some(part => part?.type === 'text'
-            && typeof part.text === 'string' && part.text.trim());
-    if (!hasText && !(typeof choice?.text === 'string' && choice.text.trim())) {
-        throw new Error('模型没有返回文字回复，请检查模型名称后重试');
-    }
-    return { message: '连接成功，模型已回复' };
+        if (response.status === 401 || response.status === 403) {
+            throw new Error('酒馆拒绝请求，请检查登录状态、账号权限或刷新页面后重试');
+        }
+        if (response.status === 404) throw new Error('酒馆未提供模型生成接口，请检查宿主版本');
+        // 上游错误只用于判断已知状态，不把服务返回的任意文字带给界面。
+        if (data?.quota_error === true) throw new Error('模型服务的额度不足，请补充额度后重试');
+        if (!response.ok || data?.error) throw new Error('模型没有成功回复，请检查服务地址、密钥和模型名称后重试');
+        const choice = Array.isArray(data?.choices) ? data.choices[0] : undefined;
+        const content = choice?.message?.content;
+        const hasText = typeof content === 'string' ? Boolean(content.trim())
+            : Array.isArray(content) && content.some(part => part?.type === 'text'
+                && typeof part.text === 'string' && part.text.trim());
+        if (!hasText && !(typeof choice?.text === 'string' && choice.text.trim())) {
+            throw new Error('模型没有返回文字回复，请检查模型名称后重试');
+        }
+        return { message: '连接成功，模型已回复' };
+    }, timeoutSeconds, timeoutMessage);
 }

@@ -14,7 +14,7 @@ function replyText(data, textCompletion) {
         data?.message?.content, candidates?.content?.parts];
     if (textCompletion) values.push(data?.response, Array.isArray(data) ? data[0]?.content : undefined);
     const text = values.map(textContent).find(value => value.trim());
-    if (!text) throw new Error('模型没有返回文字，请检查模型设置后重试');
+    if (!text) throw Object.assign(new Error('模型没有返回文字，请检查模型设置后重试'), { code: 'AI_RULE_FORMAT' });
     return text;
 }
 

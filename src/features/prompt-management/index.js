@@ -5,7 +5,6 @@ import { isBuiltinJailbreak } from '../../shared/builtin-prompts.js';
 
 const metadataDefaults = {
     jailbreak: { target: 'system', anchor: 'start', priority: 100 },
-    regex: { target: 'user', anchor: 'before_task', priority: 80 },
     style: { target: 'user', anchor: 'end', priority: 50 },
 };
 const categories = Object.keys(metadataDefaults);
@@ -17,12 +16,14 @@ function getMetadata(category, record, previous = {}) {
         if (previous[key] !== undefined) metadata[key] = previous[key];
         if (record[key] !== undefined) metadata[key] = record[key];
     }
+    // 文风始终作为用户需求，旧记录和旧接口也统一处理。
+    if (category === 'style') metadata.target = 'user';
     return metadata;
 }
 
 function assertCategory(category) {
     if (!categories.includes(category)) {
-        throw new TypeError('提示词类别仅支持 jailbreak、regex 或 style');
+        throw new TypeError('提示词类别仅支持 jailbreak 或 style');
     }
 }
 
@@ -40,7 +41,7 @@ function validateTemplate(template, settings) {
     if (!template || typeof template !== 'object' || Array.isArray(template)) {
         errors.push('提示词必须是对象');
     } else if (!categories.includes(template.category)) {
-        errors.push('提示词类别仅支持 jailbreak、regex 或 style');
+        errors.push('提示词类别仅支持 jailbreak 或 style');
     } else {
         const items = settings.prompts[template.category].items;
         errors.push(...validateRecordName(template.name, items, template.id, '已有同名提示词'));
@@ -112,7 +113,7 @@ export function deletePromptTemplate(category, id) {
         if (group.activeId === id) group.activeId = null;
         // 删除与助手回退一起保存，失败时一起回滚。
         if (category === 'jailbreak') resetAssistantReferences(settings, 'jailbreak', id);
-        else resetAssistantReferences(settings, 'prompt', id, category === 'regex' ? 'regex' : 'polish');
+        else resetAssistantReferences(settings, 'prompt', id, 'polish');
         return true;
     });
 }

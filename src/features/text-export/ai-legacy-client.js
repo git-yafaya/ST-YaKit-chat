@@ -23,7 +23,9 @@ async function post(context, path, body, signal) {
 
 function reply(value, signal) {
     if (signal?.aborted) throw cancelled();
-    if (typeof value !== 'string' || !value.trim()) throw new Error('模型没有返回文字，请检查模型设置后重试');
+    if (typeof value !== 'string' || !value.trim()) {
+        throw Object.assign(new Error('模型没有返回文字，请检查模型设置后重试'), { code: 'AI_RULE_FORMAT' });
+    }
     return value;
 }
 
