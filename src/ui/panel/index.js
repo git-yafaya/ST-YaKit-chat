@@ -214,9 +214,6 @@ function openPanel() {
     /* ---------- 主题 ---------- */
     function applyTheme(theme, { animate = false } = {}) {
         currentTheme = theme;
-        const info = THEMES.find((t) => t.id === theme);
-        const next = THEMES[(THEMES.indexOf(info) + 1) % THEMES.length];
-
         dialog.dataset.theme = theme;
         // 「跟随ST」：把从酒馆美化里取到的颜色直接写到弹窗上；换成别的主题时清掉
         const oldVars = tavern ? Object.keys(tavern.vars) : [];
@@ -232,32 +229,58 @@ function openPanel() {
             dialog.style.removeProperty('color-scheme');
         }
 
-        const label = tavern?.name ? `${info.label} · ${tavern.name}` : info.label;
-        themeIcon.setAttribute('src', iconUrl(`theme/${info.icon}`));
+        tellPanel(themeMessage());
+        showThemeFeedback(theme, { animate });
+    }
+
+    // 按钮上的插画、提示文字和主题名气泡（很轻，点击时立刻更新）
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    let jumpAnimation = null;
+    function showThemeFeedback(theme, { animate = false } = {}) {
+        const info = THEMES.find((t) => t.id === theme);
+        const next = THEMES[(THEMES.indexOf(info) + 1) % THEMES.length];
+        const tavernName = theme === 'tavern' ? getTavernTheme().name : '';
+        const label = tavernName ? `${info.label} · ${tavernName}` : info.label;
+        const src = iconUrl(`theme/${info.icon}`);
+        if (themeIcon.getAttribute('src') !== src) themeIcon.setAttribute('src', src);
         themeButton.setAttribute('aria-label', `主题：${label}，点击换成${next.label}`);
         themeButton.title = `主题：${label}`;
-        tellPanel(themeMessage());
+        if (!animate) return;
 
-        if (animate) {
-            // 图标跳一下，旁边冒出主题名
-            themeIcon.classList.remove('is-jumping');
-            void themeIcon.offsetWidth;
-            themeIcon.classList.add('is-jumping');
-            bubble.textContent = label;
-            bubble.classList.add('is-visible');
-            clearTimeout(bubbleTimer);
-            bubbleTimer = setTimeout(() => bubble.classList.remove('is-visible'), 1400);
+        // 图标跳一下：用浏览器动画接口重新播放，不强制重新排版整个页面
+        if (!reduceMotion.matches) {
+            jumpAnimation?.cancel();
+            jumpAnimation = themeIcon.animate([
+                { transform: 'translateY(0) scale(0.7) rotate(-12deg)', opacity: 0.3 },
+                { transform: 'translateY(-6px) scale(1.12) rotate(4deg)', opacity: 1, offset: 0.45 },
+                { transform: 'none', opacity: 1 },
+            ], { duration: 420, easing: 'cubic-bezier(0.3, 0.7, 0.2, 1)' });
         }
+        bubble.textContent = label;
+        bubble.classList.add('is-visible');
+        clearTimeout(bubbleTimer);
+        bubbleTimer = setTimeout(() => bubble.classList.remove('is-visible'), 1400);
     }
 
     // 换主题直接切换，不做过渡动画：过渡会让屏幕闪一下，过渡期间浏览器还会吞掉点击
+    // 插画和气泡马上变；真正换色合并到下一帧只做一次，连续快点时颜色只按最后一个换
+    let pendingTheme = null;
+    let applyFrame = 0;
     function setTheme(theme) {
+        pendingTheme = theme;
         saveTheme(theme);
-        applyTheme(theme, { animate: true });
+        showThemeFeedback(theme, { animate: true });
+        if (applyFrame) return;
+        applyFrame = requestAnimationFrame(() => {
+            applyFrame = 0;
+            const target = pendingTheme;
+            pendingTheme = null;
+            applyTheme(target);
+        });
     }
 
     themeButton.addEventListener('click', () => {
-        const index = THEMES.findIndex((t) => t.id === currentTheme);
+        const index = THEMES.findIndex((t) => t.id === (pendingTheme ?? currentTheme));
         setTheme(THEMES[(index + 1) % THEMES.length].id);
     });
 

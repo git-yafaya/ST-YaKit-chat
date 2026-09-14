@@ -13,12 +13,21 @@
 (() => {
   if (customElements.get('dsh-icon')) return;
 
+  // 每个图标只下载、解析一次，之后直接复制解析好的图形
   const cache = new Map();
   const load = (url) => {
     if (!cache.has(url)) {
       cache.set(url, fetch(url).then((res) => {
         if (!res.ok) throw new Error(`图标加载失败：${url}`);
         return res.text();
+      }).then((text) => {
+        const svg = new DOMParser().parseFromString(text, 'image/svg+xml').querySelector('svg');
+        if (!svg) throw new Error(`图标不是 SVG：${url}`);
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.querySelector('title')?.remove();
+        return svg;
       }));
     }
     return cache.get(url);
@@ -57,15 +66,8 @@
       if (!src) return;
       const url = new URL(src, document.baseURI).href;
       try {
-        const text = await load(url);
+        const svg = await load(url);
         if (this.getAttribute('src') !== src) return; // 加载期间又换了图标
-        const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
-        const svg = doc.querySelector('svg');
-        if (!svg) return;
-        svg.removeAttribute('width');
-        svg.removeAttribute('height');
-        svg.setAttribute('aria-hidden', 'true');
-        svg.querySelector('title')?.remove();
         this.root.querySelector('.holder').replaceChildren(document.importNode(svg, true));
       } catch (error) {
         console.warn(error);
