@@ -9,6 +9,7 @@ export function normalizeSettings(value = {}) {
     if (!isObject(value)) throw new TypeError('导出设置必须是对象');
     const settings = {
         allFloors: true,
+        includeHidden: true,
         start: '',
         end: '',
         types: { ai: true, user: true, system: true },
@@ -18,7 +19,7 @@ export function normalizeSettings(value = {}) {
         mode: 'delete',
         rules: [],
     };
-    for (const key of ['allFloors', 'start', 'end', 'fileName']) {
+    for (const key of ['allFloors', 'includeHidden', 'start', 'end', 'fileName']) {
         if (!Object.hasOwn(value, key)) continue;
         if (typeof value[key] !== typeof settings[key]) {
             throw new TypeError(`导出设置 ${key} 类型不正确`);

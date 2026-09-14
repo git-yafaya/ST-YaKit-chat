@@ -34,7 +34,8 @@ export function readChat(context, range = 'all') {
         mes: message.mes,
         is_user: Boolean(message.is_user),
         is_system: Boolean(message.is_system),
-        // 保留旁白类型，供后续消息筛选识别系统提示。
+        // 保留具名回复与消息类型，区分宿主 comment 回复和真正系统提示。
+        is_name: Boolean(message.is_name),
         extra: { type: message.extra?.type },
     }));
 }

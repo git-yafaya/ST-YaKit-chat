@@ -42,7 +42,9 @@ function readMessages(context, settings) {
             end: Math.min(last, Math.max(0, end)) + 1,
         };
     }
-    const messages = filterMessages(readChat(context, range), settings.types);
+    // 隐藏状态独立筛选，保留原楼层号后再按消息类别过滤。
+    const included = readChat(context, range).filter(message => settings.includeHidden || !message.is_system);
+    const messages = filterMessages(included, settings.types);
     const rules = settings.rules.map(parseRule).filter(rule => rule !== null);
     return cleanMessages(messages, rules, settings.mode === 'delete' ? 'remove' : 'keep');
 }

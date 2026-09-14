@@ -1,8 +1,15 @@
-// 系统标记和旁白优先于用户标记，兼容宿主的真假值。
+const SYSTEM_MESSAGE_TYPES = new Set([
+    'help', 'welcome', 'empty', 'generic', 'narrator', 'comment', 'slash_commands',
+    'formatting', 'hotkeys', 'macros', 'welcome_prompt', 'assistant_note', 'assistant_message',
+]);
+
+// 隐藏标记不改变说话方；旁白优先，宿主具名回复和助手问候仍归 AI。
 export function getMessageType(message) {
-    return message.is_system || message.extra?.type === 'narrator'
-        ? 'system'
-        : message.is_user ? 'user' : 'ai';
+    const type = message.extra?.type;
+    if (type === 'narrator') return 'system';
+    if (message.is_user) return 'user';
+    if (type === 'assistant_message' || (type === 'comment' && message.is_name)) return 'ai';
+    return SYSTEM_MESSAGE_TYPES.has(type) ? 'system' : 'ai';
 }
 
 // 按宿主标记筛选消息，保留原顺序和消息对象。
