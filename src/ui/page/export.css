@@ -37,6 +37,35 @@
 .rule-row { display: flex; align-items: flex-start; gap: 4px; }
 .rule-row + .rule-row { margin-top: 8px; }
 .rule-row dsh-input { flex: 1; min-width: 0; }
+/* 识别到的标签：点一下加对应规则，再点取消 */
+.tag-scan { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }
+.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; max-height: 54px; overflow-y: auto; }
+.tag-chips-empty { font-size: 12px; line-height: 24px; color: var(--text-muted); }
+.tag-chip {
+  height: 24px;
+  max-width: 100%;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-title) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-title) 8%, transparent);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.tag-chip:hover { background: color-mix(in srgb, var(--text-title) 11%, transparent); color: var(--text-title); }
+.tag-chip:focus { outline: none; }
+.tag-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+/* 选中：点睛色底 */
+.tag-chip[aria-pressed="true"] { background: var(--accent); box-shadow: none; color: var(--on-accent); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .tag-chip { transition: none; } }
+
 .rule-empty { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
 .rule-add { margin-top: 8px; }
 

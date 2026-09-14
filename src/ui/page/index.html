@@ -39,6 +39,10 @@
           <option value="delete">删除匹配</option>
           <option value="keep">只保留匹配</option>
         </dsh-segmented>
+        <div class="tag-scan" id="tag-scan" hidden>
+          <span class="tag-scan-label" id="tag-scan-label">识别到的标签</span>
+          <div class="tag-chips" id="tag-chips" role="group" aria-labelledby="tag-scan-label"></div>
+        </div>
         <p class="rule-empty" id="rule-empty">还没有规则，导出原文。</p>
         <div class="rule-list" id="rule-list"></div>
         <div class="btn-row rule-add">

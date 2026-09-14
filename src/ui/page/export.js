@@ -31,6 +31,9 @@
  *      酒馆里聊天切换或消息变化时调用 callback
  * 6. exportUI.loadSettings() → settings 或 null；exportUI.saveSettings(settings)
  *      记住用户的导出设置和规则
+ * 7. exportUI.scanRecentTags() → [{ label: string, rule: string }]，可以是 Promise
+ *      扫描最近两层楼原文里的标签；label 是按钮上显示的文字，rule 是点击后加入规则列表的正则
+ *      没提供这个函数时，界面不显示「识别到的标签」这一行
  *
  * 接口没提供时，界面显示「文本导出还没接入」，不报错。
  */
@@ -178,6 +181,7 @@
         state.rules[index] = input.value;
         check();
         save();
+        renderTagChips();
         schedulePreview();
       });
       const remove = row.querySelector('dsh-button');
@@ -192,6 +196,62 @@
     }));
     $('rule-empty').hidden = state.rules.length > 0;
     $('rule-count').textContent = state.rules.length ? `${state.rules.length} 条规则` : '';
+    renderTagChips();
+  }
+
+  /* ---------- 识别到的标签：点一下加对应规则，再点取消 ---------- */
+
+  let scannedTags = [];
+
+  function renderTagChips() {
+    const row = $('tag-scan');
+    const chips = $('tag-chips');
+    const canScan = ready() && typeof service().scanRecentTags === 'function' && chatInfo().status === 'ok';
+    row.hidden = !canScan;
+    if (!canScan) return;
+
+    if (!scannedTags.length) {
+      chips.innerHTML = '<span class="tag-chips-empty">最近两层没有识别到标签</span>';
+      return;
+    }
+    chips.replaceChildren(...scannedTags.map((tag) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tag-chip';
+      chip.textContent = tag.label;
+      chip.title = tag.rule;
+      chip.setAttribute('aria-pressed', String(state.rules.includes(tag.rule)));
+      chip.addEventListener('click', () => toggleTagRule(tag.rule));
+      return chip;
+    }));
+  }
+
+  function toggleTagRule(rule) {
+    if (state.rules.includes(rule)) state.rules = state.rules.filter((item) => item !== rule);
+    else state.rules.push(rule);
+    save();
+    renderRules();
+    renderPreview();
+  }
+
+  let scanToken = 0;
+  async function scanTags() {
+    if (!ready() || typeof service().scanRecentTags !== 'function' || chatInfo().status !== 'ok') {
+      scannedTags = [];
+      renderTagChips();
+      return;
+    }
+    const token = ++scanToken;
+    try {
+      const result = await service().scanRecentTags();
+      if (token !== scanToken) return;
+      scannedTags = Array.isArray(result) ? result.filter((tag) => tag?.label && tag?.rule) : [];
+    } catch (error) {
+      if (token !== scanToken) return;
+      console.warn('[纪实] 扫描标签失败', error);
+      scannedTags = [];
+    }
+    renderTagChips();
   }
 
   $('rule-add').addEventListener('click', () => {
@@ -315,6 +375,7 @@
     const unsubscribe = service().onChatChanged(() => {
       renderSummary();
       schedulePreview();
+      scanTags();
     });
     if (typeof unsubscribe === 'function') window.addEventListener('pagehide', unsubscribe);
   }
@@ -324,5 +385,6 @@
   renderSummary();
   $('type-warning').hidden = anyType();
   renderPreview();
+  scanTags();
   watchChat();
 })();
