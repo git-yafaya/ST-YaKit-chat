@@ -220,8 +220,13 @@
       if (this.dialog.open) return;
       this.dialog.classList.remove('closing');
       this.dialog.showModal();
-      // 抽屉开着时，后面的页面不滚动
-      document.documentElement.style.overflow = 'hidden';
+      // 抽屉开着时，后面的页面不滚动；滚动条藏起来后补上同样宽的空白，页面宽度不变、不跳动
+      const root = document.documentElement;
+      if (root.style.overflow !== 'hidden') {
+        const gap = window.innerWidth - root.clientWidth;
+        root.style.overflow = 'hidden';
+        root.style.paddingRight = gap > 0 ? `${gap}px` : '';
+      }
       this.dispatchEvent(new Event('open'));
     }
 
@@ -235,7 +240,10 @@
         this.dialog.close();
         // 还有别的抽屉开着时，后面的页面继续不滚动
         const othersOpen = [...document.querySelectorAll('dsh-drawer')].some((drawer) => drawer !== this && drawer.open);
-        if (!othersOpen) document.documentElement.style.overflow = '';
+        if (!othersOpen) {
+          document.documentElement.style.overflow = '';
+          document.documentElement.style.paddingRight = '';
+        }
         this.dispatchEvent(new Event('close'));
       };
       // 动画结束再真正关闭；万一动画没触发，300ms 后也会关
