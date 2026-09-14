@@ -6,6 +6,7 @@ import { saveExport, getEpubPreferences, saveEpubPreferences } from './features/
 import * as apiManagement from './features/api-management/index.js';
 import * as promptManagement from './features/prompt-management/index.js';
 import { exportUI } from './features/text-export/export-ui.js';
+import { updater } from './features/updater/index.js';
 import { initPanelUI } from './ui/panel/index.js';
 
 function getContext() {
@@ -41,6 +42,7 @@ export async function saveTxt(messages, format = 'speaker') {
 globalThis.YaKitChat = Object.freeze({
     version: '0.3.2',
     exportUI,
+    updater,
     readCurrentChat,
     filterMessages,
     cleanMessages,
