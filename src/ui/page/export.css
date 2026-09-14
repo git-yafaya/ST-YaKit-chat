@@ -162,8 +162,10 @@
   .tag-chip { height: 34px; padding: 0 14px; font-size: 13px; }
   .tag-toggle { height: 34px; padding: 0 12px; font-size: 13px; }
   .tag-scan-label { line-height: 34px; }
-  /* 预览标题行放不下摘要，只留「导出设置」按钮 */
-  .export-summary { display: none; }
+  /* 预览标题行放不下摘要：「导出设置」按钮留在标题右边，摘要小字换到标题下面一整行 */
+  .preview-card::part(header) { flex-wrap: wrap; row-gap: 4px; }
+  .preview-extra { display: contents; }
+  .export-summary { order: 1; flex-basis: 100%; }
   .export-page { height: auto; min-height: 0; }
   .export-page > .preview-card { flex: none; }
   .preview-card::part(body) { max-height: 280px; }
