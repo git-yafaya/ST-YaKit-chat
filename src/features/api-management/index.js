@@ -1,5 +1,6 @@
 import { readSettings, updateSettings } from '../../shared/settings.js';
 import { createRecordId, validateRecordName } from '../../shared/validation.js';
+import { resetAssistantReferences } from '../assistant-management/index.js';
 
 // 仅判断空密钥是否需要提醒，不探测服务是否可用。
 export function shouldWarnEmptyKey(config) {
@@ -119,6 +120,7 @@ export function deleteApiProfile(id) {
         const group = settings.apiProfiles;
         group.items.splice(findRecordIndex(group.items, id), 1);
         if (group.activeId === id) group.activeId = null;
+        resetAssistantReferences(settings, 'profile', id);
         return true;
     });
 }

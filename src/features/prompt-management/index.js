@@ -1,5 +1,6 @@
 import { readSettings, updateSettings } from '../../shared/settings.js';
 import { createRecordId, validateRecordName } from '../../shared/validation.js';
+import { resetAssistantReferences } from '../assistant-management/index.js';
 
 const metadataDefaults = {
     jailbreak: { target: 'system', anchor: 'start', priority: 100 },
@@ -106,6 +107,9 @@ export function deletePromptTemplate(category, id) {
         const group = settings.prompts[category];
         group.items.splice(findRecordIndex(group.items, id), 1);
         if (group.activeId === id) group.activeId = null;
+        // 删除与助手回退一起保存，失败时一起回滚。
+        if (category === 'jailbreak') resetAssistantReferences(settings, 'jailbreak', id);
+        else resetAssistantReferences(settings, 'prompt', id, category === 'regex' ? 'regex' : 'polish');
         return true;
     });
 }

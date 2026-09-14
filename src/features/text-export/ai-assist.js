@@ -1,5 +1,5 @@
-import { getActiveApiConfig } from '../api-management/index.js';
-import { getPromptTemplates } from '../prompt-management/index.js';
+import { getAssistantSelection } from '../assistant-management/index.js';
+import { resolveAssistant } from '../api-ui/assistants.js';
 import { getMainClient, generateSecondary } from './ai-client.js';
 import { buildRuleMessages, parseRuleSuggestions } from './ai-rules.js';
 
@@ -9,26 +9,15 @@ function getContext() {
     return context;
 }
 
-function selection() {
-    const selected = category => {
-        const group = getPromptTemplates(category);
-        return group.items.find(item => item.id === group.activeId) ?? null;
-    };
-    return { api: getActiveApiConfig(), jailbreak: selected('jailbreak'), constraint: selected('regex') };
-}
-
 export async function getAiContext() {
     try {
-        const context = getContext();
-        const { api, jailbreak, constraint } = selection();
-        const usingMainApi = api.source === 'main';
-        const main = usingMainApi ? await getMainClient(context) : null;
+        const { profile, jailbreak, prompt } = await resolveAssistant('regex');
         return {
-            apiName: usingMainApi ? '主 API（跟随ST）' : api.config.name,
-            model: usingMainApi ? main.model : api.config.model,
-            usingMainApi,
+            apiName: profile.name,
+            model: profile.model,
+            usingMainApi: profile.usingMainApi,
             jailbreakName: jailbreak?.name ?? null,
-            constraintName: constraint?.name ?? null,
+            constraintName: prompt?.name ?? null,
         };
     } catch {
         throw new Error('无法读取当前 API 和提示词，请检查 API 管理设置后重试');
@@ -49,7 +38,7 @@ export async function suggestRules(options) {
     if (context.characterId == null || !Array.isArray(context.chat)) throw new Error('请先在酒馆里打开一个聊天');
     if (!context.chat.length) throw new Error('当前聊天没有可参考的内容');
     // 在等待模型之前固定选择、原文和规则，后续界面改动不影响本次请求。
-    const { api, jailbreak, constraint } = selection();
+    const { api, jailbreak, prompt: constraint } = getAssistantSelection('regex');
     const rules = [...options.rules];
     const first = Math.max(0, context.chat.length - 2);
     const samples = context.chat.slice(first).map((message, index) => ({
