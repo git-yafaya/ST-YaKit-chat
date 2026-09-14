@@ -2,11 +2,150 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列）。「文本导出」页完整可用：导出预览、正则匹配（含识别最近两楼标签）、导出设置抽屉，导出 TXT / Markdown / EPUB；设置页可检查并在线更新本插件。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列）。「文本导出」页完整可用：导出预览、正则匹配（含识别最近两楼标签）、导出设置抽屉，导出 TXT / Markdown / EPUB；预设页管理纪实自己的预设（切换、导入导出、整体备份恢复）；设置页可检查并在线更新本插件。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat.exportUI` 调用业务。
-- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；文本导出页接口 `exportUI.{getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags}`；插件更新 `updater.{checkUpdate, update}`；既有函数 `updater` 的参数、返回与错误（两个函数都无参数，失败 reject 中文 `Error`）：
+- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；文本导出页接口 `exportUI.{getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags}`；预设 `presets.{list, getActiveId, activate, create, update, rename, duplicate, remove, exportPreset, importPreset, exportBackup, restoreBackup, suggestName}`；插件更新 `updater.{checkUpdate, update}`；既有函数 `presets` 的参数与返回（全部返回 Promise，包括 `suggestName`；顶层用 `globalThis.YaKitChat.presets`，iframe 用 `parent.YaKitChat.presets`；失败 reject 中文 `Error`）：
+
+| 调用 | Promise 成功值 |
+| --- | --- |
+| `list()` | `Array<{id,name,content}>`，按创建顺序 |
+| `getActiveId()` | `string\|null` |
+| `activate(id\|null)` | 完整导出 settings |
+| `create(name, content)` | 新预设 `{id,name,content}` |
+| `update(id, content)` | 覆盖后的预设 |
+| `rename(id, name)` | 改名后的预设 |
+| `duplicate(id)` | 新复制的预设 |
+| `remove(id)` | `true` |
+| `exportPreset(id)` | `{filename}`，并触发下载 |
+| `importPreset(text)` | 新导入的预设 |
+| `exportBackup(uiPrefs)` | `{filename}`，并触发下载 |
+| `restoreBackup(text)` | `{presetCount, uiPrefs}` |
+| `suggestName()` | 建议名称或空字符串 |
+
+| 情况 | Error.message |
+| --- | --- |
+| 名称类型不对或去空白后为空 | `预设名称必须是字符串`／`预设名称不能为空` |
+| 重命名撞名 | `已有同名预设` |
+| 普通操作找不到 ID | `找不到指定预设` |
+| 单套导出找不到 ID | `预设不存在` |
+| 内容缺项 | `预设内容不完整` |
+| 内容字段类型或枚举不对 | 沿用 `导出设置 … 类型不正确`／`不受支持` 等中文校验信息 |
+| 库结构、ID 或当前引用不合法 | `预设库格式不正确`／`预设标识格式不正确`／`预设标识重复`／`当前预设不存在` |
+| 新 ID 碰撞 | `生成的预设标识重复，请重试` |
+| 单套导入格式不合法 | `这不是纪实的预设文件` |
+| 备份恢复格式不合法 | `这不是纪实的备份文件` |
+| 导出备份的界面偏好不合法 | `界面偏好必须是可保存为 JSON 的对象` |
+| 存储或宿主异常 | 已有中文原因保留；其他底层异常统一为 `预设操作失败，请稍后重试` |
+
+单套预设文件（UTF-8 JSON，MIME `application/json;charset=utf-8`，扩展名 `.yakit-preset.json`，不保存 ID 或当前选择）：
+
+```json
+{
+  "type": "ST-YaKit-chat/preset",
+  "schemaVersion": 1,
+  "name": "示例预设",
+  "content": {
+    "types": { "ai": true, "user": true, "system": true },
+    "format": "txt",
+    "labels": "with",
+    "mode": "delete",
+    "rules": []
+  }
+}
+```
+
+备份文件（UTF-8 JSON，MIME 相同，扩展名 `.yakit-backup.json`）：
+
+```json
+{
+  "type": "ST-YaKit-chat/backup",
+  "schemaVersion": 1,
+  "presets": { "items": [], "activeId": null },
+  "exportSettings": {
+    "allFloors": true,
+    "start": "",
+    "end": "",
+    "types": { "ai": true, "user": true, "system": true },
+    "format": "txt",
+    "labels": "with",
+    "fileName": "",
+    "mode": "delete",
+    "rules": []
+  },
+  "uiPrefs": {}
+}
+```
+
+只读查看预设列表、当前预设和建议名称：
+
+```js
+(async () => {
+    const api = globalThis.YaKitChat.presets;
+    console.table(await api.list());
+    console.log('当前预设', await api.getActiveId());
+    console.log('建议名称', (await api.suggestName()) || '新预设');
+})();
+```
+
+把当前导出设置存为新预设并启用，楼层范围和文件名保持当前值：
+
+```js
+(async () => {
+    const { presets, exportUI } = globalThis.YaKitChat;
+    const settings = exportUI.loadSettings() ?? {
+        types: { ai: true, user: true, system: true },
+        format: 'txt', labels: 'with', mode: 'delete', rules: [],
+    };
+    const content = Object.fromEntries(
+        ['types', 'format', 'labels', 'mode', 'rules'].map(key => [key, settings[key]]),
+    );
+    const preset = await presets.create((await presets.suggestName()) || '新预设', content);
+    const appliedSettings = await presets.activate(preset.id);
+    console.log(preset, appliedSettings);
+})();
+```
+
+把当前设置保存回正在使用的预设：
+
+```js
+(async () => {
+    const { presets, exportUI } = globalThis.YaKitChat;
+    const id = await presets.getActiveId();
+    if (id === null) return;
+    const settings = exportUI.loadSettings();
+    if (!settings) return;
+    const content = Object.fromEntries(
+        ['types', 'format', 'labels', 'mode', 'rules'].map(key => [key, settings[key]]),
+    );
+    console.log(await presets.update(id, content));
+})();
+```
+
+文件操作调用（`file` 是文件选择器返回的 File，`uiPrefs` 由 UI 读取真实界面偏好后传入；恢复的确认与返回偏好的应用由 UI 负责）：
+
+```js
+const yakitPresetFileApi = (globalThis.YaKitChat ?? globalThis.parent.YaKitChat).presets;
+
+async function exportOnePreset(id) {
+    return yakitPresetFileApi.exportPreset(id);
+}
+
+async function importOnePreset(file) {
+    return yakitPresetFileApi.importPreset(await file.text());
+}
+
+async function backupPresets(uiPrefs) {
+    return yakitPresetFileApi.exportBackup(uiPrefs);
+}
+
+async function restorePresets(file) {
+    return yakitPresetFileApi.restoreBackup(await file.text());
+}
+```
+
+`updater` 的参数、返回与错误（两个函数都无参数，失败 reject 中文 `Error`）：
 
 | 接口 | 返回 |
 | --- | --- |
@@ -53,7 +192,7 @@
 ```
 
 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences`；副 API 配置与提示词管理函数（见第 6 节）。
-- **当前还没做什么**：润色、API 管理两个页签只有占位卡片；预设页界面与 `presets` 业务已接入、尚未通过小主复测，文档暂不收录其契约；副 API 配置、提示词管理、EPUB 分章偏好没有界面；提示词注入组装未实现；不发起任何 AI 请求；不支持群聊。
+- **当前还没做什么**：润色、API 管理两个页签只有占位卡片；预设只管纪实自己的导出设置，不操作酒馆的生成预设；副 API 配置、提示词管理、EPUB 分章偏好没有界面；提示词注入组装未实现；不发起任何 AI 请求；不支持群聊。
 
 ## 仓库结构
 
@@ -64,6 +203,7 @@ ST-YaKit-chat/
 │   ├── index.js            入口：组装 YaKitChat，初始化界面
 │   ├── features/
 │   │   ├── text-export/        读取、类型过滤、正则清洗、三种格式生成与下载、文本导出页接口、标签扫描
+│   │   ├── presets/            纪实预设的增删改查、单套文件导入导出、整体备份与恢复
 │   │   ├── updater/            定位本插件安装目录、检查版本、在线更新本插件
 │   │   ├── api-management/     副 API 配置的增删改查与校验（无界面）
 │   │   └── prompt-management/  三类提示词的增删改查与校验（无界面）
@@ -97,6 +237,10 @@ ST-YaKit-chat/
 ├── src/features/text-export/export-ui.js
 ├── src/features/text-export/export-ui-settings.js
 ├── src/features/text-export/scan-recent-tags.js
+├── src/features/presets/index.js
+├── src/features/presets/store.js
+├── src/features/presets/schema.js
+├── src/features/presets/files.js
 ├── src/features/updater/host.js
 ├── src/features/updater/index.js
 ├── src/features/api-management/index.js
@@ -113,7 +257,7 @@ ST-YaKit-chat/
 ├── src/ui/page/settings.js / settings.css
 ├── src/ui/page/preset.js / preset.css
 ├── src/ui/page/demo.js / demo.css
-├── src/ui/components/embed-frame.js、icon.js、segmented.js、card.js、collapse.js、drawer.js、button.js、input.js、select.js、switch.js、toast.js、scrollbar.js、menu.js、modal.js、theme-list.js、themes.css
+├── src/ui/components/embed-frame.js、icon.js、segmented.js、card.js、collapse.js、drawer.js、button.js、input.js、select.js、switch.js、toast.js、scrollbar.js、modal.js、theme-list.js、themes.css
 ├── src/ui/icons/*.svg、src/ui/icons/theme/*.svg
 ├── README.md / Public.md
 ├── CLAUDE.md / AGENTS.md / CLAUDE.local.md
@@ -137,7 +281,14 @@ ST-YaKit-chat/
    - 设置或规则变化：`saveSettings(settings)`，200ms 防抖后重新 `previewMessages`
    - 点击导出：`exportFile(settings)` → 成功提示「已导出 N 条消息」
    - `onChatChanged` 回调：刷新摘要、预览、标签
-7. 设置页「插件更新」（`src/ui/page/settings.js`）：
+7. 预设（`src/ui/page/preset.js`，预设页与导出页底部下拉框）：
+   - 打开面板和切到预设页时 `list()` + `getActiveId()`
+   - 选择预设：有未保存改动时先确认 → `activate(id)` → 用返回的 settings 刷新导出页（`window.DshExportPage.replaceState`）
+   - 「已修改」由界面比对当前导出设置与当前预设的五项内容；「更新预设」→ `update(activeId, content)`
+   - 存为新预设：`suggestName()` 预填（空串回退「新预设」）→ `create(name, content)` → `activate(新 id)`
+   - 导入 / 从备份恢复：界面选文件读文字 → `importPreset(text)` / 确认后 `restoreBackup(text)`；恢复后 `exportUI.loadSettings()` 刷新导出页，并应用返回的 `uiPrefs`（`theme`、`nav`、`themeSwitch`，值不合法时忽略）
+   - 备份全部：界面读取 `dsh-theme`、`dsh-nav`、`dsh-theme-switch` 作为 `uiPrefs` → `exportBackup(uiPrefs)`
+8. 设置页「插件更新」（`src/ui/page/settings.js`）：
    - 切到设置页时 `updater.checkUpdate()`，一分钟内不重复自动检查；已是最新或检查失败时按钮为「检查更新」，点击立即重新检查
    - 有新版本时点「更新」：`updater.update()` → `updated: true` 时提示并在约 1.2 秒后由界面 `parent.location.reload()`；`updated: false` 提示「已经是最新版本」
    - 失败：按钮下方提示框显示 `error.message`，可重试；未提供 `updater` 时不显示这一行
@@ -195,6 +346,26 @@ ST-YaKit-chat/
 | 规则 | `/pattern/gi` 字符串，同一名称的规则同时支持成对块和自闭合；成对规则匹配标签连同内容；同名成对嵌套只匹配最内层完整块 |
 | 空结果 | 群聊、无聊天、空聊天或未识别到时返回 `[]`；非字符串正文跳过 |
 
+**预设（`presets`）**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 内容 | `content` 必须完整包含 `types`（三个开关都要有）、`format`、`labels`、`mode`、`rules`；额外字段不进入预设；允许三类全关、空规则、语法无效的正则文字 |
+| 切换 | `activate(id)` 一次保存当前 ID 并把五项写入导出设置，保留 `allFloors/start/end/fileName`；尚无导出设置时先补默认值 |
+| 取消预设 | `activate(null)` 只清空当前 ID，返回当前导出设置副本，不创建或改写已保存的 `exportUI` |
+| 新建 / 导入 / 复制 | 都不自动激活（界面在新建后自己调用 `activate`）；`update` 覆盖当前预设时不再改写导出设置 |
+| 删除 | 删掉当前预设只清空当前 ID，导出设置不变；允许删光，没有默认预设 |
+| 名称 | 去首尾空白后不能为空；业务无长度上限，界面输入框限 30 字；重名按去空白后完全相同判断，区分英文大小写 |
+| 重名 | 新建、单套导入依次试 `名字(2)`、`名字(3)`；复制以 `原名 副本` 为基名，重名同样加序号；重命名与其他记录撞名失败，改成自己原名允许 |
+| ID | `crypto.getRandomValues` 生成 4 个 Uint32 用连字符连接；改名不变；新建、复制、单套导入各生成新 ID，碰撞时拒绝写入并提示重试 |
+| `suggestName` | 单人聊天返回角色卡名称（去首尾空白）；群聊、未选角色、缺聊天数组、无有效名称返回空字符串；已选角色但聊天为空仍返回角色名；不创建、不查重 |
+| 单套文件名 | 预设名中 `<>:"/\|?*`、U+0000–001F、U+007F–009F 逐个替换为 `_`，直接追加 `.yakit-preset.json`（`原始名称.md` → `原始名称.md.yakit-preset.json`）；文件内 `name` 保留原名 |
+| 单套导入 | 可含开头 BOM；`type`、数字 `schemaVersion:1`、名称、完整内容必须合法；未知字段忽略；追加到末尾 |
+| 备份文件名 | `纪实备份` + 本地毫秒时间戳 + `.yakit-backup.json` |
+| 备份内容 | 全部预设及顺序、当前 ID、完整已保存导出设置（尚无时为默认值）、界面传入的 `uiPrefs`；`uiPrefs` 必须可完整表达为 JSON，拒绝 undefined、函数、非有限数字、BigInt、Date、循环引用、稀疏数组 |
+| 恢复 | 写入前校验整个文件（版本、记录完整、名称与 ID 唯一、当前 ID 引用存在或为 null、完整导出设置、界面偏好）；通过后一次覆盖 `presets` 与 `exportUI`，其他模块设置保留；保留原 ID 与顺序，不重新应用当前预设（保留备份里的导出草稿）；校验失败不写入 |
+| 保存 | 在副本上校验修改，宿主保存排队失败回滚；成功仅表示已交给宿主保存队列；所有返回值是独立副本，支持 iframe 传入对象 |
+
 **插件更新（`updater`）**
 
 | 情况 | 实际行为 |
@@ -232,6 +403,13 @@ ST-YaKit-chat/
 | `rules` | `[]` | 规则字符串数组（原样保存） |
 
 EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面。
+
+**预设库**（`extensionSettings['ST-YaKit-chat'].presets`，与 `exportUI` 同一命名空间）
+
+| 字段 | 默认值 | 含义 |
+| --- | --- | --- |
+| `items` | `[]` | `[{ id, name, content }]`，按创建顺序 |
+| `activeId` | `null` | 当前预设 ID |
 
 **界面设置**（浏览器 `localStorage`）
 
@@ -346,9 +524,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 - 文本导出页：导出预览、正则匹配、识别到的标签、导出设置抽屉（楼层范围、消息类型、格式、文件名）、TXT / Markdown / EPUB 导出；`exportUI` 八个接口全部接入
 - 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、七套主题、设置页（插件更新、主题、导航栏位置、组件示例）
 - 插件更新：`updater` 两个接口全部接入，无未接入业务项
-
-**已接入、待小主复测**
-- 预设页与导出页预设下拉框：界面调用 `presets` 接口（说明见 `src/ui/page/preset.js` 开头），复测通过后补充契约
+- 预设：预设页（列表、切换、重命名、复制、导出、删除、导入、备份全部、从备份恢复）与导出页底部预设下拉框、「更新预设」；`presets` 十三个接口全部接入，无未接入业务项
 
 **已实现但无界面**
 - 副 API 配置管理（`src/features/api-management/`，已在 `YaKitChat` 上）：`getApiProfiles`、`validateApiConfig`、`shouldWarnEmptyKey`、`saveApiProfile`、`deleteApiProfile`、`selectApiProfile`、`getActiveApiConfig`
@@ -360,7 +536,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 - 提示词注入组装、任何实际发起 AI 请求的能力
 - 群聊支持
 
-**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、群组、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`。无第三方依赖。
+**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、群组、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`。无第三方依赖。
 
 **版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约并完成人工验收，其他版本未单独验证。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，需要支持这两项的浏览器。
 
