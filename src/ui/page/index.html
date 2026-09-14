@@ -37,6 +37,7 @@
         <div slot="extra" class="preview-extra">
           <span class="export-summary" id="export-summary"></span>
           <yakit-button id="export-settings" size="sm" variant="ghost" icon="../icons/settings.svg">导出设置</yakit-button>
+          <yakit-button id="preview-expand" size="sm" variant="ghost" icon="../icons/expand.svg" aria-label="放大查看导出预览"></yakit-button>
         </div>
         <div id="preview-body"></div>
       </yakit-card>
@@ -242,11 +243,17 @@
     <yakit-button slot="footer" id="export-drawer-done" variant="primary">完成</yakit-button>
   </yakit-drawer>
 
+  <!-- 文本导出：放大查看导出预览 -->
+  <yakit-drawer id="preview-drawer" title="导出预览" width="760">
+    <p class="field-note preview-drawer-note">最近 2 条消息导出后的样子</p>
+    <div class="preview-drawer-body" id="preview-drawer-body"></div>
+  </yakit-drawer>
+
   <!-- 文本导出：AI 辅助生成正则规则 -->
   <yakit-drawer id="ai-drawer" title="AI 辅助">
     <p class="ai-context" id="ai-context"></p>
     <section class="drawer-section drawer-stack">
-      <yakit-input id="ai-request" label="想删掉或保留什么" required multiline rows="3" maxlength="500" placeholder="例如：去掉每条消息末尾的状态栏"></yakit-input>
+      <yakit-input id="ai-request" label="想删掉或保留什么" required multiline rows="6" maxlength="500" placeholder="例如：去掉每条消息末尾的状态栏"></yakit-input>
       <p class="field-note" id="ai-mode-note"></p>
       <div class="btn-row">
         <yakit-button id="ai-generate" variant="primary" icon="../icons/sparkle.svg" disabled>生成规则</yakit-button>

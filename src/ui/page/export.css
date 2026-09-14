@@ -143,6 +143,10 @@
   box-shadow: var(--card-shadow);
 }
 .preview-extra { display: flex; align-items: center; gap: 4px; min-width: 0; }
+
+/* 放大查看导出预览的宽抽屉 */
+.preview-drawer-note { margin: 0 0 12px; }
+.preview-drawer-body .preview-empty { min-height: 160px; }
 .export-summary {
   min-width: 0;
   overflow: hidden;

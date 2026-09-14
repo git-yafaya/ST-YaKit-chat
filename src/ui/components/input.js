@@ -206,6 +206,17 @@
 
     connectedCallback() {
       this.render();
+      // 多行输入框从隐藏变成显示时重新量一次高度
+      if (!this.sizeObserver) {
+        this.sizeObserver = new ResizeObserver(() => {
+          if (this.hasAttribute('multiline')) this.update();
+        });
+      }
+      this.sizeObserver.observe(this);
+    }
+
+    disconnectedCallback() {
+      this.sizeObserver?.disconnect();
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -353,7 +364,8 @@
 
       if (this.hasAttribute('multiline')) {
         field.style.height = 'auto';
-        field.style.height = `${field.scrollHeight}px`;
+        // 还没显示出来（比如在关着的抽屉里）时量不出高度，先按 rows 的默认高度，显示出来后再量
+        if (field.scrollHeight) field.style.height = `${field.scrollHeight}px`;
       }
     }
   }

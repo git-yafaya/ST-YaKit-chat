@@ -454,6 +454,17 @@
     });
 
     $('export-settings').addEventListener('click', () => $('export-drawer').show());
+    // 放大查看：把导出预览里现在的内容搬进宽抽屉，关掉前跟着预览刷新
+    const fillPreviewDrawer = () => {
+      $('preview-drawer-body').replaceChildren(...[...$('preview-body').childNodes].map((node) => node.cloneNode(true)));
+    };
+    $('preview-expand').addEventListener('click', () => {
+      fillPreviewDrawer();
+      $('preview-drawer').show();
+    });
+    new MutationObserver(() => {
+      if ($('preview-drawer').open) fillPreviewDrawer();
+    }).observe($('preview-body'), { childList: true, subtree: true, characterData: true });
     $('export-drawer-done').addEventListener('click', () => $('export-drawer').close());
   }
 
