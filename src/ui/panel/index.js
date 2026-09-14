@@ -14,6 +14,7 @@ import '../components/embed-frame.js';
 import '../components/segmented.js';
 import '../components/icon.js';
 import '../components/theme-list.js';
+import '../components/error-log.js';
 import { getTavernTheme, watchTavernTheme } from './tavern-theme.js';
 
 const MENU_ID = 'yakit-wand-item';
@@ -372,8 +373,12 @@ function migrateLegacySettings() {
     } catch {}
 }
 
+// 酒馆页面里只记纪实自己文件出的错（报错位置在插件文件夹里）
+const EXTENSION_BASE = new URL('../../../', import.meta.url).href;
+
 export function initPanelUI(api, getContext) {
     migrateLegacySettings();
+    YaKitErrorLog.install(window, { source: '弹窗', filter: (info) => info.includes(EXTENSION_BASE) });
     loadThemes();
     // 魔法棒菜单可能比插件晚创建，没找到就等酒馆准备好再加
     if (document.getElementById('extensionsMenu')) {

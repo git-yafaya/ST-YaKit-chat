@@ -67,7 +67,7 @@
       }
       else setUpdateState('有新版本', { canClick: true, primary: true });
     } catch (error) {
-      console.warn('[纪实] 检查更新失败', error);
+      YaKitErrorLog.warn('检查更新失败', error);
       setUpdateState('检查失败', { canClick: true, action: 'check' });
       showUpdateError(error?.message || '检查更新失败');
       lastCheck = 0;
@@ -169,6 +169,60 @@
   window.addEventListener('yakit-theme-switch-change', applySwitchMode);
   window.addEventListener('pagehide', () => pcQuery.removeEventListener('change', applySwitchMode));
   applySwitchMode();
+
+  /* ---------- 报错记录：最新的在前，可复制全部、清空 ---------- */
+  function renderErrorLog() {
+    const list = YaKitErrorLog.list();
+    $('set-errors').setAttribute('summary', list.length ? `最近 ${list.length} 条` : '没有报错');
+    $('error-log-empty').hidden = list.length > 0;
+    $('error-log-actions').hidden = list.length === 0;
+    $('error-log').replaceChildren(...list.map((item) => {
+      const row = document.createElement('div');
+      row.className = 'error-item';
+      row.innerHTML = '<div class="error-meta"></div><div class="error-message"></div><pre class="error-detail"></pre>';
+      row.querySelector('.error-meta').textContent = `${YaKitErrorLog.formatTime(item.time)} · ${item.source}${item.count > 1 ? ` · ${item.count} 次` : ''}`;
+      row.querySelector('.error-message').textContent = item.message;
+      const detail = row.querySelector('.error-detail');
+      detail.textContent = item.detail || '';
+      detail.hidden = !item.detail;
+      return row;
+    }));
+  }
+
+  // 复制：用酒馆页面的剪贴板接口（面板 iframe 自己没有写剪贴板的权限），不行或 1 秒没反应时退回旧的复制方式
+  async function copyText(text) {
+    try {
+      await Promise.race([
+        (parent.navigator.clipboard || navigator.clipboard).writeText(text),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1000)),
+      ]);
+      return true;
+    } catch {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.append(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      area.remove();
+      return ok;
+    }
+  }
+
+  $('error-log-copy').addEventListener('click', async () => {
+    const ok = await copyText(YaKitErrorLog.format());
+    if (ok) YaKitToast.show('已复制报错记录', 'success');
+    else YaKitToast.show('复制没成功，请长按记录手动复制', 'warning');
+  });
+  $('error-log-clear').addEventListener('click', async () => {
+    const ok = await YaKitModal.confirm({ title: '清空报错记录？', message: '清空后不能找回。', confirmText: '清空' });
+    if (ok) YaKitErrorLog.clear();
+  });
+  window.addEventListener('yakit-error-log-change', renderErrorLog);
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'yakit-error-log') renderErrorLog();
+  });
+  renderErrorLog();
 
   /* ---------- 导航栏位置 ---------- */
   const NAV_LABELS = { auto: '自动', top: '上方', bottom: '下方' };

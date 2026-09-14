@@ -16,6 +16,7 @@
   <script src="../components/switch.js"></script>
   <script src="../components/select.js"></script>
   <script src="../components/collapse.js"></script>
+  <script src="../components/error-log.js"></script>
   <script src="../components/toast.js"></script>
   <script src="../components/modal.js"></script>
   <script src="../components/theme-list.js"></script>
@@ -117,6 +118,15 @@
           <p class="field-note">页签放在顶部还是底部。<br>建议选自动：电脑放上方，手机放下方。</p>
         </yakit-collapse>
         <yakit-collapse id="set-demo" title="组件示例" summary="按钮、输入框、开关等" icon="../icons/folder.svg" link></yakit-collapse>
+        <yakit-collapse id="set-errors" title="报错记录" icon="../icons/bell.svg">
+          <p class="field-note error-log-note">纪实最近出过的错，最多保留 50 条。<br>反馈问题时点「复制全部」，把内容发给作者。</p>
+          <div class="error-log" id="error-log"></div>
+          <p class="list-empty" id="error-log-empty">还没有报错。</p>
+          <div class="btn-row error-log-actions" id="error-log-actions">
+            <yakit-button id="error-log-copy" size="sm" icon="../icons/copy.svg">复制全部</yakit-button>
+            <yakit-button id="error-log-clear" size="sm" variant="ghost" icon="../icons/trash.svg">清空</yakit-button>
+          </div>
+        </yakit-collapse>
       </div>
     </div>
 

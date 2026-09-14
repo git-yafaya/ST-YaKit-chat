@@ -81,7 +81,7 @@
     try {
       service()?.saveSettings?.(structuredClone(state));
     } catch (error) {
-      console.warn('[纪实] 保存导出设置失败', error);
+      YaKitErrorLog.warn('保存导出设置失败', error);
     }
     notifyChange();
   };
@@ -93,7 +93,7 @@
     try {
       return service().getChatInfo();
     } catch (error) {
-      console.warn('[纪实] 读取聊天信息失败', error);
+      YaKitErrorLog.warn('读取聊天信息失败', error);
       return { status: 'none', floorCount: 0 };
     }
   }
@@ -128,7 +128,7 @@
       messages = await service().previewMessages(structuredClone(state), PREVIEW_COUNT);
     } catch (error) {
       if (token === previewToken) showEmpty('预览加载失败');
-      console.warn('[纪实] 预览失败', error);
+      YaKitErrorLog.warn('预览失败', error);
       return;
     }
     if (token !== previewToken) return; // 期间设置又变了，丢掉旧结果
@@ -346,7 +346,7 @@
       scannedTags = Array.isArray(result) ? result.filter((tag) => tag?.label && tag?.rule) : [];
     } catch (error) {
       if (token !== scanToken) return;
-      console.warn('[纪实] 扫描标签失败', error);
+      YaKitErrorLog.warn('扫描标签失败', error);
       scannedTags = [];
     }
     renderTagChips();

@@ -81,7 +81,7 @@
       profiles = Array.isArray(list) ? list : [];
       activeProfileId = profiles.some((profile) => profile.id === id) ? id : null;
     } catch (error) {
-      console.warn('[纪实] 读取 API 配置失败', error);
+      YaKitErrorLog.warn('读取 API 配置失败', error);
       profiles = [];
       activeProfileId = null;
     }
@@ -221,7 +221,7 @@
     try {
       result = await service().checkProfile(profileDraft());
     } catch (error) {
-      console.warn('[纪实] 校验 API 配置失败', error);
+      YaKitErrorLog.warn('校验 API 配置失败', error);
       return { errors: {}, warnings: {} };
     }
     if (token !== checkToken) return null;
@@ -292,6 +292,7 @@
         $('api-test-ok').hidden = false;
       } catch (error) {
         $('api-test-error').querySelector('span').textContent = error?.message || '连接失败';
+        YaKitErrorLog.add({ message: error?.message || '连接失败', detail: error });
         $('api-test-error').hidden = false;
       }
     });
@@ -338,7 +339,7 @@
       prompts = Array.isArray(list) ? list : [];
       activePromptId = prompts.some((prompt) => prompt.id === id) ? id : null;
     } catch (error) {
-      console.warn('[纪实] 读取提示词失败', error);
+      YaKitErrorLog.warn('读取提示词失败', error);
       prompts = [];
       activePromptId = null;
     }
@@ -469,7 +470,7 @@
     try {
       result = await service().checkPrompt(promptKind, promptDraft());
     } catch (error) {
-      console.warn('[纪实] 校验提示词失败', error);
+      YaKitErrorLog.warn('校验提示词失败', error);
       return { errors: {} };
     }
     if (token !== promptCheckToken) return null;

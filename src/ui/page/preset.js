@@ -98,7 +98,7 @@
       presets = Array.isArray(list) ? list : [];
       activeId = presets.some((preset) => preset.id === id) ? id : null;
     } catch (error) {
-      console.warn('[纪实] 读取预设失败', error);
+      YaKitErrorLog.warn('读取预设失败', error);
       presets = [];
       activeId = null;
     }

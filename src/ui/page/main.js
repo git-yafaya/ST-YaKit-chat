@@ -8,6 +8,8 @@
  */
 (() => {
   YaKitScrollbar.install(document);
+  // 面板里没被处理的报错记进报错记录
+  YaKitErrorLog.install(window);
 
   // 换主题；「跟随ST」时弹窗会带上从酒馆美化里取到的颜色和字体
   let tavernVars = [];

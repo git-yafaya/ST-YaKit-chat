@@ -64,3 +64,19 @@
   /* 手机上更新按钮做大，手指好点 */
   #update-go { --btn-height: 34px; --btn-pad: 16px; --btn-font: 13px; }
 }
+
+/* 报错记录 */
+.error-log-note { margin: 0 0 10px; }
+.error-log { max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+.error-item { padding: 8px 0; }
+.error-item + .error-item { border-top: 1px solid var(--divider); }
+.error-meta { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.error-message { margin-top: 2px; font-size: 13px; color: var(--text-title); overflow-wrap: anywhere; }
+.error-detail {
+  margin: 4px 0 0;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.error-log-actions { margin-top: 10px; }
