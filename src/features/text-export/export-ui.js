@@ -2,6 +2,7 @@ import { readChat } from './read-chat.js';
 import { filterMessages, getMessageType } from './filter-messages.js';
 import { cleanMessages } from './clean-messages.js';
 import { saveExport } from './save-export.js';
+import { scanTags } from './scan-recent-tags.js';
 import { normalizeSettings, parseRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
 
 function chatInfo(context) {
@@ -14,6 +15,13 @@ function chatInfo(context) {
 
 function getChatInfo() {
     return chatInfo(globalThis.SillyTavern?.getContext?.());
+}
+
+function scanRecentTags() {
+    const context = globalThis.SillyTavern?.getContext?.();
+    if (chatInfo(context).status !== 'ok') return [];
+    // 直接扫描最后两楼原文，包含隐藏消息，不应用导出筛选。
+    return scanTags(context.chat.slice(-2).map(message => message?.mes));
 }
 
 function readMessages(context, settings) {
@@ -97,5 +105,5 @@ function onChatChanged(callback) {
 }
 
 export const exportUI = Object.freeze({
-    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings,
+    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags,
 });
