@@ -305,7 +305,13 @@
     if (expanded) lockRuleCard(true); // 先按收起时的高度锁住，再展开
     tagsExpanded = expanded;
     updateTagToggle();
-    if (!expanded) lockRuleCard(false);
+    if (!expanded) {
+      lockRuleCard(false);
+      return;
+    }
+    // 规则很少、借不出空间时标签会被挤在一行里：这时不锁高度，让卡片变高（导出预览相应变矮）
+    const wrap = $('tag-chips').parentElement;
+    if (wrap.scrollHeight > wrap.clientHeight + 1) lockRuleCard(false);
   }
 
   // 鼠标或手指点击时不抢焦点，避免出现焦点框；键盘操作不受影响
