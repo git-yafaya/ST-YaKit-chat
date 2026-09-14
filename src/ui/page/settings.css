@@ -55,3 +55,8 @@
   border-radius: 50%;
   background: var(--accent);
 }
+
+@media (max-width: 600px) {
+  /* 手机上更新按钮做大，手指好点 */
+  #update-go { --btn-height: 34px; --btn-pad: 16px; --btn-font: 13px; }
+}
