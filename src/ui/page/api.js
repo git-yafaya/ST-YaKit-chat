@@ -547,17 +547,22 @@
 
   /* ---------- 助手：各个 AI 功能用哪个接口和提示词 ---------- */
 
-  const ASSISTANT_PROMPT_KIND = { regex: 'constraint', polish: 'style' };
+  const ASSISTANTS = {
+    regex: { name: '正则助手', use: '导出页「AI 辅助」生成规则时用。', promptKind: 'constraint', promptLabel: '正则提示词' },
+    polish: { name: '润色助手', use: '润色页改写文字时用。', promptKind: 'style', promptLabel: '文风提示词' },
+  };
   const hasAssistants = () => ['getAssistant', 'setAssistant', 'resolveAssistant'].every((name) => typeof service()?.[name] === 'function');
 
+  let assistantData = null;
+  let drawerKind = 'regex';
   let assistantToken = 0;
+
   async function loadAssistants() {
     const card = $('assistant-card');
     card.hidden = !hasAssistants();
     if (card.hidden) return;
     const api = service();
     const token = ++assistantToken;
-    let data;
     try {
       const kinds = ['jailbreak', 'constraint', 'style'];
       const [profileList, activeProfile, promptLists, activePrompts, regex, polish] = await Promise.all([
@@ -568,68 +573,100 @@
         api.getAssistant('regex'),
         api.getAssistant('polish'),
       ]);
-      data = {
+      if (token !== assistantToken) return;
+      assistantData = {
         profiles: Array.isArray(profileList) ? profileList : [],
         activeProfile,
         prompts: Object.fromEntries(kinds.map((kind, i) => [kind, Array.isArray(promptLists[i]) ? promptLists[i] : []])),
         activePrompts: Object.fromEntries(kinds.map((kind, i) => [kind, activePrompts[i]])),
-        assistants: { regex, polish },
+        assistants: { regex: regex || {}, polish: polish || {} },
       };
     } catch (error) {
       YaKitErrorLog.warn('读取助手配置失败', error);
       return;
     }
-    if (token !== assistantToken) return;
-    renderAssistants(data);
+    renderAssistantEntries();
+    if ($('assistant-drawer').open) renderAssistantDrawer();
   }
 
-  function renderAssistants({ profiles: profileList, activeProfile, prompts: promptLists, activePrompts, assistants }) {
+  // 某个助手每一项的选项，以及当前实际用的是哪一项的名字
+  function assistantOptions(kind) {
+    const { profiles: profileList, activeProfile, prompts: promptLists, activePrompts } = assistantData;
     const nameOf = (list, id) => list.find((item) => item.id === id)?.name;
-    document.querySelectorAll('#assistant-card .assistant').forEach((block) => {
-      const kind = block.dataset.kind;
-      const current = assistants[kind] || {};
-      const options = {
-        profile: [
-          new Option(`跟随使用中（${nameOf(profileList, activeProfile) || '主 API'}）`, 'follow'),
-          new Option('主 API（跟随ST）', 'main'),
-          ...profileList.map((item) => new Option(item.name, item.id)),
-        ],
-        jailbreak: [
-          new Option(`跟随使用中（${nameOf(promptLists.jailbreak, activePrompts.jailbreak) || '不使用'}）`, 'follow'),
-          new Option('不使用', 'none'),
-          ...promptLists.jailbreak.map((item) => new Option(item.name, item.id)),
-        ],
-        prompt: (() => {
-          const promptKind = ASSISTANT_PROMPT_KIND[kind];
-          return [
-            new Option(`跟随使用中（${nameOf(promptLists[promptKind], activePrompts[promptKind]) || '不使用'}）`, 'follow'),
-            new Option('不使用', 'none'),
-            ...promptLists[promptKind].map((item) => new Option(item.name, item.id)),
-          ];
-        })(),
-      };
-      block.querySelectorAll('yakit-select').forEach((select) => {
-        const field = select.dataset.field;
-        select.replaceChildren(...options[field]);
-        const value = current[field] || 'follow';
-        select.value = options[field].some((option) => option.value === value) ? value : 'follow';
-      });
+    const promptKind = ASSISTANTS[kind].promptKind;
+    const followProfile = nameOf(profileList, activeProfile) || '主 API';
+    const followJailbreak = nameOf(promptLists.jailbreak, activePrompts.jailbreak) || '不使用';
+    const followPrompt = nameOf(promptLists[promptKind], activePrompts[promptKind]) || '不使用';
+    return {
+      profile: [
+        { value: 'follow', label: `跟随使用中（${followProfile}）`, actual: followProfile },
+        { value: 'main', label: '主 API（跟随ST）', actual: '主 API' },
+        ...profileList.map((item) => ({ value: item.id, label: item.name, actual: item.name })),
+      ],
+      jailbreak: [
+        { value: 'follow', label: `跟随使用中（${followJailbreak}）`, actual: followJailbreak },
+        { value: 'none', label: '不使用', actual: '不使用' },
+        ...promptLists.jailbreak.map((item) => ({ value: item.id, label: item.name, actual: item.name })),
+      ],
+      prompt: [
+        { value: 'follow', label: `跟随使用中（${followPrompt}）`, actual: followPrompt },
+        { value: 'none', label: '不使用', actual: '不使用' },
+        ...promptLists[promptKind].map((item) => ({ value: item.id, label: item.name, actual: item.name })),
+      ],
+    };
+  }
+
+  // 找不到的 id（比如刚被删掉）按跟随使用中显示
+  const pickOption = (options, value) => options.find((option) => option.value === value) || options[0];
+
+  function renderAssistantEntries() {
+    document.querySelectorAll('#assistant-card .assistant-entry').forEach((entry) => {
+      const kind = entry.dataset.kind;
+      const options = assistantOptions(kind);
+      const current = assistantData.assistants[kind];
+      const profile = pickOption(options.profile, current.profile).actual;
+      const prompt = pickOption(options.prompt, current.prompt).actual;
+      entry.setAttribute('summary', `${profile} · ${ASSISTANTS[kind].promptLabel}：${prompt}`);
     });
   }
 
-  document.querySelectorAll('#assistant-card yakit-select').forEach((select) => {
+  function renderAssistantDrawer() {
+    const kind = drawerKind;
+    const options = assistantOptions(kind);
+    const current = assistantData.assistants[kind];
+    $('assistant-drawer').setAttribute('title', ASSISTANTS[kind].name);
+    $('assistant-use').textContent = ASSISTANTS[kind].use;
+    $('assistant-prompt-label').textContent = ASSISTANTS[kind].promptLabel;
+    document.querySelectorAll('#assistant-drawer yakit-select').forEach((select) => {
+      const field = select.dataset.field;
+      select.setAttribute('aria-label', field === 'prompt' ? ASSISTANTS[kind].promptLabel : select.previousElementSibling.textContent);
+      select.replaceChildren(...options[field].map((option) => new Option(option.label, option.value)));
+      select.value = pickOption(options[field], current[field]).value;
+    });
+  }
+
+  document.querySelectorAll('#assistant-card .assistant-entry').forEach((entry) => {
+    entry.addEventListener('activate', () => {
+      if (!assistantData) return;
+      drawerKind = entry.dataset.kind;
+      renderAssistantDrawer();
+      $('assistant-drawer').show();
+    });
+  });
+
+  document.querySelectorAll('#assistant-drawer yakit-select').forEach((select) => {
     select.addEventListener('change', async (event) => {
-      const kind = select.closest('.assistant').dataset.kind;
-      const name = select.closest('.assistant').querySelector('.assistant-name').textContent;
+      const kind = drawerKind;
       try {
         await service().setAssistant(kind, { [select.dataset.field]: event.detail.value });
-        YaKitToast.show(`已保存${name}`, 'success');
+        YaKitToast.show(`已保存${ASSISTANTS[kind].name}`, 'success');
       } catch (error) {
         showError(error, '保存助手失败');
       }
       loadAssistants();
     });
   });
+  $('assistant-drawer-done').addEventListener('click', () => $('assistant-drawer').close());
 
   /* ---------- 切到本页时刷新 ---------- */
 

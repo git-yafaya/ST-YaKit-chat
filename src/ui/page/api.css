@@ -10,18 +10,18 @@
 .api-model-row yakit-input { flex: 1; min-width: 0; }
 .api-model-row yakit-button { margin-bottom: 4px; }
 
-/* 助手：两段，每段三行「名字在左、小号下拉在右」 */
-.assistant + .assistant { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--divider); }
-.assistant-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 6px; }
-.assistant-name { font-size: 13px; font-weight: 600; color: var(--text-title); }
-.assistant-note { font-size: 12px; color: var(--text-muted); }
-.assistant .setting-field { min-height: 36px; }
-.assistant yakit-select { width: min(260px, 60%); }
+/* 助手：每个助手一行入口，点开抽屉；卡片里去掉入口行自带的左右留白，和列表对齐 */
+.assistant-list { margin: -4px -18px -18px; }
+.assistant-list > yakit-collapse + yakit-collapse { border-top: 1px solid var(--divider); }
+.assistant-use { margin: 0 0 16px; font-size: 12px; color: var(--text-muted); }
+.assistant-fields .setting-field + .setting-field { margin-top: 10px; }
+.assistant-fields yakit-select { width: min(240px, 62%); }
+.assistant-fields .field-note { margin-top: 14px; }
 
 @media (max-width: 600px) {
   /* 提示词类别选择器放不下时换到标题下面 */
   .prompt-card::part(header) { flex-wrap: wrap; row-gap: 8px; }
   .api-model-row yakit-button { --btn-height: 34px; --btn-font: 13px; margin-bottom: 1px; }
-  /* 助手的下拉框在手机上加高、放宽，手指好点 */
-  .assistant yakit-select { width: 64%; --select-height: 34px; --select-font: 13px; }
+  /* 助手的下拉框在手机上加高，手指好点 */
+  .assistant-fields yakit-select { --select-height: 34px; --select-font: 13px; }
 }
