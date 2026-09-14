@@ -36,8 +36,27 @@
     to { opacity: 1; transform: none; }
 }
 
+/* 关闭：比打开更快地淡出下沉，暗色背景一起淡出 */
+.dsh-dialog[open].is-closing {
+    animation: dsh-dialog-out 0.12s ease-in forwards;
+}
+
+.dsh-dialog[open].is-closing::backdrop {
+    animation: dsh-backdrop-out 0.12s ease-in forwards;
+}
+
+@keyframes dsh-dialog-out {
+    to { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+
+@keyframes dsh-backdrop-out {
+    to { opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .dsh-dialog[open] { animation: none; }
+    .dsh-dialog[open],
+    .dsh-dialog[open].is-closing,
+    .dsh-dialog[open].is-closing::backdrop { animation-duration: 1ms; }
 }
 
 /* 顶部栏分三块：左边标题、中间页签（真正居中）、右边按钮 */
