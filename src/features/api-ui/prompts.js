@@ -2,6 +2,7 @@ import {
     getPromptTemplates, savePromptTemplate, selectPromptTemplate, deletePromptTemplate,
 } from '../prompt-management/index.js';
 import { createDuplicateName, validateRecordName } from '../../shared/validation.js';
+import { isBuiltinJailbreak } from '../../shared/builtin-prompts.js';
 
 function categoryFor(kind) {
     if (!['jailbreak', 'constraint', 'style'].includes(kind)) {
@@ -17,8 +18,11 @@ function findRecord(group, id) {
     return record;
 }
 
-function publicRecord(record) {
-    return { id: record.id, name: record.name, target: record.target, text: record.content };
+function publicRecord(category, record) {
+    return {
+        id: record.id, name: record.name, target: record.target, text: record.content,
+        builtin: isBuiltinJailbreak(category, record.id),
+    };
 }
 
 function inspectDraft(kind, draft) {
@@ -34,12 +38,14 @@ function inspectDraft(kind, draft) {
     const errors = {};
     const names = validateRecordName(draft.name, group.items, draft.id, '已有同名提示词');
     if (names.length) errors.name = names.join('；');
-    if (typeof draft.text !== 'string' || !draft.text.trim()) errors.text = '请填写正文';
+    if (typeof draft.text !== 'string'
+        || (!draft.text.trim() && !isBuiltinJailbreak(category, draft.id))) errors.text = '请填写正文';
     return { category, errors };
 }
 
 export function listPrompts(kind) {
-    return getPromptTemplates(categoryFor(kind)).items.map(publicRecord);
+    const category = categoryFor(kind);
+    return getPromptTemplates(category).items.map(record => publicRecord(category, record));
 }
 
 export function getActivePromptId(kind) {
@@ -61,7 +67,7 @@ export function savePrompt(kind, draft) {
     const { category, errors } = inspectDraft(kind, draft);
     if (Object.keys(errors).length) throw new Error(Object.values(errors).join('；'));
     // 只传界面字段，其余元数据由原管理模块保留。
-    return publicRecord(savePromptTemplate({
+    return publicRecord(category, savePromptTemplate({
         category, id: draft.id, name: draft.name, content: draft.text,
         target: category === 'jailbreak' ? 'system' : draft.target,
     }));
@@ -71,8 +77,9 @@ export function duplicatePrompt(kind, id) {
     const category = categoryFor(kind);
     const group = getPromptTemplates(category);
     const record = findRecord(group, id);
+    if (isBuiltinJailbreak(category, id) && !record.content.trim()) throw new Error('请先填写正文再复制');
     const name = createDuplicateName(record.name, group.items);
-    return publicRecord(savePromptTemplate({
+    return publicRecord(category, savePromptTemplate({
         ...record, category, id: undefined, name,
         target: category === 'jailbreak' ? 'system' : record.target,
     }));

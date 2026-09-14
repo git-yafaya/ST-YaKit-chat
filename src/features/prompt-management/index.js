@@ -1,6 +1,7 @@
 import { readSettings, updateSettings } from '../../shared/settings.js';
 import { createRecordId, validateRecordName } from '../../shared/validation.js';
 import { resetAssistantReferences } from '../assistant-management/index.js';
+import { isBuiltinJailbreak } from '../../shared/builtin-prompts.js';
 
 const metadataDefaults = {
     jailbreak: { target: 'system', anchor: 'start', priority: 100 },
@@ -43,7 +44,8 @@ function validateTemplate(template, settings) {
     } else {
         const items = settings.prompts[template.category].items;
         errors.push(...validateRecordName(template.name, items, template.id, '已有同名提示词'));
-        if (typeof template.content !== 'string' || !template.content.trim()) {
+        if (typeof template.content !== 'string'
+            || (!template.content.trim() && !isBuiltinJailbreak(template.category, template.id))) {
             errors.push('提示词正文必须是非空字符串');
         }
         if (template.id !== undefined) {
@@ -103,6 +105,7 @@ export function savePromptTemplate(template) {
 
 export function deletePromptTemplate(category, id) {
     assertCategory(category);
+    if (isBuiltinJailbreak(category, id)) throw new Error('内置破限词不能删除');
     return updateSettings(settings => {
         const group = settings.prompts[category];
         group.items.splice(findRecordIndex(group.items, id), 1);

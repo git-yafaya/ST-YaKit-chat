@@ -9,7 +9,9 @@ export function buildRuleMessages({ request, mode, rules, samples, jailbreak, co
             + '只返回 JSON 对象，格式为 {"rules":[{"rule":"/pattern/flags","explanation":"一句中文说明"}]}，不要附加其他文字。',
     }];
     // 选中的提示词保持原文，统一放在任务数据之前，不展开宏或锚点。
-    if (jailbreak) messages.push({ role: 'system', content: jailbreak.content });
+    if (typeof jailbreak?.content === 'string' && jailbreak.content.trim()) {
+        messages.push({ role: 'system', content: jailbreak.content });
+    }
     if (constraint) messages.push({ role: constraint.target === 'user' ? 'user' : 'system', content: constraint.content });
     messages.push({ role: 'user', content: JSON.stringify({ request: request.trim(), mode, rules, samples }) });
     return messages;

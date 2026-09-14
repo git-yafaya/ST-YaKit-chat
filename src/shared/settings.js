@@ -1,3 +1,5 @@
+import { ensureBuiltinJailbreaks } from './builtin-prompts.js';
+
 const SETTINGS_KEY = 'ST-YaKit-chat';
 
 function isObject(value) {
@@ -34,6 +36,7 @@ function snapshot(context) {
     for (const category of ['jailbreak', 'regex', 'style']) {
         settings.prompts[category] = readGroup(settings.prompts[category]);
     }
+    ensureBuiltinJailbreaks(settings);
     return settings;
 }
 
@@ -49,7 +52,9 @@ export function updateSettings(change) {
         throw new Error('宿主设置保存接口尚未就绪');
     }
     const settings = snapshot(context);
-    const result = structuredClone(change(settings));
+    const result = change(settings);
+    ensureBuiltinJailbreaks(settings);
+    const resultSnapshot = structuredClone(result);
     const previous = context.extensionSettings[SETTINGS_KEY];
     const existed = Object.hasOwn(context.extensionSettings, SETTINGS_KEY);
     context.extensionSettings[SETTINGS_KEY] = settings;
@@ -61,5 +66,5 @@ export function updateSettings(change) {
         else delete context.extensionSettings[SETTINGS_KEY];
         throw error;
     }
-    return result;
+    return resultSnapshot;
 }

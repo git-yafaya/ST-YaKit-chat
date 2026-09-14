@@ -74,6 +74,8 @@ function resolveRecord(group, selection) {
 function resolvePrompt(settings, kind, field, selection) {
     const record = resolveRecord(getGroup(settings, kind, field), selection);
     if (!record) return null;
+    // 空破限词只在本次解析中视为不使用，保留原选择以便填写后自动生效。
+    if (field === 'jailbreak' && (typeof record.content !== 'string' || !record.content.trim())) return null;
     const category = field === 'jailbreak' ? 'jailbreak' : kind === 'regex' ? 'regex' : 'style';
     // 沿用旧提示词的缺省值，已有注入配置保持原样。
     const result = { ...record };
