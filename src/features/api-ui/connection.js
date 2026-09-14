@@ -75,6 +75,60 @@ export async function fetchModels(draft) {
 }
 
 export async function testConnection(draft) {
-    await fetchModels(draft);
-    return { message: '连接成功（模型列表接口可用）' };
+    const config = connectionDraft(draft);
+    if (typeof draft.model !== 'string') throw new Error('请先填写模型名称');
+    const model = draft.model.trim();
+    if (!model) throw new Error('请先填写模型名称');
+    if (/[\r\n\u2028\u2029]/u.test(draft.model)) throw new Error('模型名称不能换行');
+    const headers = requestHeaders();
+    const body = {
+        chat_completion_source: 'openai',
+        reverse_proxy: config.url,
+        proxy_password: config.key,
+        model,
+        messages: [{ role: 'user', content: 'Reply with OK.' }],
+        stream: false,
+        max_tokens: 64,
+    };
+    // 沿用宿主对推理模型的输出参数，不传温度或额外推理选项。
+    if (/^(o1|o3|o4)/.test(model) || /gpt-5/.test(model)) {
+        body.max_completion_tokens = body.max_tokens;
+        delete body.max_tokens;
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    let response;
+    let data;
+    try {
+        response = await fetch('/api/backends/chat-completions/generate', {
+            method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal,
+        });
+        if (response.ok) data = await response.json();
+    } catch {
+        if (controller.signal.aborted) {
+            throw new Error('等了 15 秒模型还没回复，请检查地址、模型和网络后重试');
+        }
+        if (response?.ok) throw new Error('没能读懂模型的回复，请检查服务地址和模型后重试');
+        throw new Error('无法连接酒馆，请检查网络后重试');
+    } finally {
+        clearTimeout(timeout);
+    }
+    if (response.status === 401 || response.status === 403) {
+        throw new Error('酒馆拒绝请求，请检查登录状态、账号权限或刷新页面后重试');
+    }
+    if (response.status === 404) throw new Error('酒馆未提供模型生成接口，请检查宿主版本');
+    // 上游错误只用于判断已知状态，不把服务返回的任意文字带给界面。
+    if (data?.quota_error === true) throw new Error('模型服务的额度不足，请补充额度后重试');
+    if (!response.ok || data?.error) {
+        throw new Error('模型没有成功回复，请检查服务地址、密钥和模型名称后重试');
+    }
+    const choice = Array.isArray(data?.choices) ? data.choices[0] : undefined;
+    const content = choice?.message?.content;
+    const hasText = typeof content === 'string' ? Boolean(content.trim())
+        : Array.isArray(content) && content.some(part => part?.type === 'text'
+            && typeof part.text === 'string' && part.text.trim());
+    if (!hasText && !(typeof choice?.text === 'string' && choice.text.trim())) {
+        throw new Error('模型没有返回文字回复，请检查模型名称后重试');
+    }
+    return { message: '连接成功，模型已回复' };
 }
