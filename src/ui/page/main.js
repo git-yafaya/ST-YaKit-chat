@@ -1,5 +1,5 @@
 /**
- * 面板页面的公共逻辑：细滚动条、接收弹窗消息（换主题、切页签、导航栏位置），换好主题后回 dsh:theme-applied
+ * 面板页面的公共逻辑：细滚动条、接收弹窗消息（换主题、切页签、导航栏位置）
  *
  * 收到消息后在 window 上派发事件，给各页脚本使用：
  *   dsh-theme  event.detail = { theme, selected, tavern }
@@ -59,21 +59,22 @@
     });
   }
 
-  window.addEventListener('message', (event) => {
-    if (event.source !== parent) return;
-    const data = event.data || {};
+  function receive(data = {}) {
     if (data.type === 'dsh:theme') {
       applyTheme(data);
       window.dispatchEvent(new CustomEvent('dsh-theme', { detail: data }));
-      // 换好后告诉弹窗，字体还在加载时最多等 60ms；弹窗据此结束换主题的过渡
-      // （过渡期间浏览器暂停绘制，这里不能等画面刷新）
-      Promise.race([document.fonts.ready, new Promise((resolve) => setTimeout(resolve, 60))])
-        .then(() => parent.postMessage({ type: 'dsh:theme-applied' }, '*'));
     }
     if (data.type === 'dsh:preload-font') preloadTavernFont(data);
     if (data.type === 'dsh:nav') {
       window.dispatchEvent(new CustomEvent('dsh-nav', { detail: data }));
     }
     if (data.type === 'dsh:tab') showTab(data.tab);
+  }
+
+  // 弹窗优先直接调用 dshReceive（同一帧更新）；也兼容 postMessage
+  window.dshReceive = receive;
+  window.addEventListener('message', (event) => {
+    if (event.source !== parent) return;
+    receive(event.data || {});
   });
 })();

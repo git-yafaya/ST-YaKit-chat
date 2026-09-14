@@ -155,7 +155,13 @@ function openPanel() {
     let bubbleTimer = null;
 
     // 给 iframe 里的页面发消息
-    const tellPanel = (message) => frame.iframe.contentWindow?.postMessage(message, '*');
+    // 面板和酒馆同源：面板准备好后直接调用它的 dshReceive，让顶部栏和面板内容在同一帧里更新；
+    // 面板还没加载完时退回 postMessage
+    const tellPanel = (message) => {
+        const panel = frame.iframe.contentWindow;
+        if (typeof panel?.dshReceive === 'function') panel.dshReceive(message);
+        else panel?.postMessage(message, '*');
+    };
     let tavern = null;
     const themeMessage = () => ({
         type: 'dsh:theme',
@@ -244,40 +250,14 @@ function openPanel() {
         }
     }
 
-    // 等面板里的颜色和字体换好（面板回 dsh:theme-applied），最多等 120ms
-    let themeAppliedResolve = null;
-    const waitPanelTheme = () => new Promise((resolve) => {
-        themeAppliedResolve = resolve;
-        setTimeout(resolve, 120);
-    });
-
-    // 电脑上换主题时整个弹窗做一次短淡入淡出，遮住字体变化带来的重新排版和两边前后一帧的差异
-    // 手机上不做：浏览器要给整个酒馆页面拍快照（毛玻璃美化尤其吃力），过渡期间还会吞掉点击
-    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
-    let targetTheme = currentTheme; // 最后一次选中的主题，连续点击时以它为准算下一个
-    let transitioning = false;
+    // 换主题直接切换，不做过渡动画：过渡会让屏幕闪一下，过渡期间浏览器还会吞掉点击
     function setTheme(theme) {
-        targetTheme = theme;
         saveTheme(theme);
-        // 手机、减少动态效果、不支持页面过渡，或上一次过渡还没结束：直接切换
-        if (!document.startViewTransition || reduceMotion.matches || !pcQuery.matches || transitioning) {
-            applyTheme(theme, { animate: true });
-            return;
-        }
-        const run = () => {
-            applyTheme(targetTheme, { animate: true });
-            return waitPanelTheme();
-        };
-        transitioning = true;
-        dialog.style.viewTransitionName = 'dsh-dialog';
-        document.startViewTransition(run).finished.finally(() => {
-            transitioning = false;
-            dialog.style.viewTransitionName = '';
-        });
+        applyTheme(theme, { animate: true });
     }
 
     themeButton.addEventListener('click', () => {
-        const index = THEMES.findIndex((t) => t.id === targetTheme);
+        const index = THEMES.findIndex((t) => t.id === currentTheme);
         setTheme(THEMES[(index + 1) % THEMES.length].id);
     });
 
@@ -286,7 +266,6 @@ function openPanel() {
         if (event.source !== frame.iframe.contentWindow) return;
         const data = event.data || {};
         if (data.type === 'dsh:set-theme' && THEMES.some((t) => t.id === data.theme)) setTheme(data.theme);
-        if (data.type === 'dsh:theme-applied') themeAppliedResolve?.();
         if (data.type === 'dsh:set-nav' && NAV_MODES.includes(data.mode)) {
             navMode = data.mode;
             saveSetting(NAV_KEY, navMode);

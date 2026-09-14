@@ -81,7 +81,7 @@ ST-YaKit-chat/
 2. `src/index.js` 把公开函数和 `exportUI` 组装进冻结的 `globalThis.YaKitChat`，然后调用 `initPanelUI`。
 3. `initPanelUI` 在魔法棒菜单（`#extensionsMenu`）加入「纪实」；菜单未就绪时等待宿主 `APP_READY`。
 4. 点击后创建居中 `<dialog>`，内容区用 iframe 加载 `src/ui/page/index.html`。
-5. 弹窗与 iframe 之间只用 `postMessage` 通信：弹窗发 `dsh:tab`、`dsh:theme`、`dsh:nav`、`dsh:preload-font`；面板发 `dsh:set-theme`、`dsh:set-nav`、`dsh:theme-applied`。
+5. 弹窗与 iframe 之间用消息通信：弹窗发 `dsh:tab`、`dsh:theme`、`dsh:nav`、`dsh:preload-font`（面板加载完后直接调用面板的 `window.dshReceive`，加载前用 `postMessage`）；面板用 `postMessage` 发 `dsh:set-theme`、`dsh:set-nav`。
 6. 文本导出页（`src/ui/page/export.js`）：
    - 打开时 `loadSettings()` → `getChatInfo()` → `previewMessages(settings, 2)` → `scanRecentTags()`
    - 设置或规则变化：`saveSettings(settings)`，200ms 防抖后重新 `previewMessages`
@@ -289,7 +289,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、群组、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）。未调用后端 HTTP 接口，无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约并完成人工验收，其他版本未单独验证。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，需要支持这两项的浏览器；换主题交叉淡化使用 View Transitions，不支持的浏览器直接切换。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约并完成人工验收，其他版本未单独验证。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，需要支持这两项的浏览器。
 
 ## 开发与验证
 
