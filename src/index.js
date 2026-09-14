@@ -40,7 +40,6 @@ export async function saveTxt(messages, format = 'speaker') {
     return saveTextFile(messages, { format, characterName, download });
 }
 
-// 控制台和界面共用同一组已验收接口。
 globalThis.YaKitChat = Object.freeze({
     version: '0.4.1',
     exportUI,

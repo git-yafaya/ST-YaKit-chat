@@ -46,8 +46,7 @@ function validateConfig(config, items) {
         if (typeof config.id !== 'string' || !config.id) addError(null, '请选择要操作的配置');
         else if (!items.some(item => item.id === config.id)) addError(null, '这份配置已不存在，请重新选择');
     }
-    const validProvider = config.provider === undefined || config.provider === ''
-        || config.provider === 'openai' || config.provider === 'local';
+    const validProvider = [undefined, '', 'openai', 'local'].includes(config.provider);
     if (!validProvider) addError(null, '请选择自动判断、openai 或 local');
     let url;
     try {

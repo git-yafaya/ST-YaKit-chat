@@ -1,5 +1,4 @@
-import { getMessageType } from './filter-messages.js';
-import { createExportFilename } from './export-common.js';
+import { createExportFilename, getMessageLabel } from './export-common.js';
 
 export function saveTxt(messages, { format = 'speaker', characterName, download, now = new Date(), fileName = '' } = {}) {
     if (!Array.isArray(messages)) {
@@ -11,14 +10,8 @@ export function saveTxt(messages, { format = 'speaker', characterName, download,
     if (format !== 'speaker' && format !== 'plain') {
         throw new TypeError('format 仅支持 speaker 或 plain');
     }
-    if (typeof characterName !== 'string' || !characterName.trim()) {
-        throw new TypeError('characterName 必须是非空字符串');
-    }
     if (typeof download !== 'function') {
         throw new TypeError('download 必须是函数');
-    }
-    if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
-        throw new TypeError('now 必须是有效的 Date');
     }
 
     const lines = [];
@@ -28,7 +21,7 @@ export function saveTxt(messages, { format = 'speaker', characterName, download,
         }
         // 正文保持原样，按消息类别添加固定标签。
         lines.push(format === 'speaker'
-            ? `${{ ai: 'AI', user: '用户', system: '系统' }[getMessageType(message)]}：${message.mes}`
+            ? `${getMessageLabel(message)}${message.mes}`
             : message.mes);
     }
 
