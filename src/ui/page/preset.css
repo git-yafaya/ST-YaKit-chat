@@ -1,7 +1,7 @@
 /* 预设页 */
 .preset-page { display: flex; flex-direction: column; gap: 12px; }
 
-/* 预设列表：一行一套，点左边切换，右边是保存 / 还原 / 更多操作 */
+/* 预设列表：一行一套，点左边切换，右边是保存 / 还原和重命名、复制、导出、删除四个图标按钮 */
 .preset-list { margin: -4px -8px; }
 .preset-item {
   display: flex;
@@ -54,6 +54,7 @@
 .preset-tools { display: flex; align-items: center; gap: 4px; flex: none; }
 .preset-state { margin-right: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .preset-state:empty { display: none; }
+.preset-ops { display: flex; align-items: center; gap: 2px; }
 
 .backup-note { margin: 0 0 12px; }
 
@@ -65,15 +66,12 @@
 .export-preset { display: flex; align-items: center; gap: 4px; flex: none; width: 190px; }
 .export-preset dsh-select { flex: 1; min-width: 0; }
 
-/* 手机：「使用中」不单独显示（看小圆点）；有改动时，已修改、保存、还原换到名字下面一行；导出页的预设单独占一行 */
+/* 手机：按钮换到名字下面一行，左边「使用中 / 已修改」，右边保存、还原和四个图标按钮；导出页的预设单独占一行 */
 @media (max-width: 600px) {
-  .preset-item { flex-wrap: wrap; }
-  .preset-item dsh-menu { --menu-trigger: 34px; }
-  .preset-tools { display: none; }
-  .preset-item.is-modified { padding-bottom: 8px; }
-  .preset-item.is-modified .preset-main { padding-bottom: 4px; }
-  .preset-item.is-modified .preset-tools { display: flex; order: 3; flex-basis: 100%; box-sizing: border-box; padding: 0 4px 0 26px; }
-  .preset-tools dsh-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
+  .preset-item { flex-wrap: wrap; padding-bottom: 6px; }
+  .preset-main { padding-bottom: 2px; }
+  .preset-tools { flex-basis: 100%; justify-content: flex-end; box-sizing: border-box; padding: 0 4px 0 26px; }
+  .preset-tools dsh-button { --btn-height: 34px; --btn-pad: 12px; --btn-font: 13px; --btn-icon: 18px; }
   .preset-state { margin-right: auto; }
 
   .export-bar { flex-wrap: wrap; }

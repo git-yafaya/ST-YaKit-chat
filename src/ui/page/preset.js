@@ -34,6 +34,7 @@
   const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
   const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB' };
   const NAME_MAX = 30;
+  const ACTION_LABELS = { rename: '重命名', duplicate: '复制', export: '导出', delete: '删除' };
 
   let presets = [];
   let activeId = null;
@@ -144,13 +145,13 @@
           <span class="preset-state"></span>
           <dsh-button class="preset-save" size="sm" hidden>保存</dsh-button>
           <dsh-button class="preset-revert" size="sm" variant="ghost" hidden>还原</dsh-button>
+          <span class="preset-ops">
+            <dsh-button size="sm" variant="ghost" icon="../icons/edit.svg" data-action="rename"></dsh-button>
+            <dsh-button size="sm" variant="ghost" icon="../icons/copy.svg" data-action="duplicate"></dsh-button>
+            <dsh-button size="sm" variant="ghost" icon="../icons/ouput.svg" data-action="export"></dsh-button>
+            <dsh-button size="sm" variant="ghost" icon="../icons/trash.svg" data-action="delete"></dsh-button>
+          </span>
         </div>
-        <dsh-menu size="sm">
-          <option value="rename" icon="../icons/edit.svg">重命名</option>
-          <option value="duplicate" icon="../icons/copy.svg">复制</option>
-          <option value="export" icon="../icons/ouput.svg">导出</option>
-          <option value="delete" icon="../icons/trash.svg">删除</option>
-        </dsh-menu>
       `;
       const main = item.querySelector('.preset-main');
       item.querySelector('.preset-name').textContent = preset.name;
@@ -169,9 +170,13 @@
       item.querySelector('.preset-save').addEventListener('click', (event) => saveActive(event.currentTarget));
       item.querySelector('.preset-revert').addEventListener('click', (event) => revert(event.currentTarget));
 
-      const menu = item.querySelector('dsh-menu');
-      menu.setAttribute('label', `「${preset.name}」的更多操作`);
-      menu.addEventListener('select', (event) => onMenu(preset, event.detail.value));
+      item.querySelectorAll('.preset-ops dsh-button').forEach((button) => {
+        const { action } = button.dataset;
+        button.setAttribute('aria-label', `${ACTION_LABELS[action]}「${preset.name}」`);
+        // 鼠标或手指点击时不抢焦点，避免出现焦点框；键盘操作不受影响
+        button.addEventListener('mousedown', (event) => event.preventDefault());
+        button.addEventListener('click', () => onAction(preset, action));
+      });
       return item;
     }));
   }
@@ -289,7 +294,7 @@
     await load();
   }
 
-  async function onMenu(preset, action) {
+  async function onAction(preset, action) {
     if (busy) return;
     if (action === 'rename') {
       const name = await DshModal.prompt({
