@@ -18,6 +18,12 @@
 .assistant-fields yakit-select { width: min(240px, 62%); }
 .assistant-fields .field-note { margin-top: 14px; }
 
+/* 参数卡片 */
+.request-timeout { display: flex; align-items: center; gap: 6px; }
+.request-timeout yakit-input { width: 96px; }
+.request-unit { font-size: 13px; color: var(--text-body); }
+.request-gap { margin-top: 14px; }
+
 @media (max-width: 600px) {
   /* 提示词类别选择器放不下时换到标题下面 */
   .prompt-card::part(header) { flex-wrap: wrap; row-gap: 8px; }

@@ -175,6 +175,28 @@
         </div>
       </yakit-card>
 
+      <!-- 参数：所有 AI 请求共用的等待时间和自动重试 -->
+      <yakit-card class="request-card" id="request-card" title="参数" subtitle="所有 AI 请求共用" hidden>
+        <div class="setting-field">
+          <span class="setting-label">超时时间</span>
+          <div class="request-timeout">
+            <yakit-input id="request-timeout" type="number" size="sm" aria-label="超时时间（秒）" placeholder="360"></yakit-input>
+            <span class="request-unit">秒</span>
+          </div>
+        </div>
+        <p class="field-note">等这么久还没回复就结束这次请求。<br>建议 360 秒，模型慢或文字很长时再调大。</p>
+        <div class="setting-field request-gap">
+          <span class="setting-label">自动重试</span>
+          <yakit-segmented id="request-retries" size="sm" aria-label="自动重试次数" value="1">
+            <option value="0">不重试</option>
+            <option value="1">1 次</option>
+            <option value="2">2 次</option>
+            <option value="3">3 次</option>
+          </yakit-segmented>
+        </div>
+        <p class="field-note">回复里读不到结果时自动再请求，超时和连不上不重试。<br>建议 1 次，每次重试都会再消耗额度。</p>
+      </yakit-card>
+
       <!-- 提示词：三类各自一份列表 -->
       <yakit-card class="prompt-card" id="prompt-card" title="提示词">
         <yakit-segmented slot="extra" id="prompt-kind" size="sm" aria-label="提示词类别" value="jailbreak">
@@ -253,7 +275,7 @@
   <yakit-drawer id="ai-drawer" title="AI 辅助">
     <p class="ai-context" id="ai-context"></p>
     <section class="drawer-section drawer-stack">
-      <yakit-input id="ai-request" label="想删掉或保留什么" required multiline rows="6" maxlength="500" placeholder="例如：去掉每条消息末尾的状态栏"></yakit-input>
+      <yakit-input id="ai-request" label="想删掉或保留什么" required multiline rows="6" maxlength="500" placeholder="例如：去掉每条消息末尾的状态栏" hint="会把最近一条 AI 回复的原文发给模型参考。"></yakit-input>
       <p class="field-note" id="ai-mode-note"></p>
       <div class="btn-row">
         <yakit-button id="ai-generate" variant="primary" icon="../icons/sparkle.svg" disabled>生成规则</yakit-button>

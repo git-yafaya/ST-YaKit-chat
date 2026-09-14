@@ -36,6 +36,12 @@
  * 20. apiUI.resolveAssistant(kind) → 实际生效项（界面用列表里的「使用中」自己算「跟随使用中（…）」的文字）
  *      正则助手的 prompt 是正则提示词，润色助手的是文风提示词；三个函数都提供时才显示助手卡片
  *
+ * 参数（所有 AI 请求共用）
+ *
+ * 21. apiUI.getRequestSettings() → { timeoutSeconds, retries }     retries 为 0–3
+ * 22. apiUI.setRequestSettings(patch) → 保存后的完整对象；值不合法时 reject 中文原因
+ *      两个函数都提供时才显示参数卡片
+ *
  * 没提供 apiUI 时，页面显示「API 管理还没接入」。
  */
 (() => {
@@ -675,16 +681,65 @@
   });
   $('assistant-drawer-done').addEventListener('click', () => $('assistant-drawer').close());
 
+  /* ---------- 参数：超时时间、自动重试次数 ---------- */
+
+  const hasRequestSettings = () => ['getRequestSettings', 'setRequestSettings'].every((name) => typeof service()?.[name] === 'function');
+  let savedTimeout = '';
+
+  async function loadRequestSettings() {
+    $('request-card').hidden = !hasRequestSettings();
+    if ($('request-card').hidden) return;
+    try {
+      const settings = await service().getRequestSettings();
+      savedTimeout = String(settings?.timeoutSeconds ?? '');
+      $('request-timeout').value = savedTimeout;
+      $('request-timeout').removeAttribute('error');
+      $('request-retries').value = String(settings?.retries ?? 1);
+    } catch (error) {
+      YaKitErrorLog.warn('读取参数失败', error);
+    }
+  }
+
+  async function saveRequestSettings(patch, { input } = {}) {
+    try {
+      const saved = await service().setRequestSettings(patch);
+      savedTimeout = String(saved?.timeoutSeconds ?? savedTimeout);
+      input?.removeAttribute('error');
+      YaKitToast.show('已保存参数', 'success');
+    } catch (error) {
+      // 超时时间填错时在输入框下面提示，不弹提示消息
+      if (input) input.setAttribute('error', error?.message || '保存参数失败');
+      else showError(error, '保存参数失败');
+    }
+  }
+
+  // 超时时间：输完离开输入框（或按回车）时保存；没改动不保存
+  $('request-timeout').addEventListener('change', () => {
+    const input = $('request-timeout');
+    const value = input.value.trim();
+    if (value === savedTimeout) return input.removeAttribute('error');
+    if (!/^\d+$/.test(value)) {
+      input.setAttribute('error', '请填写整数秒数');
+      return;
+    }
+    saveRequestSettings({ timeoutSeconds: Number(value) }, { input });
+  });
+  $('request-retries').addEventListener('change', (event) => {
+    saveRequestSettings({ retries: Number(event.detail.value) });
+  });
+
   /* ---------- 切到本页时刷新 ---------- */
 
   window.addEventListener('yakit-tab', (event) => {
     if (event.detail.tab !== 'api') return;
     loadProfiles();
     loadPrompts();
+    loadRequestSettings();
   });
 
   renderProfiles();
   renderPrompts();
   loadProfiles();
   loadPrompts();
+  loadRequestSettings();
 })();
