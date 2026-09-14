@@ -2,12 +2,58 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列）。「文本导出」页完整可用：导出预览、正则匹配（含识别最近两楼标签）、导出设置抽屉，导出 TXT / Markdown / EPUB。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列）。「文本导出」页完整可用：导出预览、正则匹配（含识别最近两楼标签）、导出设置抽屉，导出 TXT / Markdown / EPUB；设置页可检查并在线更新本插件。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat.exportUI` 调用业务。
-- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；文本导出页接口 `exportUI.{getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences`；副 API 配置与提示词管理函数（见第 6 节）。
-- **当前还没做什么**：润色、预设、API 管理三个页签只有占位卡片；副 API 配置、提示词管理、EPUB 分章偏好没有界面；提示词注入组装未实现；不发起任何 AI 请求；不支持群聊。
+- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；文本导出页接口 `exportUI.{getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags}`；插件更新 `updater.{checkUpdate, update}`；既有函数 `updater` 的参数、返回与错误（两个函数都无参数，失败 reject 中文 `Error`）：
+
+| 接口 | 返回 |
+| --- | --- |
+| `checkUpdate()` | `Promise<{isUpToDate, canUpdate}>` |
+| `update()` | `Promise<{updated}>` |
+
+| 情况 | 提示或返回 |
+| --- | --- |
+| 无法识别安装路径或目录名不能原样传给后端 | “无法识别本插件的安装目录”／“本插件安装目录名不支持在线更新” |
+| 安装类型、权限模块或请求头未就绪 | “无法读取酒馆扩展安装信息”／“无法确定本插件是个人安装还是全局安装”／“无法读取当前用户的更新权限”／“无法读取酒馆请求头，请在酒馆中调用” |
+| update 已知无权限 | “当前账号无权在线更新本插件” |
+| HTTP 401，或 update 流程的 403 | “无法操作本插件，请检查登录状态和账号权限” |
+| HTTP 404 | “找不到本插件目录，或酒馆未启用扩展功能” |
+| HTTP 500 | 按失败阶段提示“检查插件更新失败（HTTP 500），请查看酒馆服务端日志”或“更新插件失败（HTTP 500），请查看酒馆服务端日志” |
+| 其他非 200 状态 | 同上，替换 HTTP 状态数字 |
+| 网络异常 | “无法连接酒馆，请检查网络后重试” |
+| JSON 或必要字段错误 | “酒馆返回的插件更新信息格式不正确” |
+| update 预检分支或提交为空 | “本插件缺少可更新的 Git 分支或提交，无法在线更新” |
+| update 预检远端为空 | “本插件未配置远端仓库，无法在线更新” |
+
+检查状态：
+
+```js
+(async () => {
+    try {
+        console.log(await globalThis.YaKitChat.updater.checkUpdate());
+    } catch (error) {
+        console.error(error.message);
+    }
+})();
+```
+
+以下代码会尝试实际更新本插件；业务返回结果后不刷新页面：
+
+```js
+(async () => {
+    try {
+        const { updated } = await globalThis.YaKitChat.updater.update();
+        console.log(updated ? '纪实已更新' : '已经是最新版本');
+    } catch (error) {
+        console.error(error.message);
+    }
+})();
+```
+
+`readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences`；副 API 配置与提示词管理函数（见第 6 节）。
+- **当前还没做什么**：润色、API 管理两个页签只有占位卡片；预设页界面与 `presets` 业务已接入、尚未通过小主复测，文档暂不收录其契约；副 API 配置、提示词管理、EPUB 分章偏好没有界面；提示词注入组装未实现；不发起任何 AI 请求；不支持群聊。
 
 ## 仓库结构
 
@@ -18,6 +64,7 @@ ST-YaKit-chat/
 │   ├── index.js            入口：组装 YaKitChat，初始化界面
 │   ├── features/
 │   │   ├── text-export/        读取、类型过滤、正则清洗、三种格式生成与下载、文本导出页接口、标签扫描
+│   │   ├── updater/            定位本插件安装目录、检查版本、在线更新本插件
 │   │   ├── api-management/     副 API 配置的增删改查与校验（无界面）
 │   │   └── prompt-management/  三类提示词的增删改查与校验（无界面）
 │   ├── shared/             扩展设置读写、配置与提示词校验
@@ -50,6 +97,8 @@ ST-YaKit-chat/
 ├── src/features/text-export/export-ui.js
 ├── src/features/text-export/export-ui-settings.js
 ├── src/features/text-export/scan-recent-tags.js
+├── src/features/updater/host.js
+├── src/features/updater/index.js
 ├── src/features/api-management/index.js
 ├── src/features/prompt-management/index.js
 ├── src/shared/settings.js
@@ -62,8 +111,9 @@ ST-YaKit-chat/
 ├── src/ui/page/main.js
 ├── src/ui/page/export.js / export.css
 ├── src/ui/page/settings.js / settings.css
+├── src/ui/page/preset.js / preset.css
 ├── src/ui/page/demo.js / demo.css
-├── src/ui/components/embed-frame.js、icon.js、segmented.js、card.js、collapse.js、drawer.js、button.js、input.js、select.js、switch.js、toast.js、scrollbar.js、theme-list.js、themes.css
+├── src/ui/components/embed-frame.js、icon.js、segmented.js、card.js、collapse.js、drawer.js、button.js、input.js、select.js、switch.js、toast.js、scrollbar.js、menu.js、modal.js、theme-list.js、themes.css
 ├── src/ui/icons/*.svg、src/ui/icons/theme/*.svg
 ├── README.md / Public.md
 ├── CLAUDE.md / AGENTS.md / CLAUDE.local.md
@@ -87,6 +137,10 @@ ST-YaKit-chat/
    - 设置或规则变化：`saveSettings(settings)`，200ms 防抖后重新 `previewMessages`
    - 点击导出：`exportFile(settings)` → 成功提示「已导出 N 条消息」
    - `onChatChanged` 回调：刷新摘要、预览、标签
+7. 设置页「插件更新」（`src/ui/page/settings.js`）：
+   - 切到设置页时 `updater.checkUpdate()`，一分钟内不重复自动检查；已是最新或检查失败时按钮为「检查更新」，点击立即重新检查
+   - 有新版本时点「更新」：`updater.update()` → `updated: true` 时提示并在约 1.2 秒后由界面 `parent.location.reload()`；`updated: false` 提示「已经是最新版本」
+   - 失败：按钮下方提示框显示 `error.message`，可重试；未提供 `updater` 时不显示这一行
 
 <details>
 <summary>边界情况（以业务交接单为准）</summary>
@@ -140,6 +194,21 @@ ST-YaKit-chat/
 | 配对 | 每条消息独立配对，不跨楼层；孤立结束标签、未闭合开始标签不产生结果 |
 | 规则 | `/pattern/gi` 字符串，同一名称的规则同时支持成对块和自闭合；成对规则匹配标签连同内容；同名成对嵌套只匹配最内层完整块 |
 | 空结果 | 群聊、无聊天、空聊天或未识别到时返回 `[]`；非字符串正文跳过 |
+
+**插件更新（`updater`）**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 定位 | 从模块 URL 取得本插件实际目录，支持合法重命名目录；`extensionName` 传裸目录名，不含 `third-party/` |
+| 个人 / 全局 | 按宿主导出的 `extensionTypes['third-party/<目录>']` 精确判定，个人传 `global:false`，全局传 `global:true`；全局须宿主 `isAdmin()` 为真 |
+| 请求头 | 原样使用 `SillyTavern.getContext().getRequestHeaders()`，保留 JSON 类型与 CSRF |
+| 检查 | 只 POST `/api/extensions/version`；无全局权限时不发请求，返回 `{isUpToDate:false, canUpdate:false}`，检查收到 403 时同样返回；分支、提交、远端地址均非空才 `canUpdate:true` |
+| 非 Git 安装 | 宿主返回空字段与 `isUpToDate:true`，业务返回 `canUpdate:false`，界面优先显示「无法在线更新」 |
+| 比较依据 | 当前 Git 分支与 origin 对应分支，不按 manifest 版本或发布标签 |
+| 更新 | 每次重新定位、检查权限并请求版本；已是最新返回 `{updated:false}`，否则 POST `/api/extensions/update`；返回 `updated: !isUpToDate`（宿主值为拉取前状态） |
+| 本地改动 | 宿主 git pull，不清理、暂存或丢弃本地改动；`canUpdate:true` 不保证拉取成功 |
+| 通用 500 | 无 origin、远端鉴权、网络、Git 权限、本地改动阻止拉取等都可能是同一个 500，按未知失败处理，不推断原因；失败响应不保证磁盘没有变化 |
+| 刷新 | 业务不刷新页面、不保存用户设置；刷新与自动检查节流由界面负责 |
 
 **事件订阅（`onChatChanged`）**
 
@@ -275,7 +344,11 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 
 **已实现（含界面，已通过小主复测）**
 - 文本导出页：导出预览、正则匹配、识别到的标签、导出设置抽屉（楼层范围、消息类型、格式、文件名）、TXT / Markdown / EPUB 导出；`exportUI` 八个接口全部接入
-- 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、七套主题、设置页（主题、导航栏位置、组件示例）
+- 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、七套主题、设置页（插件更新、主题、导航栏位置、组件示例）
+- 插件更新：`updater` 两个接口全部接入，无未接入业务项
+
+**已接入、待小主复测**
+- 预设页与导出页预设下拉框：界面调用 `presets` 接口（说明见 `src/ui/page/preset.js` 开头），复测通过后补充契约
 
 **已实现但无界面**
 - 副 API 配置管理（`src/features/api-management/`，已在 `YaKitChat` 上）：`getApiProfiles`、`validateApiConfig`、`shouldWarnEmptyKey`、`saveApiProfile`、`deleteApiProfile`、`selectApiProfile`、`getActiveApiConfig`
@@ -283,11 +356,11 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 - EPUB 分章偏好（`getEpubPreferences` / `saveEpubPreferences`）：导出时读取已存偏好，无设置界面
 
 **未实现**
-- 润色、预设、API 管理三个页签的内容（目前为占位卡片）
+- 润色、API 管理两个页签的内容（目前为占位卡片）
 - 提示词注入组装、任何实际发起 AI 请求的能力
 - 群聊支持
 
-**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、群组、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）。未调用后端 HTTP 接口，无第三方依赖。
+**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、群组、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`。无第三方依赖。
 
 **版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约并完成人工验收，其他版本未单独验证。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，需要支持这两项的浏览器。
 
