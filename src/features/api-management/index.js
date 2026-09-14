@@ -27,35 +27,49 @@ function findRecordIndex(items, id) {
 function validateConfig(config, items) {
     const errors = [];
     const warnings = [];
-    if (!config || typeof config !== 'object' || Array.isArray(config)) {
-        return { valid: false, errors: ['副 API 配置必须是对象'], warnings };
+    const fields = { errors: {}, warnings: {} };
+    const generalErrors = [];
+    function addError(field, message) {
+        errors.push(message);
+        if (field) fields.errors[field] = [fields.errors[field], message].filter(Boolean).join('；');
+        else generalErrors.push(message);
     }
-    errors.push(...validateRecordName(config.name, items, config.id));
+    function addWarning(field, message) {
+        warnings.push(message);
+        fields.warnings[field] = message;
+    }
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+        return { valid: false, errors: ['副 API 配置必须是对象'], warnings, fields, generalErrors: ['副 API 配置必须是对象'] };
+    }
+    for (const message of validateRecordName(config.name, items, config.id)) addError('name', message);
     if (config.id !== undefined) {
-        if (typeof config.id !== 'string' || !config.id) errors.push('副 API id 必须是非空字符串');
-        else if (!items.some(item => item.id === config.id)) errors.push('副 API 配置不存在');
+        if (typeof config.id !== 'string' || !config.id) addError(null, '副 API id 必须是非空字符串');
+        else if (!items.some(item => item.id === config.id)) addError(null, '副 API 配置不存在');
     }
     const validProvider = config.provider === undefined || config.provider === ''
         || config.provider === 'openai' || config.provider === 'local';
-    if (!validProvider) errors.push('provider 仅支持 openai、local 或未填写');
+    if (!validProvider) addError(null, '供应商类型仅支持自动判断、openai 或 local');
     let url;
     try {
         if (typeof config.baseUrl !== 'string') throw new TypeError();
         url = new URL(config.baseUrl);
-        if (!['http:', 'https:'].includes(url.protocol)) errors.push('服务地址只支持 HTTP 或 HTTPS');
-        if (url.search || url.hash) errors.push('服务地址不能包含查询参数或片段');
-        if (url.protocol === 'http:') warnings.push('服务地址未使用 HTTPS');
+        if (/[\u0000-\u001f\u007f-\u009f]/u.test(config.baseUrl)) addError('url', '服务地址不能包含控制字符');
+        if (url.username || url.password) addError('url', '服务地址不能包含用户名或密码');
+        if (!['http:', 'https:'].includes(url.protocol)) addError('url', '服务地址只支持 HTTP 或 HTTPS');
+        if (/[?#]/u.test(config.baseUrl)) addError('url', '服务地址不能包含查询参数或锚点');
+        if (url.protocol === 'http:') addWarning('url', '服务地址未使用 HTTPS');
     } catch {
-        errors.push('服务地址必须是有效 URL');
+        addError('url', '服务地址必须是有效 URL');
     }
-    if (typeof config.model !== 'string' || !config.model.trim() || config.model.includes('\n')) {
-        errors.push('模型必须是非空字符串且不能包含换行');
+    if (typeof config.model !== 'string' || !config.model.trim() || /[\r\n\u2028\u2029]/u.test(config.model)) {
+        addError('model', '模型必须是非空字符串且不能包含换行');
     }
-    if (typeof config.key !== 'string') errors.push('密钥必须是字符串，可以留空');
+    if (typeof config.key !== 'string') addError(null, '密钥必须是字符串，可以留空');
+    else if (/[\u0000-\u001f\u007f-\u009f]/u.test(config.key.trim())) addError(null, '密钥不能包含控制字符');
     else if (!config.key.trim() && url && validProvider && shouldWarnEmptyKey(config)) {
-        warnings.push('当前服务未填写密钥');
+        addWarning('key', '可能需要填写密钥');
     }
-    return { valid: errors.length === 0, errors, warnings };
+    return { valid: errors.length === 0, errors, warnings, fields, generalErrors };
 }
 
 function activeConfig(group) {
@@ -68,7 +82,15 @@ export function getApiProfiles() {
 }
 
 export function validateApiConfig(config) {
-    return validateConfig(config, getApiProfiles().items);
+    const { valid, errors, warnings } = validateConfig(config, getApiProfiles().items);
+    return { valid, errors, warnings };
+}
+
+// 界面字段检查和旧接口共用同一次校验。
+export function validateApiConfigFields(config) {
+    const { fields, generalErrors } = validateConfig(config, getApiProfiles().items);
+    if (generalErrors.length) throw new Error(generalErrors.join('；'));
+    return fields;
 }
 
 export function saveApiProfile(config) {

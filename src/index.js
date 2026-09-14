@@ -8,6 +8,7 @@ import * as promptManagement from './features/prompt-management/index.js';
 import { exportUI } from './features/text-export/export-ui.js';
 import { updater } from './features/updater/index.js';
 import { presets } from './features/presets/index.js';
+import { apiUI } from './features/api-ui/index.js';
 import { initPanelUI } from './ui/panel/index.js';
 
 function getContext() {
@@ -45,6 +46,7 @@ globalThis.YaKitChat = Object.freeze({
     exportUI,
     updater,
     presets,
+    apiUI,
     readCurrentChat,
     filterMessages,
     cleanMessages,

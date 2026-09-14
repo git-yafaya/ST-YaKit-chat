@@ -15,3 +15,14 @@ export function validateRecordName(name, items, id) {
 export function createRecordId() {
     return crypto.getRandomValues(new Uint32Array(4)).join('-');
 }
+
+// 副本统一避开同名，给后缀留长度且不截断代理对。
+export function createDuplicateName(name, items) {
+    const names = new Set(items.map(item => item.name.trim().toLowerCase()));
+    for (let number = 1; ; number++) {
+        const suffix = number === 1 ? ' 副本' : ` 副本(${number})`;
+        const prefix = name.slice(0, 64 - suffix.length).replace(/[\uD800-\uDBFF]$/u, '').trimEnd();
+        const candidate = `${prefix}${suffix}`;
+        if (!names.has(candidate.toLowerCase())) return candidate;
+    }
+}
