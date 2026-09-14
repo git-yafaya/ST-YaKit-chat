@@ -279,7 +279,7 @@
 @media (max-width: 600px) {
     .dsh-dialog {
         width: calc(100vw - 4px);
-        height: calc(100dvh - 8px);
+        height: calc(100dvh - 18px);
         margin: auto 2px 0;
         border: 0;
         border-radius: 16px 16px 0 0;
