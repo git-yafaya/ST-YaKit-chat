@@ -23,6 +23,20 @@
     display: none;
 }
 
+/* 主题可以给弹窗左右两边加装饰竖条（如咩咩），盖在面板内容上面、不挡点击；没设置时不显示 */
+.yakit-dialog::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image: var(--card-edges, none);
+    background-position: left top, right top;
+    background-size: 3px 100%;
+    background-repeat: no-repeat;
+}
+
 .yakit-dialog::backdrop {
     background: rgba(0, 0, 0, 0.45);
 }
