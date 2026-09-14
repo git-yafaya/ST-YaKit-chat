@@ -28,6 +28,8 @@
   let lastCheck = 0;
   let checking = false;
   let updating = false;
+  // 按钮当前的作用：check = 重新检查，update = 执行更新
+  let buttonAction = 'check';
 
   // 检查或更新失败时，在按钮下方的提示框里显示业务给出的中文原因；传空则隐藏
   function showUpdateError(message = '') {
@@ -36,31 +38,37 @@
     box.querySelector('span').textContent = message;
   }
 
-  function setUpdateState(text, { canClick = false, primary = false } = {}) {
+  // action：check = 按钮显示「检查更新」，update = 显示「更新」
+  function setUpdateState(text, { canClick = false, primary = false, action = 'update' } = {}) {
     updateRow.setAttribute('summary', [version, text].filter(Boolean).join(' · '));
+    buttonAction = action;
+    updateButton.textContent = action === 'check' ? '检查更新' : '更新';
     updateButton.toggleAttribute('disabled', !canClick);
     if (primary) updateButton.setAttribute('variant', 'primary');
     else updateButton.removeAttribute('variant');
   }
 
-  async function checkUpdate({ force = false } = {}) {
+  async function checkUpdate({ force = false, manual = false } = {}) {
     const service = updater();
     updateRow.hidden = !service;
     if (!service || checking || updating) return;
     if (!force && Date.now() - lastCheck < CHECK_INTERVAL) return;
     checking = true;
     lastCheck = Date.now();
-    setUpdateState('检查中…');
+    setUpdateState('检查中…', { action: 'check' });
     showUpdateError();
     updateButton.setAttribute('loading', '');
     try {
       const { isUpToDate, canUpdate } = await service.checkUpdate();
       if (!canUpdate) setUpdateState('无法在线更新');
-      else if (isUpToDate) setUpdateState('已是最新');
+      else if (isUpToDate) {
+        setUpdateState('已是最新', { canClick: true, action: 'check' });
+        if (manual) DshToast.show('已经是最新版本', 'success');
+      }
       else setUpdateState('有新版本', { canClick: true, primary: true });
     } catch (error) {
       console.warn('[纪实] 检查更新失败', error);
-      setUpdateState('检查失败');
+      setUpdateState('检查失败', { canClick: true, action: 'check' });
       showUpdateError(error?.message || '检查更新失败');
       lastCheck = 0;
     } finally {
@@ -71,7 +79,11 @@
 
   updateButton.addEventListener('click', async () => {
     const service = updater();
-    if (!service || updating) return;
+    if (!service || updating || checking) return;
+    if (buttonAction === 'check') {
+      checkUpdate({ force: true, manual: true });
+      return;
+    }
     updating = true;
     updateButton.setAttribute('loading', '');
     setUpdateState('更新中…');
@@ -84,7 +96,7 @@
         setTimeout(() => parent.location.reload(), 1200);
         return;
       }
-      setUpdateState('已是最新');
+      setUpdateState('已是最新', { canClick: true, action: 'check' });
       DshToast.show('已经是最新版本', 'success');
     } catch (error) {
       setUpdateState('更新失败', { canClick: true });
@@ -101,7 +113,7 @@
     if (event.detail.tab === 'settings') checkUpdate();
   });
   updateRow.hidden = !updater();
-  if (updater()) setUpdateState('');
+  if (updater()) setUpdateState('', { canClick: true, action: 'check' });
 
   /* ---------- 主题：插画格子 / 下拉框，点选后通知弹窗换主题 ---------- */
   const themeList = $('themes');
