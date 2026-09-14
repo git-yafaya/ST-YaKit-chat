@@ -114,6 +114,11 @@
       $('.title').focus();
     }
 
+    // 最后一次操作是不是键盘：鼠标或手指关掉时，焦点回到原按钮但不显示焦点框
+    let byKeyboard = false;
+    dialog.addEventListener('keydown', () => { byKeyboard = true; }, true);
+    dialog.addEventListener('pointerdown', () => { byKeyboard = false; }, true);
+
     return new Promise((resolve) => {
       let done = false;
       const finish = (result) => {
@@ -124,6 +129,7 @@
           clearTimeout(fallback);
           dialog.close();
           host.remove();
+          if (!byKeyboard) document.activeElement?.blur();
         };
         // 动画结束再移除；万一动画没触发，200ms 后也会移除
         const fallback = setTimeout(remove, 200);

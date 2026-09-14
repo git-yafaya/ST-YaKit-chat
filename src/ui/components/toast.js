@@ -1,5 +1,5 @@
 /**
- * 提示消息（右上角弹出的小条，几秒后自动消失）
+ * 提示消息（顶部居中弹出的小条，几秒后自动消失；不挡卡片右上角的按钮）
  *
  * 用法：
  *   DshToast.show('已导出', 'success');
@@ -22,12 +22,13 @@
   const styles = `
     :host {
       position: fixed;
-      top: 16px;
+      top: 12px;
+      left: 16px;
       right: 16px;
       z-index: 2147483000;
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
+      align-items: center;
       gap: 8px;
       pointer-events: none;
     }
