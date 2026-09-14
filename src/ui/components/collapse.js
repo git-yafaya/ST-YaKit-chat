@@ -3,7 +3,7 @@
  * 一行标题，点一下在原地往下展开内容，再点收起。设置页的一级项目都用它。
  *
  * 用法：
- *   <yakit-collapse title="主题" summary="冷杉与海盐" icon="../icons/star.svg">
+ *   <yakit-collapse title="主题" summary="冷杉与海盐" icon="../icons/settings.svg">
  *     展开后的内容
  *   </yakit-collapse>
  *

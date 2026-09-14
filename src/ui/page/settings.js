@@ -10,6 +10,8 @@
     if (event.detail.open) settingItems.forEach((other) => { if (other !== item) other.open = false; });
   }));
   $('set-demo').addEventListener('activate', () => $('demo-drawer').show());
+  // 组件示例平时隐藏，开发时在控制台运行 localStorage.setItem('yakit-demo', 'on') 后刷新即可看到
+  try { $('set-demo').hidden = localStorage.getItem('yakit-demo') !== 'on'; } catch {}
 
   /* ---------- 插件更新：打开设置页时检查，有新版本时可点更新，更新完自动刷新网页 ----------
    * 需要业务层在 YaKitChat 上提供 updater（由 Codex 实现）：

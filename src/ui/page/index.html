@@ -117,7 +117,8 @@
           </div>
           <p class="field-note">页签放在顶部还是底部。<br>建议选自动：电脑放上方，手机放下方。</p>
         </yakit-collapse>
-        <yakit-collapse id="set-demo" title="组件示例" summary="按钮、输入框、开关等" icon="../icons/folder.svg" link></yakit-collapse>
+        <!-- 组件示例：开发时对照用，平时隐藏；浏览器里 localStorage 的 yakit-demo 设为 on 才显示 -->
+        <yakit-collapse id="set-demo" title="组件示例" summary="按钮、输入框、开关等" icon="../icons/folder.svg" link hidden></yakit-collapse>
         <yakit-collapse id="set-errors" title="报错记录" icon="../icons/bell.svg">
           <p class="field-note error-log-note">纪实最近出过的错，最多保留 50 条。<br>反馈问题时点「复制全部」，把内容发给作者。</p>
           <div class="error-log" id="error-log"></div>
