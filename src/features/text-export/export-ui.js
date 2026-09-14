@@ -3,6 +3,7 @@ import { filterMessages, getMessageType } from './filter-messages.js';
 import { cleanMessages } from './clean-messages.js';
 import { saveExport } from './save-export.js';
 import { scanTags } from './scan-recent-tags.js';
+import { getAiContext, suggestRules } from './ai-assist.js';
 import { normalizeSettings, parseRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
 
 function chatInfo(context) {
@@ -106,4 +107,5 @@ function onChatChanged(callback) {
 
 export const exportUI = Object.freeze({
     getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags,
+    getAiContext, suggestRules,
 });
