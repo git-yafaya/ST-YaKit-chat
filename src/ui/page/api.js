@@ -196,6 +196,17 @@
     $('api-test-ok').hidden = true;
   }
 
+  // 获取模型、测试连接要等酒馆去查，可能要几秒到半分钟：
+  // 等待期间不锁住抽屉里其他操作；改了地址、密钥、类型或关掉抽屉后，旧结果作废，按钮立刻恢复
+  let connectionToken = 0;
+  function resetConnection() {
+    connectionToken += 1;
+    $('api-fetch-models').removeAttribute('loading');
+    $('api-test').removeAttribute('loading');
+    hideTestResult();
+  }
+  $('api-drawer').addEventListener('close', resetConnection);
+
   function openProfileDrawer(profile = null) {
     editingId = profile?.id ?? null;
     touched = new Set();
@@ -209,7 +220,7 @@
     $('api-provider').value = profile?.provider || 'auto';
     $('api-model-select').hidden = true;
     $('api-model-select').replaceChildren();
-    hideTestResult();
+    resetConnection();
     $('api-drawer').show();
   }
 
@@ -244,58 +255,67 @@
     checkTimer = setTimeout(checkProfileDraft, 200);
   };
 
+  const CONNECTION_FIELDS = ['url', 'key'];
   Object.entries(PROFILE_FIELDS).forEach(([key, id]) => {
     $(id).addEventListener('input', () => {
       touched.add(key);
-      hideTestResult();
+      if (CONNECTION_FIELDS.includes(key)) resetConnection();
       scheduleCheck();
     });
   });
   $('api-provider').addEventListener('change', () => {
     touched.add('key');
-    hideTestResult();
+    resetConnection();
     scheduleCheck();
   });
 
-  $('api-fetch-models').addEventListener('click', (event) => {
+  $('api-fetch-models').addEventListener('click', async (event) => {
     const button = event.currentTarget;
-    run(button, async () => {
-      try {
-        const models = await service().fetchModels(profileDraft());
-        const list = Array.isArray(models) ? models : [];
-        const select = $('api-model-select');
-        select.replaceChildren(...list.map((model) => new Option(model, model)));
-        select.value = list.includes($('api-model').value) ? $('api-model').value : '';
-        select.hidden = list.length === 0;
-        if (list.length) YaKitToast.show(`获取到 ${list.length} 个模型`, 'success');
-        else YaKitToast.show('没有获取到模型', 'warning');
-      } catch (error) {
-        showError(error, '获取模型失败');
-      }
-    });
+    if (button.hasAttribute('loading')) return;
+    const token = connectionToken;
+    button.setAttribute('loading', '');
+    try {
+      const models = await service().fetchModels(profileDraft());
+      if (token !== connectionToken) return;
+      const list = Array.isArray(models) ? models : [];
+      const select = $('api-model-select');
+      select.replaceChildren(...list.map((model) => new Option(model, model)));
+      select.value = list.includes($('api-model').value) ? $('api-model').value : '';
+      select.hidden = list.length === 0;
+      if (list.length) YaKitToast.show(`获取到 ${list.length} 个模型`, 'success');
+      else YaKitToast.show('没有获取到模型', 'warning');
+    } catch (error) {
+      if (token === connectionToken) showError(error, '获取模型失败');
+    } finally {
+      if (token === connectionToken) button.removeAttribute('loading');
+    }
   });
 
   $('api-model-select').addEventListener('change', (event) => {
     $('api-model').value = event.detail.value;
     touched.add('model');
-    hideTestResult();
     scheduleCheck();
   });
 
-  $('api-test').addEventListener('click', (event) => {
+  $('api-test').addEventListener('click', async (event) => {
     const button = event.currentTarget;
+    if (button.hasAttribute('loading')) return;
     hideTestResult();
-    run(button, async () => {
-      try {
-        const result = await service().testConnection(profileDraft());
-        $('api-test-ok').querySelector('span').textContent = result?.message || '连接成功';
-        $('api-test-ok').hidden = false;
-      } catch (error) {
-        $('api-test-error').querySelector('span').textContent = error?.message || '连接失败';
-        YaKitErrorLog.add({ message: error?.message || '连接失败', detail: error });
-        $('api-test-error').hidden = false;
-      }
-    });
+    const token = connectionToken;
+    button.setAttribute('loading', '');
+    try {
+      const result = await service().testConnection(profileDraft());
+      if (token !== connectionToken) return;
+      $('api-test-ok').querySelector('span').textContent = result?.message || '连接成功';
+      $('api-test-ok').hidden = false;
+    } catch (error) {
+      if (token !== connectionToken) return;
+      $('api-test-error').querySelector('span').textContent = error?.message || '连接失败';
+      YaKitErrorLog.add({ message: error?.message || '连接失败', detail: error });
+      $('api-test-error').hidden = false;
+    } finally {
+      if (token === connectionToken) button.removeAttribute('loading');
+    }
   });
 
   $('api-drawer-cancel').addEventListener('click', () => $('api-drawer').close());
