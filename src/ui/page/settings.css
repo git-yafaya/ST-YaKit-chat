@@ -1,0 +1,56 @@
+/* 设置页 */
+/* 二级设置项列表 */
+.settings-list {
+  overflow: hidden;
+  border-radius: 12px;
+  border: var(--card-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+.settings-list > dsh-collapse + dsh-collapse { border-top: 1px solid var(--divider); }
+.setting-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.setting-label { font-size: 13px; color: var(--text-title); }
+.setting-field + .field-note { margin: 6px 0 12px; }
+
+/* 主题插画选择 */
+.themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+}
+.theme-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--divider);
+  background: var(--card-bg);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.theme-option:hover { transform: translateY(-2px); border-color: var(--text-muted); }
+.theme-option:focus { outline: none; }
+.theme-option:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* 当前主题：点睛色描边 + 右上角点睛色小圆块 */
+.theme-option[aria-checked="true"] {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--accent);
+  color: var(--text-title);
+  font-weight: 500;
+}
+.theme-option[aria-checked="true"]::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}

@@ -1,0 +1,42 @@
+/* 面板页面公共样式：渲染在独立 iframe 里，酒馆的样式影响不到这里 */
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+  font: 14px/1.6 var(--dsh-font, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif);
+  background: var(--panel-bg);
+  color: var(--text-body);
+}
+[hidden] { display: none !important; }
+main { max-width: 760px; margin: 0 auto; }
+
+.section + .section { margin-top: 28px; }
+.section-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.card-extra { font-size: 12px; line-height: 22px; color: var(--text-muted); white-space: nowrap; }
+.btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.field-note { margin: 6px 0 0; font-size: 12px; color: var(--text-muted); }
+
+/* 状态提示框：危险色 + 图标 + 文字 */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-body);
+  background: color-mix(in srgb, var(--danger) 9%, var(--card-bg));
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+}
+.notice svg { flex: none; margin-top: 2px; color: var(--danger); }
+
+@media (max-width: 600px) {
+  body { padding: 12px; }
+}

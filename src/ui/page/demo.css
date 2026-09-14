@@ -1,0 +1,54 @@
+/* 组件示例抽屉 */
+/* 分段选择器示例行 */
+.field {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+.field + .field { border-top: 1px dashed var(--divider); }
+.field-label { color: var(--text-body); }
+
+/* 卡片网格 */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.stat { font-size: 24px; font-weight: 600; color: var(--text-title); line-height: 1.2; }
+.muted { color: var(--text-muted); font-size: 13px; }
+.rows { margin: 0; padding: 0; list-style: none; }
+.rows li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
+.rows li span:last-child { color: var(--text-title); }
+.demo-rows > * + * { margin-top: 14px; }
+.demo-label { margin: 0 0 8px; font-size: 12px; color: var(--text-muted); }
+.inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px 16px;
+}
+.inputs .wide { grid-column: 1 / -1; }
+.switch-list > * { display: flex; padding: 12px 0; }
+.switch-list > * + * { border-top: 1px solid var(--divider); }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.switch-row-text { min-width: 0; }
+.switch-row-title { color: var(--text-title); }
+.switch-row-note { font-size: 12px; color: var(--text-muted); }
+
+/* 抽屉里的规则列表 */
+.rule {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--divider);
+}
+.rule:last-child { border-bottom: 0; }
+.rule-name { color: var(--text-title); font-weight: 500; }
+.rule code {
+  display: block;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text-title) 5%, transparent);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
