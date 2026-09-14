@@ -40,6 +40,8 @@
  * ───────── 给面板里其他页面脚本用（预设页 preset.js）─────────
  *   window.YaKitExportPage.getState()        当前导出设置（副本）
  *   window.YaKitExportPage.replaceState(s)   换成另一份导出设置并刷新界面（切换预设、从备份恢复后调用）
+ *   window.YaKitExportPage.addRules(rules)   把规则追加到列表末尾并保存（已有的不重复加），返回实际加了几条
+ *   window.YaKitExportPage.getChatStatus()   'ok' | 'group' | 'none' | 'unavailable'
  *   window 事件 yakit-export-change          导出设置有任何改动时触发，event.detail 是改动后的设置副本
  */
 (() => {
@@ -495,6 +497,16 @@
       renderPreview();
       notifyChange();
     },
+    addRules(rules = []) {
+      const fresh = [...new Set(rules)].filter((rule) => rule && !state.rules.includes(rule));
+      if (!fresh.length) return 0;
+      state.rules.push(...fresh);
+      save();
+      renderRules();
+      renderPreview();
+      return fresh.length;
+    },
+    getChatStatus: () => chatInfo().status,
   };
 
   bindSettings();

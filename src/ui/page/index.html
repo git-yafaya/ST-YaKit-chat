@@ -58,6 +58,7 @@
         <div class="rule-list" id="rule-list"></div>
         <div class="btn-row rule-add">
           <yakit-button id="rule-add" size="sm" icon="../icons/plus.svg">添加规则</yakit-button>
+          <yakit-button id="ai-open" size="sm" icon="../icons/sparkle.svg" hidden>AI 辅助</yakit-button>
           <span class="card-extra" id="rule-count"></span>
         </div>
       </yakit-card>
@@ -231,6 +232,36 @@
     </section>
 
     <yakit-button slot="footer" id="export-drawer-done" variant="primary">完成</yakit-button>
+  </yakit-drawer>
+
+  <!-- 文本导出：AI 辅助生成正则规则 -->
+  <yakit-drawer id="ai-drawer" title="AI 辅助">
+    <p class="ai-context" id="ai-context"></p>
+    <section class="drawer-section drawer-stack">
+      <yakit-input id="ai-request" label="想删掉或保留什么" required multiline rows="3" maxlength="500" placeholder="例如：去掉每条消息末尾的状态栏"></yakit-input>
+      <p class="field-note" id="ai-mode-note"></p>
+      <div class="btn-row">
+        <yakit-button id="ai-generate" variant="primary" icon="../icons/sparkle.svg" disabled>生成规则</yakit-button>
+        <span class="card-extra" id="ai-chat-note"></span>
+      </div>
+      <div class="notice" id="ai-error" role="alert" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+        <span></span>
+      </div>
+    </section>
+
+    <section class="drawer-section" id="ai-result" hidden>
+      <h3>生成的规则</h3>
+      <div class="ai-rules" id="ai-rules"></div>
+      <h3 class="ai-preview-title">加上这些规则后的样子</h3>
+      <div class="ai-preview" id="ai-preview"></div>
+    </section>
+
+    <div slot="footer" class="btn-row">
+      <yakit-button id="ai-close" variant="ghost">关闭</yakit-button>
+      <yakit-button id="ai-regenerate" hidden>重新生成</yakit-button>
+      <yakit-button id="ai-apply" variant="primary" hidden>添加到规则</yakit-button>
+    </div>
   </yakit-drawer>
 
   <!-- API 管理：新建 / 编辑副 API 配置 -->
@@ -531,6 +562,7 @@
   <script src="main.js"></script>
   <script src="settings.js"></script>
   <script src="export.js"></script>
+  <script src="ai-rules.js"></script>
   <script src="choice.js"></script>
   <script src="preset.js"></script>
   <script src="api.js"></script>

@@ -98,6 +98,34 @@
 .rule-empty { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
 .rule-add { margin-top: 8px; }
 
+/* AI 辅助抽屉 */
+.ai-context { margin: 0 0 16px; font-size: 12px; line-height: 1.6; color: var(--text-muted); }
+.ai-rules > * + * { margin-top: 8px; }
+.ai-rule {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--divider);
+  background: color-mix(in srgb, var(--text-title) 3%, var(--card-bg));
+}
+.ai-rule code {
+  display: block;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-title);
+  overflow-wrap: anywhere;
+}
+.ai-rule-note { margin-top: 2px; font-size: 12px; color: var(--text-body); }
+.ai-rule-invalid { display: flex; align-items: flex-start; gap: 4px; margin-top: 4px; font-size: 12px; font-weight: 500; color: var(--danger); }
+.ai-rule-invalid svg { flex: none; margin-top: 2px; }
+.ai-rule-state { margin-top: 2px; font-size: 12px; color: var(--text-muted); }
+.ai-preview-title { margin-top: 18px !important; }
+.ai-preview {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--divider);
+}
+
 .export-bar > #export-go { margin-left: auto; }
 .export-bar {
   display: flex;
