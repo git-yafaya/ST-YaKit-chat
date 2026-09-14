@@ -251,26 +251,33 @@ function openPanel() {
         setTimeout(resolve, 120);
     });
 
-    // 换主题时整个弹窗做一次短淡入淡出，遮住字体变化带来的重新排版和两边前后一帧的差异
+    // 电脑上换主题时整个弹窗做一次短淡入淡出，遮住字体变化带来的重新排版和两边前后一帧的差异
+    // 手机上不做：浏览器要给整个酒馆页面拍快照（毛玻璃美化尤其吃力），过渡期间还会吞掉点击
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    let targetTheme = currentTheme; // 最后一次选中的主题，连续点击时以它为准算下一个
+    let transitioning = false;
     function setTheme(theme) {
+        targetTheme = theme;
         saveTheme(theme);
-        const run = () => {
+        // 手机、减少动态效果、不支持页面过渡，或上一次过渡还没结束：直接切换
+        if (!document.startViewTransition || reduceMotion.matches || !pcQuery.matches || transitioning) {
             applyTheme(theme, { animate: true });
-            return waitPanelTheme();
-        };
-        if (!document.startViewTransition || reduceMotion.matches) {
-            run();
             return;
         }
+        const run = () => {
+            applyTheme(targetTheme, { animate: true });
+            return waitPanelTheme();
+        };
+        transitioning = true;
         dialog.style.viewTransitionName = 'dsh-dialog';
         document.startViewTransition(run).finished.finally(() => {
+            transitioning = false;
             dialog.style.viewTransitionName = '';
         });
     }
 
     themeButton.addEventListener('click', () => {
-        const index = THEMES.findIndex((t) => t.id === currentTheme);
+        const index = THEMES.findIndex((t) => t.id === targetTheme);
         setTheme(THEMES[(index + 1) % THEMES.length].id);
     });
 

@@ -136,11 +136,41 @@
       item.innerHTML = '<div class="preview-meta"></div><div class="preview-text"></div>';
       item.querySelector('.preview-meta').textContent = `第 ${message.floor} 楼 · ${TYPE_LABELS[message.type] || ''}${message.name ? ` · ${message.name}` : ''}`;
       const text = item.querySelector('.preview-text');
-      text.textContent = message.text || '（匹配后为空）';
       text.classList.toggle('is-empty', !message.text);
+      if (message.text) text.replaceChildren(...splitIntoChunks(message.text));
+      else text.textContent = '（匹配后为空）';
       return item;
     }));
     body.scrollTop = body.scrollHeight;
+    // 分段的高度在排版后才准确，下一帧再滚一次到底
+    requestAnimationFrame(() => { body.scrollTop = body.scrollHeight; });
+  }
+
+  // 长消息切成多段（满 30 行或满 1500 字另起一段）；配合 CSS content-visibility，
+  // 浏览器只排版滚动框里看得到的段落，换字体（如切到「跟随ST」）或刷新预览时不用把几万字全部重排
+  const CHUNK_LINES = 30;
+  const CHUNK_CHARS = 1500;
+  function splitIntoChunks(text) {
+    const chunks = [];
+    let lines = [];
+    let size = 0;
+    const flush = () => {
+      if (!lines.length) return;
+      const chunk = document.createElement('div');
+      chunk.className = 'preview-chunk';
+      chunk.textContent = lines.join('\n');
+      chunks.push(chunk);
+      lines = [];
+      size = 0;
+    };
+    text.split('\n').forEach((line) => {
+      lines.push(line);
+      size += line.length + 1;
+      // 不在空行后面断开：段落末尾的空行显示不出来，会让两段之间的空行消失
+      if (line && (lines.length >= CHUNK_LINES || size >= CHUNK_CHARS)) flush();
+    });
+    flush();
+    return chunks;
   }
 
   let previewTimer = null;
