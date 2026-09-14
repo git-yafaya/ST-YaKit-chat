@@ -31,7 +31,11 @@
     <div data-page="export" class="export-page">
       <!-- 主要内容：导出预览 -->
       <dsh-card class="preview-card" title="导出预览" subtitle="最近 2 条消息导出后的样子">
-        <span slot="extra" class="card-extra" id="preview-count"></span>
+        <!-- 导出设置入口和当前设置摘要，放在预览标题同一行 -->
+        <div slot="extra" class="preview-extra">
+          <span class="export-summary" id="export-summary"></span>
+          <dsh-button id="export-settings" size="sm" variant="ghost" icon="../icons/settings.svg">导出设置</dsh-button>
+        </div>
         <div id="preview-body"></div>
       </dsh-card>
 
@@ -58,13 +62,11 @@
 
       <!-- 底部操作条 -->
       <div class="export-bar">
-        <!-- 预设：不切页签就能换；有未保存的改动时出现「保存」 -->
+        <!-- 预设：不切页签就能换；改了规则或设置后点「更新预设」存回当前预设 -->
         <div class="export-preset" id="export-preset" hidden>
           <dsh-select id="export-preset-select" size="sm" aria-label="预设"></dsh-select>
-          <dsh-button id="export-preset-save" size="sm" variant="ghost" hidden>保存</dsh-button>
+          <dsh-button id="export-preset-save" size="sm" disabled>更新预设</dsh-button>
         </div>
-        <dsh-button id="export-settings" variant="ghost" icon="../icons/settings.svg">导出设置</dsh-button>
-        <span class="export-summary" id="export-summary"></span>
         <dsh-button id="export-go" variant="primary" icon="../icons/ouput.svg">导出</dsh-button>
       </div>
     </div>

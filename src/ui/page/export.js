@@ -116,7 +116,6 @@
   async function renderPreview() {
     const info = chatInfo();
     $('export-go').toggleAttribute('disabled', info.status !== 'ok' || !anyType());
-    $('preview-count').textContent = '';
 
     if (info.status !== 'ok') {
       showEmpty(EMPTY_TEXT[info.status] || EMPTY_TEXT.none);

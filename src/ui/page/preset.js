@@ -190,7 +190,7 @@
     presets.forEach((preset) => options.push(new Option(preset.name, preset.id)));
     select.replaceChildren(...options);
     select.value = activeId ?? '';
-    $('export-preset-save').hidden = !isModified();
+    $('export-preset-save').toggleAttribute('disabled', !isModified());
   }
 
   // 导出页改了设置：只刷新「已修改」相关的显示
@@ -198,7 +198,7 @@
     if (!service()) return;
     // 预设页没打开时不用重画列表，切过去时会重新读取
     if (!document.querySelector('[data-page="preset"]').hidden) renderList();
-    $('export-preset-save').hidden = !isModified();
+    $('export-preset-save').toggleAttribute('disabled', !isModified());
   }
 
   /* ---------- 操作 ---------- */
@@ -235,7 +235,7 @@
     await run(button, async () => {
       try {
         await service().update(current.id, pickContent(state));
-        DshToast.show(`已保存到「${current.name}」`, 'success');
+        DshToast.show(`已更新「${current.name}」`, 'success');
       } catch (error) {
         showError(error, '保存预设失败');
       }

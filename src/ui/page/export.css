@@ -98,6 +98,7 @@
 .rule-empty { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
 .rule-add { margin-top: 8px; }
 
+.export-bar > #export-go { margin-left: auto; }
 .export-bar {
   display: flex;
   align-items: center;
@@ -109,8 +110,8 @@
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
 }
+.preview-extra { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .export-summary {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   font-size: 12px;
@@ -161,6 +162,8 @@
   .tag-chip { height: 34px; padding: 0 14px; font-size: 13px; }
   .tag-toggle { height: 34px; padding: 0 12px; font-size: 13px; }
   .tag-scan-label { line-height: 34px; }
+  /* 预览标题行放不下摘要，只留「导出设置」按钮 */
+  .export-summary { display: none; }
   .export-page { height: auto; min-height: 0; }
   .export-page > .preview-card { flex: none; }
   .preview-card::part(body) { max-height: 280px; }

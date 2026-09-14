@@ -63,7 +63,7 @@
 @media (prefers-reduced-motion: reduce) { .preset-item { transition: none; } }
 
 /* 导出页底部的预设下拉框 */
-.export-preset { display: flex; align-items: center; gap: 4px; flex: none; width: 190px; }
+.export-preset { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 320px; }
 .export-preset dsh-select { flex: 1; min-width: 0; }
 
 /* 手机：按钮换到名字下面一行，左边「使用中 / 已修改」，右边保存、还原和四个图标按钮；导出页的预设单独占一行 */
@@ -74,8 +74,7 @@
   .preset-tools dsh-button { --btn-height: 34px; --btn-pad: 12px; --btn-font: 13px; --btn-icon: 18px; }
   .preset-state { margin-right: auto; }
 
-  .export-bar { flex-wrap: wrap; }
-  .export-preset { flex-basis: 100%; width: auto; }
+  .export-preset { max-width: none; }
   /* 手机上下拉框和保存按钮加高，方便手指点 */
   .export-preset dsh-select { --select-height: 34px; --select-font: 14px; }
   .export-preset dsh-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
