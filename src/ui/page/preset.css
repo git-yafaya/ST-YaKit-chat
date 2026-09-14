@@ -64,22 +64,22 @@
 
 /* 导出页底部的预设下拉框 */
 .export-preset { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 320px; }
-.export-preset dsh-select { flex: 1; min-width: 0; }
+.export-preset yakit-select { flex: 1; min-width: 0; }
 
 /* 手机：四个图标按钮在名字右上角；「使用中」不显示（看小圆点）；有改动时，已修改、保存、还原换到名字下面一行 */
 @media (max-width: 600px) {
   .preset-item { flex-wrap: wrap; align-items: flex-start; }
   .preset-ops { order: 1; gap: 0; padding-top: 8px; }
-  .preset-ops dsh-button { --btn-height: 32px; --btn-icon: 18px; }
+  .preset-ops yakit-button { --btn-height: 32px; --btn-icon: 18px; }
   .preset-tools { display: none; }
   .preset-item.is-modified { padding-bottom: 8px; }
   .preset-item.is-modified .preset-main { padding-bottom: 4px; }
   .preset-item.is-modified .preset-tools { display: flex; order: 2; flex-basis: 100%; box-sizing: border-box; padding: 0 4px 0 26px; }
-  .preset-tools dsh-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
+  .preset-tools yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
   .preset-state { margin-right: auto; }
 
   .export-preset { max-width: none; }
   /* 手机上下拉框和保存按钮加高，方便手指点 */
-  .export-preset dsh-select { --select-height: 34px; --select-font: 14px; }
-  .export-preset dsh-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
+  .export-preset yakit-select { --select-height: 34px; --select-font: 14px; }
+  .export-preset yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
 }

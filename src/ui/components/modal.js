@@ -2,14 +2,14 @@
  * 确认框 / 输入框（屏幕中间弹出的小窗，后面变暗）
  *
  * 用法：
- *   const ok = await DshModal.confirm({
+ *   const ok = await YaKitModal.confirm({
  *     title: '删除预设？',
  *     message: '删除后不能找回。',
  *     confirmText: '删除',              默认「确定」
  *     cancelText: '取消',               默认「取消」
  *   });                                 点确定返回 true，取消、点暗处、按 Esc 返回 false
  *
- *   const name = await DshModal.prompt({
+ *   const name = await YaKitModal.prompt({
  *     title: '存为新预设',
  *     label: '预设名字',
  *     value: '和泉纱雾',                 预先填好的内容，会全选方便直接改
@@ -22,7 +22,7 @@
  * 需要先引入 components/button.js、components/input.js。
  */
 (() => {
-  if (globalThis.DshModal) return;
+  if (globalThis.YaKitModal) return;
 
   const EASE = 'cubic-bezier(0.3, 0.7, 0.2, 1)';
 
@@ -63,8 +63,8 @@
     }
     .message { margin: 0; color: var(--text-body, #24262A); overflow-wrap: anywhere; }
     .message:empty { display: none; }
-    dsh-input { margin-top: 12px; }
-    dsh-input[hidden] { display: none; }
+    yakit-input { margin-top: 12px; }
+    yakit-input[hidden] { display: none; }
     .footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
   `;
 
@@ -76,16 +76,16 @@
       <dialog aria-labelledby="title">
         <h2 class="title" id="title" tabindex="-1"></h2>
         <p class="message"></p>
-        <dsh-input hidden></dsh-input>
+        <yakit-input hidden></yakit-input>
         <div class="footer">
-          <dsh-button class="cancel"></dsh-button>
-          <dsh-button class="confirm" variant="primary"></dsh-button>
+          <yakit-button class="cancel"></yakit-button>
+          <yakit-button class="confirm" variant="primary"></yakit-button>
         </div>
       </dialog>
     `;
     const $ = (sel) => root.querySelector(sel);
     const dialog = $('dialog');
-    const field = $('dsh-input');
+    const field = $('yakit-input');
     const confirmButton = $('.confirm');
     $('.title').textContent = title;
     $('.message').textContent = message;
@@ -163,7 +163,7 @@
     });
   }
 
-  globalThis.DshModal = {
+  globalThis.YaKitModal = {
     confirm: (options = {}) => open(options),
     prompt: ({ label, value, placeholder, maxlength, ...options } = {}) =>
       open({ ...options, input: { label, value, placeholder, maxlength } }),

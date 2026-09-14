@@ -1,10 +1,10 @@
 /**
- * <dsh-input> 输入框
+ * <yakit-input> 输入框
  *
  * 用法：
- *   <dsh-input label="文件名" placeholder="不填就用聊天名" hint="导出时自动加上日期"></dsh-input>
- *   <dsh-input label="搜索" icon="../icons/search.svg" clearable></dsh-input>
- *   <dsh-input label="备注" multiline rows="3" maxlength="200"></dsh-input>
+ *   <yakit-input label="文件名" placeholder="不填就用聊天名" hint="导出时自动加上日期"></yakit-input>
+ *   <yakit-input label="搜索" icon="../icons/search.svg" clearable></yakit-input>
+ *   <yakit-input label="备注" multiline rows="3" maxlength="200"></yakit-input>
  *
  * 可用属性：
  *   label        上方的名字
@@ -28,7 +28,7 @@
  * 需要先引入 components/icon.js（用了图标时）。
  */
 (() => {
-  if (customElements.get('dsh-input')) return;
+  if (customElements.get('yakit-input')) return;
 
   // 和 icons/close.svg 同一个图形
   const CLEAR_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
@@ -97,9 +97,9 @@
     input[type="number"] { -moz-appearance: textfield; }
     input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 
-    dsh-icon { color: var(--text-muted, #6E737A); --icon-size: 16px; }
-    :host([multiline]) dsh-icon { margin-top: 3px; }
-    dsh-icon[hidden] { display: none; }
+    yakit-icon { color: var(--text-muted, #6E737A); --icon-size: 16px; }
+    :host([multiline]) yakit-icon { margin-top: 3px; }
+    yakit-icon[hidden] { display: none; }
 
     .clear {
       display: grid;
@@ -156,7 +156,7 @@
     }
   `;
 
-  class DshInput extends HTMLElement {
+  class YaKitInput extends HTMLElement {
     static observedAttributes = [
       'label', 'placeholder', 'value', 'type', 'hint', 'error', 'icon', 'clearable',
       'maxlength', 'multiline', 'rows', 'required', 'disabled', 'readonly', 'name', 'autocomplete',
@@ -207,7 +207,7 @@
       wrap.innerHTML = `
         <label class="label" for="field"></label>
         <div class="box" part="box">
-          <dsh-icon hidden aria-hidden="true"></dsh-icon>
+          <yakit-icon hidden aria-hidden="true"></yakit-icon>
           <${tag} id="field" part="field"></${tag}>
           <button class="clear" type="button" aria-label="清空" hidden>${CLEAR_ICON}</button>
         </div>
@@ -264,7 +264,7 @@
       });
 
       const icon = attr('icon');
-      const iconEl = this.$('dsh-icon');
+      const iconEl = this.$('yakit-icon');
       iconEl.hidden = !icon;
       if (icon) iconEl.setAttribute('src', new URL(icon, document.baseURI).href);
 
@@ -305,5 +305,5 @@
     }
   }
 
-  customElements.define('dsh-input', DshInput);
+  customElements.define('yakit-input', YaKitInput);
 })();

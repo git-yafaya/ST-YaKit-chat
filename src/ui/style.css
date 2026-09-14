@@ -1,6 +1,6 @@
-/* 居中弹窗。颜色来自 components/themes.css，只在 .dsh-scope 里生效 */
+/* 居中弹窗。颜色来自 components/themes.css，只在 .yakit-scope 里生效 */
 
-.dsh-dialog {
+.yakit-dialog {
     box-sizing: border-box;
     width: min(880px, calc(100vw - 48px));
     height: min(720px, calc(100dvh - 48px));
@@ -16,59 +16,59 @@
     box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.35);
     background: var(--panel-bg);
     color: var(--text-body);
-    font: 14px/1.5 var(--dsh-font, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif);
+    font: 14px/1.5 var(--yakit-font, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif);
 }
 
-.dsh-dialog:not([open]) {
+.yakit-dialog:not([open]) {
     display: none;
 }
 
-.dsh-dialog::backdrop {
+.yakit-dialog::backdrop {
     background: rgba(0, 0, 0, 0.45);
 }
 
-.dsh-dialog[open] {
-    animation: dsh-dialog-in 0.18s ease-out;
+.yakit-dialog[open] {
+    animation: yakit-dialog-in 0.18s ease-out;
 }
 
-@keyframes dsh-dialog-in {
+@keyframes yakit-dialog-in {
     from { opacity: 0; transform: translateY(8px) scale(0.98); }
     to { opacity: 1; transform: none; }
 }
 
 /* 关闭：比打开更快地淡出下沉，暗色背景一起淡出 */
-.dsh-dialog[open].is-closing {
-    animation: dsh-dialog-out 0.12s ease-in forwards;
+.yakit-dialog[open].is-closing {
+    animation: yakit-dialog-out 0.12s ease-in forwards;
 }
 
-.dsh-dialog[open].is-closing::backdrop {
-    animation: dsh-backdrop-out 0.12s ease-in forwards;
+.yakit-dialog[open].is-closing::backdrop {
+    animation: yakit-backdrop-out 0.12s ease-in forwards;
 }
 
-@keyframes dsh-dialog-out {
+@keyframes yakit-dialog-out {
     to { opacity: 0; transform: translateY(6px) scale(0.98); }
 }
 
-@keyframes dsh-backdrop-out {
+@keyframes yakit-backdrop-out {
     to { opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .dsh-dialog[open],
-    .dsh-dialog[open].is-closing,
-    .dsh-dialog[open].is-closing::backdrop { animation-duration: 1ms; }
+    .yakit-dialog[open],
+    .yakit-dialog[open].is-closing,
+    .yakit-dialog[open].is-closing::backdrop { animation-duration: 1ms; }
 }
 
 /* 顶部栏和底部导航是操作区，连点时不选中文字 */
-.dsh-dialog-header,
-.dsh-bottom-nav {
+.yakit-dialog-header,
+.yakit-bottom-nav {
     -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
 
 /* 顶部栏分三块：左边标题、中间页签（真正居中）、右边按钮 */
-.dsh-dialog-header {
+.yakit-dialog-header {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
@@ -83,7 +83,7 @@
 }
 
 /* 标题和 -YaKit 在同一行，底部对齐 */
-.dsh-dialog-heading {
+.yakit-dialog-heading {
     display: flex;
     align-items: baseline;
     gap: 6px;
@@ -92,7 +92,7 @@
     outline: none;
 }
 
-.dsh-dialog-title {
+.yakit-dialog-title {
     margin: 0;
     font-family: inherit;
     font-size: 16px;
@@ -102,26 +102,26 @@
 }
 
 /* 标题旁边的小字，比标题小 3px */
-.dsh-dialog-subtitle {
+.yakit-dialog-subtitle {
     font-size: 13px;
     font-weight: 400;
     color: var(--text-muted);
 }
 
 /* ---------- 页签（components/segmented.js） ---------- */
-.dsh-tabs {
+.yakit-tabs {
     justify-self: center;
 }
 
 /* ---------- 右侧按钮 ---------- */
-.dsh-dialog-actions {
+.yakit-dialog-actions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 2px;
 }
 
-.dsh-icon-button {
+.yakit-icon-button {
     display: grid;
     place-items: center;
     width: 36px;
@@ -134,48 +134,48 @@
     cursor: pointer;
 }
 
-.dsh-icon-button:hover {
+.yakit-icon-button:hover {
     background: var(--divider);
     color: var(--text-title);
 }
 
-.dsh-dialog button:focus {
+.yakit-dialog button:focus {
     outline: none;
 }
 
-.dsh-dialog button:focus-visible {
+.yakit-dialog button:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 1px;
 }
 
 /* 图标：用 icons 文件夹里的 SVG 当形状，颜色跟随文字 */
-.dsh-icon {
+.yakit-icon {
     display: block;
     width: 20px;
     height: 20px;
     background: currentColor;
-    -webkit-mask: var(--dsh-icon) center / contain no-repeat;
-    mask: var(--dsh-icon) center / contain no-repeat;
+    -webkit-mask: var(--yakit-icon) center / contain no-repeat;
+    mask: var(--yakit-icon) center / contain no-repeat;
 }
 
 /* 魔法棒菜单入口的图标：跟菜单里其他扩展的字体图标一样大 */
-.dsh-icon.dsh-menu-entry-icon {
+.yakit-icon.yakit-menu-entry-icon {
     width: 1em;
     height: 1em;
 }
 
 /* ---------- 主题插画按钮 ---------- */
-.dsh-theme-switch {
+.yakit-theme-switch {
     position: relative;
 }
 
-.dsh-theme-button {
+.yakit-theme-button {
     width: 40px;
     height: 40px;
 }
 
 /* 换主题时在按钮下面冒出主题名 */
-.dsh-theme-bubble {
+.yakit-theme-bubble {
     position: absolute;
     top: calc(100% + 6px);
     right: 0;
@@ -194,39 +194,39 @@
     transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-.dsh-theme-bubble.is-visible {
+.yakit-theme-bubble.is-visible {
     opacity: 1;
     transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .dsh-theme-bubble { transition: none; }
+    .yakit-theme-bubble { transition: none; }
 }
 
-.dsh-dialog-body {
+.yakit-dialog-body {
     flex: 1;
     min-height: 0;
 }
 
-.dsh-dialog-body embed-frame::part(frame) {
+.yakit-dialog-body embed-frame::part(frame) {
     border: 0;
     border-radius: 0;
     box-shadow: none;
 }
 
 /* ---------- 导航栏位置：data-nav="top" 用上方文字页签，"bottom" 用下方图标页签 ---------- */
-.dsh-dialog[data-nav="bottom"] .dsh-dialog-header {
+.yakit-dialog[data-nav="bottom"] .yakit-dialog-header {
     grid-template-columns: 1fr auto;
 }
 
-.dsh-dialog[data-nav="bottom"] .dsh-tabs,
-.dsh-dialog:not([data-nav="bottom"]) .dsh-bottom-nav {
+.yakit-dialog[data-nav="bottom"] .yakit-tabs,
+.yakit-dialog:not([data-nav="bottom"]) .yakit-bottom-nav {
     display: none;
 }
 
 /* 下方图标页签：只有图标；选中项用主色、线条加粗，没选中的用说明小字色
    （点睛色有的主题很浅，画成线条会看不清，所以这里用主色） */
-.dsh-bottom-nav {
+.yakit-bottom-nav {
     display: flex;
     flex: none;
     padding: 4px 8px env(safe-area-inset-bottom, 0px);
@@ -234,7 +234,7 @@
     background: var(--card-bg);
 }
 
-.dsh-bottom-tab {
+.yakit-bottom-tab {
     display: grid;
     flex: 1;
     place-items: center;
@@ -250,34 +250,34 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.dsh-bottom-tab:hover {
+.yakit-bottom-tab:hover {
     color: var(--text-body);
 }
 
-.dsh-bottom-tab dsh-icon {
+.yakit-bottom-tab yakit-icon {
     --icon-line: 1.6px;
     transition: transform 0.2s ease;
 }
 
-.dsh-bottom-tab:active dsh-icon {
+.yakit-bottom-tab:active yakit-icon {
     transform: scale(0.9);
 }
 
-.dsh-bottom-tab[aria-selected="true"] {
+.yakit-bottom-tab[aria-selected="true"] {
     color: var(--primary);
 }
 
-.dsh-bottom-tab[aria-selected="true"] dsh-icon {
+.yakit-bottom-tab[aria-selected="true"] yakit-icon {
     --icon-line: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .dsh-bottom-tab, .dsh-bottom-tab dsh-icon { transition: none; }
+    .yakit-bottom-tab, .yakit-bottom-tab yakit-icon { transition: none; }
 }
 
 /* 手机上是从底部滑出的抽屉：贴底、顶部留一点空隙和圆角；导航在上方时页签换到第二行 */
 @media (max-width: 600px) {
-    .dsh-dialog {
+    .yakit-dialog {
         width: calc(100vw - 4px);
         height: calc(100dvh - 18px);
         margin: auto 2px 0;
@@ -285,50 +285,50 @@
         border-radius: 16px 16px 0 0;
     }
 
-    .dsh-dialog[open] {
-        animation: dsh-sheet-in 0.32s cubic-bezier(0.3, 0.7, 0.2, 1);
+    .yakit-dialog[open] {
+        animation: yakit-sheet-in 0.32s cubic-bezier(0.3, 0.7, 0.2, 1);
     }
 
-    .dsh-dialog[open]::backdrop {
-        animation: dsh-backdrop-in 0.32s ease;
+    .yakit-dialog[open]::backdrop {
+        animation: yakit-backdrop-in 0.32s ease;
     }
 
-    .dsh-dialog[open].is-closing {
-        animation: dsh-sheet-out 0.22s ease-in forwards;
+    .yakit-dialog[open].is-closing {
+        animation: yakit-sheet-out 0.22s ease-in forwards;
     }
 
-    .dsh-dialog[open].is-closing::backdrop {
-        animation: dsh-backdrop-out 0.22s ease-in forwards;
+    .yakit-dialog[open].is-closing::backdrop {
+        animation: yakit-backdrop-out 0.22s ease-in forwards;
     }
 
-    .dsh-dialog:not([data-nav="bottom"]) .dsh-dialog-header {
+    .yakit-dialog:not([data-nav="bottom"]) .yakit-dialog-header {
         grid-template-columns: 1fr auto;
         row-gap: 0;
         padding-bottom: 10px;
     }
 
-    .dsh-tabs {
+    .yakit-tabs {
         grid-column: 1 / -1;
         grid-row: 2;
         justify-self: center;
     }
 }
 
-@keyframes dsh-sheet-in {
+@keyframes yakit-sheet-in {
     from { transform: translateY(100%); }
 }
 
-@keyframes dsh-sheet-out {
+@keyframes yakit-sheet-out {
     to { transform: translateY(100%); }
 }
 
-@keyframes dsh-backdrop-in {
+@keyframes yakit-backdrop-in {
     from { opacity: 0; }
 }
 
 @media (max-width: 600px) and (prefers-reduced-motion: reduce) {
-    .dsh-dialog[open],
-    .dsh-dialog[open]::backdrop,
-    .dsh-dialog[open].is-closing,
-    .dsh-dialog[open].is-closing::backdrop { animation-duration: 1ms; }
+    .yakit-dialog[open],
+    .yakit-dialog[open]::backdrop,
+    .yakit-dialog[open].is-closing,
+    .yakit-dialog[open].is-closing::backdrop { animation-duration: 1ms; }
 }

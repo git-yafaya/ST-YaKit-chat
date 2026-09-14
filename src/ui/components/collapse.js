@@ -1,13 +1,13 @@
 /**
- * <dsh-collapse> 折叠项
+ * <yakit-collapse> 折叠项
  * 一行标题，点一下在原地往下展开内容，再点收起。设置页的一级项目都用它。
  *
  * 用法：
- *   <dsh-collapse title="主题" summary="冷杉与海盐" icon="../icons/star.svg">
+ *   <yakit-collapse title="主题" summary="冷杉与海盐" icon="../icons/star.svg">
  *     展开后的内容
- *   </dsh-collapse>
+ *   </yakit-collapse>
  *
- *   <dsh-collapse title="组件示例" link></dsh-collapse>   点了不展开，只触发 activate 事件（比如打开抽屉）
+ *   <yakit-collapse title="组件示例" link></yakit-collapse>   点了不展开，只触发 activate 事件（比如打开抽屉）
  *
  * 可用属性：
  *   title     标题
@@ -20,11 +20,11 @@
  *   toggle    展开或收起时触发，event.detail.open 是新状态
  *   activate  带 link 的行被点击时触发
  *
- * 多个折叠项排在一起时，外面写 dsh-collapse + dsh-collapse { border-top: 1px solid var(--divider); }
+ * 多个折叠项排在一起时，外面写 yakit-collapse + yakit-collapse { border-top: 1px solid var(--divider); }
  * 需要先引入 components/icon.js（用了图标时）。
  */
 (() => {
-  if (customElements.get('dsh-collapse')) return;
+  if (customElements.get('yakit-collapse')) return;
 
   const CHEVRON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   const EASE = 'cubic-bezier(0.3, 0.7, 0.2, 1)';
@@ -54,8 +54,8 @@
     .header:focus { outline: none; }
     .header:focus-visible { outline: 2px solid var(--primary, #46618A); outline-offset: -2px; }
 
-    dsh-icon { color: var(--text-muted, #6E737A); --icon-size: 20px; }
-    dsh-icon[hidden] { display: none; }
+    yakit-icon { color: var(--text-muted, #6E737A); --icon-size: 20px; }
+    yakit-icon[hidden] { display: none; }
 
     .title { flex: 1; min-width: 0; font-weight: 500; }
     .summary {
@@ -96,7 +96,7 @@
 
   let uid = 0;
 
-  class DshCollapse extends HTMLElement {
+  class YaKitCollapse extends HTMLElement {
     static observedAttributes = ['title', 'summary', 'icon', 'open', 'link'];
 
     constructor() {
@@ -106,7 +106,7 @@
       root.innerHTML = `
         <style>${styles}</style>
         <button class="header" type="button" part="header" aria-controls="${id}">
-          <dsh-icon hidden aria-hidden="true"></dsh-icon>
+          <yakit-icon hidden aria-hidden="true"></yakit-icon>
           <span class="title"></span>
           <span class="summary"></span>
           <span class="chevron">${CHEVRON}</span>
@@ -155,7 +155,7 @@
       this.$('.panel').setAttribute('aria-label', title);
 
       const icon = this.getAttribute('icon');
-      const iconEl = this.$('dsh-icon');
+      const iconEl = this.$('yakit-icon');
       iconEl.hidden = !icon;
       if (icon) iconEl.setAttribute('src', new URL(icon, document.baseURI).href);
 
@@ -165,5 +165,5 @@
     }
   }
 
-  customElements.define('dsh-collapse', DshCollapse);
+  customElements.define('yakit-collapse', YaKitCollapse);
 })();

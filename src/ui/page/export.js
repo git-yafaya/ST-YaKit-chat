@@ -38,9 +38,9 @@
  * 接口没提供时，界面显示「文本导出还没接入」，不报错。
  *
  * ───────── 给面板里其他页面脚本用（预设页 preset.js）─────────
- *   window.DshExportPage.getState()        当前导出设置（副本）
- *   window.DshExportPage.replaceState(s)   换成另一份导出设置并刷新界面（切换预设、从备份恢复后调用）
- *   window 事件 dsh-export-change          导出设置有任何改动时触发，event.detail 是改动后的设置副本
+ *   window.YaKitExportPage.getState()        当前导出设置（副本）
+ *   window.YaKitExportPage.replaceState(s)   换成另一份导出设置并刷新界面（切换预设、从备份恢复后调用）
+ *   window 事件 yakit-export-change          导出设置有任何改动时触发，event.detail 是改动后的设置副本
  */
 (() => {
   const PREVIEW_COUNT = 2;
@@ -75,7 +75,7 @@
 
   const state = loadState();
   const notifyChange = () => {
-    window.dispatchEvent(new CustomEvent('dsh-export-change', { detail: structuredClone(state) }));
+    window.dispatchEvent(new CustomEvent('yakit-export-change', { detail: structuredClone(state) }));
   };
   const save = () => {
     try {
@@ -204,10 +204,10 @@
       const row = document.createElement('div');
       row.className = 'rule-row';
       row.innerHTML = `
-        <dsh-input size="sm" placeholder="例如 /<thinking>[\\s\\S]*?<\\/thinking>/g"></dsh-input>
-        <dsh-button variant="ghost" size="sm" icon="../icons/trash.svg"></dsh-button>
+        <yakit-input size="sm" placeholder="例如 /<thinking>[\\s\\S]*?<\\/thinking>/g"></yakit-input>
+        <yakit-button variant="ghost" size="sm" icon="../icons/trash.svg"></yakit-button>
       `;
-      const input = row.querySelector('dsh-input');
+      const input = row.querySelector('yakit-input');
       input.setAttribute('aria-label', `第 ${index + 1} 条规则`);
       input.value = rule;
       const check = () => {
@@ -222,7 +222,7 @@
         renderTagChips();
         schedulePreview();
       });
-      const remove = row.querySelector('dsh-button');
+      const remove = row.querySelector('yakit-button');
       remove.setAttribute('aria-label', `删除第 ${index + 1} 条规则`);
       remove.addEventListener('click', () => {
         state.rules.splice(index, 1);
@@ -356,7 +356,7 @@
     state.rules.push('');
     save();
     renderRules();
-    const inputs = $('rule-list').querySelectorAll('dsh-input');
+    const inputs = $('rule-list').querySelectorAll('yakit-input');
     inputs[inputs.length - 1]?.focus();
     $('rule-list').scrollTop = $('rule-list').scrollHeight;
   });
@@ -463,10 +463,10 @@
     button.setAttribute('loading', '');
     try {
       const result = await service().exportFile(structuredClone(state));
-      DshToast.show(Number.isFinite(result?.count) ? `已导出 ${result.count} 条消息` : '已导出', 'success');
+      YaKitToast.show(Number.isFinite(result?.count) ? `已导出 ${result.count} 条消息` : '已导出', 'success');
     } catch (error) {
-      if (error?.message === '无内容') DshToast.show('没有可导出的内容', 'warning');
-      else DshToast.show(error?.message || '导出失败', 'danger');
+      if (error?.message === '无内容') YaKitToast.show('没有可导出的内容', 'warning');
+      else YaKitToast.show(error?.message || '导出失败', 'danger');
     } finally {
       button.removeAttribute('loading');
     }
@@ -484,7 +484,7 @@
     if (typeof unsubscribe === 'function') window.addEventListener('pagehide', unsubscribe);
   }
 
-  window.DshExportPage = {
+  window.YaKitExportPage = {
     getState: () => structuredClone(state),
     replaceState(next = {}) {
       Object.assign(state, structuredClone(defaults), next, { types: { ...defaults.types, ...next.types } });

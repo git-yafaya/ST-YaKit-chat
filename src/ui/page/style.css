@@ -7,7 +7,7 @@ body {
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
-  font: 14px/1.6 var(--dsh-font, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font: 14px/1.6 var(--yakit-font, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif);
   background: var(--panel-bg);
   color: var(--text-body);
 }

@@ -1,12 +1,12 @@
 /**
- * <dsh-drawer> 抽屉
+ * <yakit-drawer> 抽屉
  * 从屏幕边上滑出来的面板，后面变暗。点暗色区域、按 Esc、点右上角 × 都能关。
  *
  * 用法：
- *   <dsh-drawer id="rules" title="正则规则" side="right">
+ *   <yakit-drawer id="rules" title="正则规则" side="right">
  *     抽屉正文
  *     <div slot="footer">底部按钮</div>
- *   </dsh-drawer>
+ *   </yakit-drawer>
  *
  *   document.getElementById('rules').show();   打开
  *   document.getElementById('rules').close();  关闭
@@ -22,7 +22,7 @@
  * 细滚动条：先引入 components/scrollbar.js
  */
 (() => {
-  if (customElements.get('dsh-drawer')) return;
+  if (customElements.get('yakit-drawer')) return;
 
   // 和 icons/close.svg 同一个图形，直接写在这里，组件单独拿去用也不缺文件
   const CLOSE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
@@ -154,16 +154,16 @@
       border-top: 1px solid var(--divider, #DFE2E5);
     }
     .footer[hidden] { display: none; }
-    ${globalThis.DshScrollbar?.css ?? ''}
+    ${globalThis.YaKitScrollbar?.css ?? ''}
   `;
 
-  class DshDrawer extends HTMLElement {
+  class YaKitDrawer extends HTMLElement {
     static observedAttributes = ['title', 'width'];
 
     constructor() {
       super();
       const root = this.attachShadow({ mode: 'open' });
-      globalThis.DshScrollbar?.watch(root);
+      globalThis.YaKitScrollbar?.watch(root);
       root.innerHTML = `
         <style>${styles}</style>
         <dialog part="panel" aria-labelledby="title">
@@ -239,7 +239,7 @@
         this.dialog.classList.remove('closing');
         this.dialog.close();
         // 还有别的抽屉开着时，后面的页面继续不滚动
-        const othersOpen = [...document.querySelectorAll('dsh-drawer')].some((drawer) => drawer !== this && drawer.open);
+        const othersOpen = [...document.querySelectorAll('yakit-drawer')].some((drawer) => drawer !== this && drawer.open);
         if (!othersOpen) {
           document.documentElement.style.overflow = '';
           document.documentElement.style.paddingRight = '';
@@ -252,5 +252,5 @@
     }
   }
 
-  customElements.define('dsh-drawer', DshDrawer);
+  customElements.define('yakit-drawer', YaKitDrawer);
 })();

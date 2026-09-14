@@ -1,12 +1,12 @@
 /**
- * <dsh-segmented> 分段选择器（顶部页签也用它）
+ * <yakit-segmented> 分段选择器（顶部页签也用它）
  * 样子：一条浅色轻底托，选中项下面有一块点睛色的滑块，切换时滑过去。
  *
  * 用法：
- *   <dsh-segmented value="md" aria-label="导出格式">
+ *   <yakit-segmented value="md" aria-label="导出格式">
  *     <option value="txt">TXT</option>
  *     <option value="md">Markdown</option>
- *   </dsh-segmented>
+ *   </yakit-segmented>
  *
  * 可用属性：
  *   value       当前选中哪一项（不写就选第一项）
@@ -19,7 +19,7 @@
  *   change      切换时触发，event.detail.value 是新选中的值
  */
 (() => {
-  if (customElements.get('dsh-segmented')) return;
+  if (customElements.get('yakit-segmented')) return;
 
   const EASE = 'cubic-bezier(0.3, 0.7, 0.2, 1)';
 
@@ -108,7 +108,7 @@
     }
   `;
 
-  class DshSegmented extends HTMLElement {
+  class YaKitSegmented extends HTMLElement {
     static observedAttributes = ['value', 'tabs', 'aria-label'];
 
     constructor() {
@@ -229,5 +229,5 @@
     }
   }
 
-  customElements.define('dsh-segmented', DshSegmented);
+  customElements.define('yakit-segmented', YaKitSegmented);
 })();

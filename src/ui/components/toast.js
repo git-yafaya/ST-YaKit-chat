@@ -2,15 +2,15 @@
  * 提示消息（顶部居中弹出的小条，几秒后自动消失；不挡卡片右上角的按钮）
  *
  * 用法：
- *   DshToast.show('已导出', 'success');
- *   DshToast.show('没有可导出的内容', 'warning');
- *   DshToast.show('保存失败', 'danger', { duration: 4000 });
+ *   YaKitToast.show('已导出', 'success');
+ *   YaKitToast.show('没有可导出的内容', 'warning');
+ *   YaKitToast.show('保存失败', 'danger', { duration: 4000 });
  *
  * 类型：success 成功 / warning 提醒 / danger 危险
  * 按规范，状态色只用在图标和图标旁的细条上，并且一定同时带图标和文字。
  */
 (() => {
-  if (globalThis.DshToast) return;
+  if (globalThis.YaKitToast) return;
 
   const ICONS = {
     success: '<path d="m7.5 12.5 3 3 6-6.5"/><circle cx="12" cy="12" r="9"/>',
@@ -83,7 +83,7 @@
     return host;
   }
 
-  globalThis.DshToast = {
+  globalThis.YaKitToast = {
     show(message, type = 'success', { duration = 2500 } = {}) {
       const root = container().shadowRoot;
       const toast = document.createElement('div');

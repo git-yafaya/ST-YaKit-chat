@@ -1,9 +1,9 @@
 /**
- * <dsh-switch> 开关
+ * <yakit-switch> 开关
  *
  * 用法：
- *   <dsh-switch checked label="导出时去掉思维链" description="删掉 <thinking> 标签里的内容"></dsh-switch>
- *   <dsh-switch size="sm" aria-label="启用规则"></dsh-switch>
+ *   <yakit-switch checked label="导出时去掉思维链" description="删掉 <thinking> 标签里的内容"></yakit-switch>
+ *   <yakit-switch size="sm" aria-label="启用规则"></yakit-switch>
  *
  * 可用属性：
  *   checked      打开
@@ -18,7 +18,7 @@
  * 打开时轨道用点睛色（规范：当前选中态），关闭时是浅浅的灰色轨道。
  */
 (() => {
-  if (customElements.get('dsh-switch')) return;
+  if (customElements.get('yakit-switch')) return;
 
   const EASE = 'cubic-bezier(0.3, 0.7, 0.2, 1)';
 
@@ -110,7 +110,7 @@
     }
   `;
 
-  class DshSwitch extends HTMLElement {
+  class YaKitSwitch extends HTMLElement {
     static observedAttributes = ['checked', 'label', 'description', 'disabled', 'aria-label'];
 
     constructor() {
@@ -168,5 +168,5 @@
     }
   }
 
-  customElements.define('dsh-switch', DshSwitch);
+  customElements.define('yakit-switch', YaKitSwitch);
 })();

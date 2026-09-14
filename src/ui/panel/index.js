@@ -16,12 +16,12 @@ import '../components/icon.js';
 import '../components/theme-list.js';
 import { getTavernTheme, watchTavernTheme } from './tavern-theme.js';
 
-const MENU_ID = 'dsh-wand-item';
-const DIALOG_ID = 'dsh-dialog';
+const MENU_ID = 'yakit-wand-item';
+const DIALOG_ID = 'yakit-dialog';
 const PANEL_TITLE = '纪实';
-const THEME_KEY = 'dsh-theme';
+const THEME_KEY = 'yakit-theme';
 const DEFAULT_THEME = 'fir';
-const NAV_KEY = 'dsh-nav';
+const NAV_KEY = 'yakit-nav';
 const NAV_MODES = ['auto', 'top', 'bottom'];
 // 面板是插件自己的页面，允许它读取插件文件（酒馆服务器不给隔离页面读文件）
 // 样式依然和酒馆互不影响；以后面板也能直接读酒馆数据、下载导出文件
@@ -35,14 +35,14 @@ const TABS = [
     { id: 'settings', label: '设置', icon: 'settings' },
 ];
 
-const THEMES = globalThis.DSH_THEMES;
+const THEMES = globalThis.YAKIT_THEMES;
 
 // 插件文件夹的地址（酒馆页面的 <base> 是根目录，所以要用完整地址）
 const THEMES_URL = new URL('../components/themes.css', import.meta.url).href;
 const PANEL_URL = new URL('../page/index.html', import.meta.url).href;
 const iconUrl = (name) => new URL(`../icons/${name}.svg`, import.meta.url).href;
 // 普通单色图标用 icons 文件夹里的 SVG，颜色跟随文字颜色
-const icon = (name) => `<span class="dsh-icon" style="--dsh-icon: url('${iconUrl(name)}')" aria-hidden="true"></span>`;
+const icon = (name) => `<span class="yakit-icon" style="--yakit-icon: url('${iconUrl(name)}')" aria-hidden="true"></span>`;
 
 function loadThemes() {
     if (document.querySelector(`link[href="${THEMES_URL}"]`)) return;
@@ -108,70 +108,70 @@ function openPanel() {
 
     const dialog = document.createElement('dialog');
     dialog.id = DIALOG_ID;
-    dialog.className = 'dsh-scope dsh-dialog';
-    dialog.setAttribute('aria-labelledby', 'dsh-dialog-title');
+    dialog.className = 'yakit-scope yakit-dialog';
+    dialog.setAttribute('aria-labelledby', 'yakit-dialog-title');
     dialog.innerHTML = `
-        <header class="dsh-dialog-header">
-            <div class="dsh-dialog-heading" tabindex="-1" autofocus>
-                <h2 id="dsh-dialog-title" class="dsh-dialog-title">${PANEL_TITLE}</h2>
-                <span class="dsh-dialog-subtitle">-YaKit</span>
+        <header class="yakit-dialog-header">
+            <div class="yakit-dialog-heading" tabindex="-1" autofocus>
+                <h2 id="yakit-dialog-title" class="yakit-dialog-title">${PANEL_TITLE}</h2>
+                <span class="yakit-dialog-subtitle">-YaKit</span>
             </div>
-            <dsh-segmented class="dsh-tabs" tabs frosted aria-label="${PANEL_TITLE}功能" value="${TABS[0].id}">
+            <yakit-segmented class="yakit-tabs" tabs frosted aria-label="${PANEL_TITLE}功能" value="${TABS[0].id}">
                 ${TABS.map((tab) => `<option value="${tab.id}">${tab.label}</option>`).join('')}
-            </dsh-segmented>
-            <div class="dsh-dialog-actions">
-                <div class="dsh-theme-switch">
-                    <button type="button" class="dsh-icon-button dsh-theme-button" data-action="theme">
-                        <dsh-icon size="28" line="1.4"></dsh-icon>
+            </yakit-segmented>
+            <div class="yakit-dialog-actions">
+                <div class="yakit-theme-switch">
+                    <button type="button" class="yakit-icon-button yakit-theme-button" data-action="theme">
+                        <yakit-icon size="28" line="1.4"></yakit-icon>
                     </button>
-                    <span class="dsh-theme-bubble" role="status" aria-live="polite"></span>
+                    <span class="yakit-theme-bubble" role="status" aria-live="polite"></span>
                 </div>
-                <button type="button" class="dsh-icon-button" data-action="close" aria-label="关闭" title="关闭">
+                <button type="button" class="yakit-icon-button" data-action="close" aria-label="关闭" title="关闭">
                     ${icon('close')}
                 </button>
             </div>
         </header>
-        <div class="dsh-dialog-body">
+        <div class="yakit-dialog-body">
             <embed-frame fill no-toolbar title="${PANEL_TITLE}" sandbox="${PANEL_SANDBOX}"></embed-frame>
         </div>
-        <nav class="dsh-bottom-nav" role="tablist" aria-label="${PANEL_TITLE}功能">
+        <nav class="yakit-bottom-nav" role="tablist" aria-label="${PANEL_TITLE}功能">
             ${TABS.map((tab, i) => `
-                <button type="button" class="dsh-bottom-tab" role="tab" data-tab="${tab.id}"
+                <button type="button" class="yakit-bottom-tab" role="tab" data-tab="${tab.id}"
                     aria-label="${tab.label}" title="${tab.label}"
                     aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">
-                    <dsh-icon src="${iconUrl(tab.icon)}" size="24" aria-hidden="true"></dsh-icon>
+                    <yakit-icon src="${iconUrl(tab.icon)}" size="24" aria-hidden="true"></yakit-icon>
                 </button>
             `).join('')}
         </nav>
     `;
 
     const frame = dialog.querySelector('embed-frame');
-    const tabs = dialog.querySelector('.dsh-tabs');
+    const tabs = dialog.querySelector('.yakit-tabs');
     const themeButton = dialog.querySelector('[data-action="theme"]');
-    const themeIcon = themeButton.querySelector('dsh-icon');
-    const bubble = dialog.querySelector('.dsh-theme-bubble');
+    const themeIcon = themeButton.querySelector('yakit-icon');
+    const bubble = dialog.querySelector('.yakit-theme-bubble');
     let currentTab = TABS[0].id;
     let currentTheme = readTheme();
     let bubbleTimer = null;
 
     // 给 iframe 里的页面发消息
-    // 面板和酒馆同源：面板准备好后直接调用它的 dshReceive，让顶部栏和面板内容在同一帧里更新；
+    // 面板和酒馆同源：面板准备好后直接调用它的 yakitReceive，让顶部栏和面板内容在同一帧里更新；
     // 面板还没加载完时退回 postMessage
     const tellPanel = (message) => {
         const panel = frame.iframe.contentWindow;
-        if (typeof panel?.dshReceive === 'function') panel.dshReceive(message);
+        if (typeof panel?.yakitReceive === 'function') panel.yakitReceive(message);
         else panel?.postMessage(message, '*');
     };
     let tavern = null;
     const themeMessage = () => ({
-        type: 'dsh:theme',
+        type: 'yakit:theme',
         theme: currentTheme,
         selected: currentTheme,
         tavern: currentTheme === 'tavern' ? tavern : null,
     });
 
     /* ---------- 页签：上方文字页签和下方图标页签是同一组，切换时两边同步 ---------- */
-    const bottomTabs = [...dialog.querySelectorAll('.dsh-bottom-tab')];
+    const bottomTabs = [...dialog.querySelectorAll('.yakit-bottom-tab')];
 
     function selectTab(id, { focus = false } = {}) {
         currentTab = id;
@@ -182,7 +182,7 @@ function openPanel() {
             tab.tabIndex = selected ? 0 : -1;
             if (selected && focus) tab.focus();
         });
-        tellPanel({ type: 'dsh:tab', tab: id });
+        tellPanel({ type: 'yakit:tab', tab: id });
     }
 
     tabs.addEventListener('change', (event) => selectTab(event.detail.value));
@@ -199,7 +199,7 @@ function openPanel() {
     /* ---------- 导航栏位置 ---------- */
     let navMode = readNav();
     const resolveNav = () => (navMode === 'auto' ? (pcQuery.matches ? 'top' : 'bottom') : navMode);
-    const navMessage = () => ({ type: 'dsh:nav', mode: navMode, resolved: resolveNav() });
+    const navMessage = () => ({ type: 'yakit:nav', mode: navMode, resolved: resolveNav() });
 
     function applyNav() {
         dialog.dataset.nav = resolveNav();
@@ -218,12 +218,12 @@ function openPanel() {
         // 「跟随ST」：把从酒馆美化里取到的颜色直接写到弹窗上；换成别的主题时清掉
         const oldVars = tavern ? Object.keys(tavern.vars) : [];
         oldVars.forEach((name) => dialog.style.removeProperty(name));
-        dialog.style.removeProperty('--dsh-font');
+        dialog.style.removeProperty('--yakit-font');
         tavern = null;
         if (theme === 'tavern') {
             tavern = getTavernTheme();
             Object.entries(tavern.vars).forEach(([name, value]) => dialog.style.setProperty(name, value));
-            dialog.style.setProperty('--dsh-font', tavern.font);
+            dialog.style.setProperty('--yakit-font', tavern.font);
             dialog.style.colorScheme = tavern.scheme;
         } else {
             dialog.style.removeProperty('color-scheme');
@@ -290,8 +290,8 @@ function openPanel() {
     const onMessage = (event) => {
         if (event.source !== frame.iframe.contentWindow) return;
         const data = event.data || {};
-        if (data.type === 'dsh:set-theme' && THEMES.some((t) => t.id === data.theme)) setTheme(data.theme);
-        if (data.type === 'dsh:set-nav' && NAV_MODES.includes(data.mode)) {
+        if (data.type === 'yakit:set-theme' && THEMES.some((t) => t.id === data.theme)) setTheme(data.theme);
+        if (data.type === 'yakit:set-nav' && NAV_MODES.includes(data.mode)) {
             navMode = data.mode;
             saveSetting(NAV_KEY, navMode);
             applyNav();
@@ -324,12 +324,12 @@ function openPanel() {
         if (event.detail.state !== 'loaded') return;
         tellPanel(themeMessage());
         tellPanel(navMessage());
-        tellPanel({ type: 'dsh:tab', tab: currentTab });
+        tellPanel({ type: 'yakit:tab', tab: currentTab });
         // 空闲时让面板提前准备「跟随ST」的字体
         const idle = globalThis.requestIdleCallback || ((fn) => setTimeout(fn, 200));
         idle(() => {
             const { font, fontImports } = getTavernTheme();
-            tellPanel({ type: 'dsh:preload-font', font, fontImports });
+            tellPanel({ type: 'yakit:preload-font', font, fontImports });
         });
     });
 
@@ -348,7 +348,7 @@ function addMenuItem() {
     item.tabIndex = 0;
     item.setAttribute('role', 'button');
     // 图标用 icons/menu.svg，大小与菜单里其他扩展的图标一致
-    item.innerHTML = `<span class="extensionsMenuExtensionButton" aria-hidden="true"><span class="dsh-icon dsh-menu-entry-icon" style="--dsh-icon: url('${iconUrl('menu')}')"></span></span><span>${PANEL_TITLE}</span>`;
+    item.innerHTML = `<span class="extensionsMenuExtensionButton" aria-hidden="true"><span class="yakit-icon yakit-menu-entry-icon" style="--yakit-icon: url('${iconUrl('menu')}')"></span></span><span>${PANEL_TITLE}</span>`;
     item.addEventListener('click', openPanel);
     item.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -359,7 +359,21 @@ function addMenuItem() {
     menu.append(item);
 }
 
+// 旧版本界面设置存在 dsh- 开头的键里，搬到 yakit- 开头的新键，用户选过的主题、导航栏位置等保持不变
+const LEGACY_KEYS = ['theme', 'nav', 'theme-switch', 'tavern-theme'];
+function migrateLegacySettings() {
+    try {
+        LEGACY_KEYS.forEach((name) => {
+            const legacy = localStorage.getItem(`dsh-${name}`);
+            if (legacy === null) return;
+            if (localStorage.getItem(`yakit-${name}`) === null) localStorage.setItem(`yakit-${name}`, legacy);
+            localStorage.removeItem(`dsh-${name}`);
+        });
+    } catch {}
+}
+
 export function initPanelUI(api, getContext) {
+    migrateLegacySettings();
     loadThemes();
     // 魔法棒菜单可能比插件晚创建，没找到就等酒馆准备好再加
     if (document.getElementById('extensionsMenu')) {

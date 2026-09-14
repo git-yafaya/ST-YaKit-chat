@@ -40,7 +40,7 @@
   let activeId = null;
   let busy = false;
 
-  const exportPage = () => window.DshExportPage;
+  const exportPage = () => window.YaKitExportPage;
   const active = () => presets.find((preset) => preset.id === activeId) || null;
 
   // 预设只关心这五项
@@ -72,7 +72,7 @@
     return parts.join(' · ');
   }
 
-  const showError = (error, fallback) => DshToast.show(error?.message || fallback, 'danger');
+  const showError = (error, fallback) => YaKitToast.show(error?.message || fallback, 'danger');
 
   // 同一时间只做一件事；按钮显示加载中
   async function run(button, task) {
@@ -143,14 +143,14 @@
         </button>
         <div class="preset-tools">
           <span class="preset-state"></span>
-          <dsh-button class="preset-save" size="sm" hidden>保存</dsh-button>
-          <dsh-button class="preset-revert" size="sm" variant="ghost" hidden>还原</dsh-button>
+          <yakit-button class="preset-save" size="sm" hidden>保存</yakit-button>
+          <yakit-button class="preset-revert" size="sm" variant="ghost" hidden>还原</yakit-button>
         </div>
         <div class="preset-ops">
-          <dsh-button size="sm" variant="ghost" icon="../icons/edit.svg" data-action="rename"></dsh-button>
-          <dsh-button size="sm" variant="ghost" icon="../icons/copy.svg" data-action="duplicate"></dsh-button>
-          <dsh-button size="sm" variant="ghost" icon="../icons/ouput.svg" data-action="export"></dsh-button>
-          <dsh-button size="sm" variant="ghost" icon="../icons/trash.svg" data-action="delete"></dsh-button>
+          <yakit-button size="sm" variant="ghost" icon="../icons/edit.svg" data-action="rename"></yakit-button>
+          <yakit-button size="sm" variant="ghost" icon="../icons/copy.svg" data-action="duplicate"></yakit-button>
+          <yakit-button size="sm" variant="ghost" icon="../icons/ouput.svg" data-action="export"></yakit-button>
+          <yakit-button size="sm" variant="ghost" icon="../icons/trash.svg" data-action="delete"></yakit-button>
         </div>
       `;
       const main = item.querySelector('.preset-main');
@@ -170,7 +170,7 @@
       item.querySelector('.preset-save').addEventListener('click', (event) => saveActive(event.currentTarget));
       item.querySelector('.preset-revert').addEventListener('click', (event) => revert(event.currentTarget));
 
-      item.querySelectorAll('.preset-ops dsh-button').forEach((button) => {
+      item.querySelectorAll('.preset-ops yakit-button').forEach((button) => {
         const { action } = button.dataset;
         button.setAttribute('aria-label', `${ACTION_LABELS[action]}「${preset.name}」`);
         // 鼠标或手指点击时不抢焦点，避免出现焦点框；键盘操作不受影响
@@ -207,7 +207,7 @@
     if (busy || id === activeId) return;
     const current = active();
     if (id !== null && isModified()) {
-      const ok = await DshModal.confirm({
+      const ok = await YaKitModal.confirm({
         title: '切换预设？',
         message: `当前改动还没保存到「${current.name}」，切换后会丢失。`,
         confirmText: '切换',
@@ -220,7 +220,7 @@
         activeId = id;
         if (settings) exportPage()?.replaceState(settings);
         const next = active();
-        if (next) DshToast.show(`已切换到「${next.name}」`, 'success');
+        if (next) YaKitToast.show(`已切换到「${next.name}」`, 'success');
       } catch (error) {
         showError(error, '切换预设失败');
       }
@@ -235,7 +235,7 @@
     await run(button, async () => {
       try {
         await service().update(current.id, pickContent(state));
-        DshToast.show(`已更新「${current.name}」`, 'success');
+        YaKitToast.show(`已更新「${current.name}」`, 'success');
       } catch (error) {
         showError(error, '保存预设失败');
       }
@@ -246,7 +246,7 @@
   async function revert(button) {
     const current = active();
     if (!current) return;
-    const ok = await DshModal.confirm({
+    const ok = await YaKitModal.confirm({
       title: '还原预设？',
       message: `导出页会恢复成「${current.name}」保存时的样子，当前改动会丢失。`,
       confirmText: '还原',
@@ -256,7 +256,7 @@
       try {
         const settings = await service().activate(current.id);
         if (settings) exportPage()?.replaceState(settings);
-        DshToast.show(`已还原「${current.name}」`, 'success');
+        YaKitToast.show(`已还原「${current.name}」`, 'success');
       } catch (error) {
         showError(error, '还原预设失败');
       }
@@ -271,7 +271,7 @@
     try {
       suggested = (await service().suggestName?.()) || '';
     } catch {}
-    const name = await DshModal.prompt({
+    const name = await YaKitModal.prompt({
       title: '存为新预设',
       label: '预设名字',
       value: String(suggested).slice(0, NAME_MAX) || '新预设',
@@ -286,7 +286,7 @@
         // 存下来的就是现在的设置，直接当作正在用的预设
         const settings = await service().activate(preset.id);
         if (settings) exportPage()?.replaceState(settings);
-        DshToast.show(`已存为「${preset.name}」`, 'success');
+        YaKitToast.show(`已存为「${preset.name}」`, 'success');
       } catch (error) {
         showError(error, '保存预设失败');
       }
@@ -297,7 +297,7 @@
   async function onAction(preset, action) {
     if (busy) return;
     if (action === 'rename') {
-      const name = await DshModal.prompt({
+      const name = await YaKitModal.prompt({
         title: '重命名预设',
         label: '预设名字',
         value: preset.name,
@@ -317,7 +317,7 @@
       await run(null, async () => {
         try {
           const copy = await service().duplicate(preset.id);
-          DshToast.show(`已复制为「${copy?.name || `${preset.name} 副本`}」`, 'success');
+          YaKitToast.show(`已复制为「${copy?.name || `${preset.name} 副本`}」`, 'success');
         } catch (error) {
           showError(error, '复制预设失败');
         }
@@ -333,7 +333,7 @@
       });
     }
     if (action === 'delete') {
-      const ok = await DshModal.confirm({
+      const ok = await YaKitModal.confirm({
         title: '删除预设？',
         message: preset.id === activeId
           ? `「${preset.name}」正在使用，删除后导出页的设置保持不变。删除后不能找回。`
@@ -344,7 +344,7 @@
       await run(null, async () => {
         try {
           await service().remove(preset.id);
-          DshToast.show(`已删除「${preset.name}」`, 'success');
+          YaKitToast.show(`已删除「${preset.name}」`, 'success');
         } catch (error) {
           showError(error, '删除预设失败');
         }
@@ -355,7 +355,7 @@
 
   /* ---------- 导入、备份 ---------- */
 
-  const PREF_KEYS = { theme: 'dsh-theme', nav: 'dsh-nav', themeSwitch: 'dsh-theme-switch' };
+  const PREF_KEYS = { theme: 'yakit-theme', nav: 'yakit-nav', themeSwitch: 'yakit-theme-switch' };
 
   function readUiPrefs() {
     const prefs = {};
@@ -369,15 +369,15 @@
   }
 
   function applyUiPrefs(prefs = {}) {
-    if (DSH_THEMES.some((theme) => theme.id === prefs.theme)) {
-      parent.postMessage({ type: 'dsh:set-theme', theme: prefs.theme }, '*');
+    if (YAKIT_THEMES.some((theme) => theme.id === prefs.theme)) {
+      parent.postMessage({ type: 'yakit:set-theme', theme: prefs.theme }, '*');
     }
     if (['auto', 'top', 'bottom'].includes(prefs.nav)) {
-      parent.postMessage({ type: 'dsh:set-nav', mode: prefs.nav }, '*');
+      parent.postMessage({ type: 'yakit:set-nav', mode: prefs.nav }, '*');
     }
     if (['auto', 'icon', 'select'].includes(prefs.themeSwitch)) {
       try { localStorage.setItem(PREF_KEYS.themeSwitch, prefs.themeSwitch); } catch {}
-      window.dispatchEvent(new Event('dsh-theme-switch-change'));
+      window.dispatchEvent(new Event('yakit-theme-switch-change'));
     }
   }
 
@@ -399,7 +399,7 @@
     try {
       text = await file.text();
     } catch {
-      DshToast.show('读取文件失败', 'danger');
+      YaKitToast.show('读取文件失败', 'danger');
       return;
     }
 
@@ -407,7 +407,7 @@
       await run(fileButton, async () => {
         try {
           const preset = await service().importPreset(text);
-          DshToast.show(`已导入「${preset?.name || file.name}」`, 'success');
+          YaKitToast.show(`已导入「${preset?.name || file.name}」`, 'success');
         } catch (error) {
           showError(error, '导入预设失败');
         }
@@ -415,7 +415,7 @@
     }
 
     if (fileAction === 'restore') {
-      const ok = await DshModal.confirm({
+      const ok = await YaKitModal.confirm({
         title: '从备份恢复？',
         message: '会覆盖现有的全部预设和导出设置，不能撤销。',
         confirmText: '恢复',
@@ -428,7 +428,7 @@
           if (settings) exportPage()?.replaceState(settings);
           applyUiPrefs(result?.uiPrefs);
           const count = Number(result?.presetCount);
-          DshToast.show(Number.isFinite(count) ? `已恢复 ${count} 套预设` : '已从备份恢复', 'success');
+          YaKitToast.show(Number.isFinite(count) ? `已恢复 ${count} 套预设` : '已从备份恢复', 'success');
         } catch (error) {
           showError(error, '恢复备份失败');
         }
@@ -458,8 +458,8 @@
   });
   $('export-preset-save').addEventListener('click', (event) => saveActive(event.currentTarget));
 
-  window.addEventListener('dsh-export-change', refreshModified);
-  window.addEventListener('dsh-tab', (event) => {
+  window.addEventListener('yakit-export-change', refreshModified);
+  window.addEventListener('yakit-tab', (event) => {
     if (event.detail.tab === 'preset') load();
   });
 

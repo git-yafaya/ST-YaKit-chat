@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" class="dsh-scope">
+<html lang="zh-CN" class="yakit-scope">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,21 +30,21 @@
     <!-- ========== 页签：文本导出 ========== -->
     <div data-page="export" class="export-page">
       <!-- 主要内容：导出预览 -->
-      <dsh-card class="preview-card" title="导出预览" subtitle="最近 2 条消息导出后的样子">
+      <yakit-card class="preview-card" title="导出预览" subtitle="最近 2 条消息导出后的样子">
         <!-- 导出设置入口和当前设置摘要，放在预览标题同一行 -->
         <div slot="extra" class="preview-extra">
           <span class="export-summary" id="export-summary"></span>
-          <dsh-button id="export-settings" size="sm" variant="ghost" icon="../icons/settings.svg">导出设置</dsh-button>
+          <yakit-button id="export-settings" size="sm" variant="ghost" icon="../icons/settings.svg">导出设置</yakit-button>
         </div>
         <div id="preview-body"></div>
-      </dsh-card>
+      </yakit-card>
 
       <!-- 紧跟其下：正则匹配 -->
-      <dsh-card class="rule-card" id="rule-card" title="正则匹配">
-        <dsh-segmented slot="extra" id="rule-mode" size="sm" aria-label="匹配方式" value="delete">
+      <yakit-card class="rule-card" id="rule-card" title="正则匹配">
+        <yakit-segmented slot="extra" id="rule-mode" size="sm" aria-label="匹配方式" value="delete">
           <option value="delete">删除匹配</option>
           <option value="keep">只保留匹配</option>
-        </dsh-segmented>
+        </yakit-segmented>
         <div class="tag-scan" id="tag-scan" hidden>
           <span class="tag-scan-label" id="tag-scan-label">识别到的标签</span>
           <div class="tag-chips-wrap">
@@ -55,108 +55,108 @@
         <p class="rule-empty" id="rule-empty">还没有规则，导出原文。</p>
         <div class="rule-list" id="rule-list"></div>
         <div class="btn-row rule-add">
-          <dsh-button id="rule-add" size="sm" icon="../icons/plus.svg">添加规则</dsh-button>
+          <yakit-button id="rule-add" size="sm" icon="../icons/plus.svg">添加规则</yakit-button>
           <span class="card-extra" id="rule-count"></span>
         </div>
-      </dsh-card>
+      </yakit-card>
 
       <!-- 底部操作条 -->
       <div class="export-bar">
         <!-- 预设：不切页签就能换；改了规则或设置后点「更新预设」存回当前预设 -->
         <div class="export-preset" id="export-preset" hidden>
-          <dsh-select id="export-preset-select" size="sm" aria-label="预设"></dsh-select>
-          <dsh-button id="export-preset-save" size="sm" disabled>更新预设</dsh-button>
+          <yakit-select id="export-preset-select" size="sm" aria-label="预设"></yakit-select>
+          <yakit-button id="export-preset-save" size="sm" disabled>更新预设</yakit-button>
         </div>
-        <dsh-button id="export-go" variant="primary" icon="../icons/ouput.svg">导出</dsh-button>
+        <yakit-button id="export-go" variant="primary" icon="../icons/ouput.svg">导出</yakit-button>
       </div>
     </div>
 
     <!-- ========== 页签：润色 ========== -->
     <div data-page="polish" hidden>
-      <dsh-card title="润色">这里是「润色」页签的内容区。</dsh-card>
+      <yakit-card title="润色">这里是「润色」页签的内容区。</yakit-card>
     </div>
 
     <!-- ========== 页签：设置 ========== -->
     <!-- 一级项目点开在原地往下展开；同一时间只展开一项，页面保持简短 -->
     <div data-page="settings" hidden>
       <div class="settings-list">
-        <dsh-collapse id="set-update" title="插件更新" icon="../icons/input.svg" hidden>
+        <yakit-collapse id="set-update" title="插件更新" icon="../icons/input.svg" hidden>
           <div class="setting-field">
             <span class="setting-label">更新纪实插件</span>
-            <dsh-button id="update-go" size="sm">检查更新</dsh-button>
+            <yakit-button id="update-go" size="sm">检查更新</yakit-button>
           </div>
           <p class="field-note">从仓库拉取纪实的最新版本，只更新本插件。<br>更新完成后会自动刷新网页。</p>
           <div class="notice" id="update-error" role="alert" hidden>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
             <span></span>
           </div>
-        </dsh-collapse>
-        <dsh-collapse id="set-theme" title="主题">
+        </yakit-collapse>
+        <yakit-collapse id="set-theme" title="主题">
           <div class="setting-field">
             <span class="setting-label">切换方式</span>
-            <dsh-segmented id="theme-switch-mode" size="sm" aria-label="主题切换方式" value="auto">
+            <yakit-segmented id="theme-switch-mode" size="sm" aria-label="主题切换方式" value="auto">
               <option value="auto">自动</option>
               <option value="icon">图标</option>
               <option value="select">下拉框</option>
-            </dsh-segmented>
+            </yakit-segmented>
           </div>
           <p class="field-note" id="theme-switch-note">选主题时显示插画还是下拉框。<br>建议选自动：电脑看插画，手机用下拉框。</p>
           <div class="themes" id="themes" role="radiogroup" aria-label="主题"></div>
-          <dsh-select id="theme-select" aria-label="主题" hidden></dsh-select>
-        </dsh-collapse>
-        <dsh-collapse id="set-nav" title="导航栏位置" icon="../icons/menu.svg">
+          <yakit-select id="theme-select" aria-label="主题" hidden></yakit-select>
+        </yakit-collapse>
+        <yakit-collapse id="set-nav" title="导航栏位置" icon="../icons/menu.svg">
           <div class="setting-field">
             <span class="setting-label">显示位置</span>
-            <dsh-segmented id="nav-mode" size="sm" aria-label="导航栏位置" value="auto">
+            <yakit-segmented id="nav-mode" size="sm" aria-label="导航栏位置" value="auto">
               <option value="auto">自动</option>
               <option value="top">上方</option>
               <option value="bottom">下方</option>
-            </dsh-segmented>
+            </yakit-segmented>
           </div>
           <p class="field-note">页签放在顶部还是底部。<br>建议选自动：电脑放上方，手机放下方。</p>
-        </dsh-collapse>
-        <dsh-collapse id="set-demo" title="组件示例" summary="按钮、输入框、开关等" icon="../icons/folder.svg" link></dsh-collapse>
+        </yakit-collapse>
+        <yakit-collapse id="set-demo" title="组件示例" summary="按钮、输入框、开关等" icon="../icons/folder.svg" link></yakit-collapse>
       </div>
     </div>
 
     <!-- ========== 页签：预设 ========== -->
     <div data-page="preset" class="preset-page" hidden>
       <!-- 主要内容：预设列表 -->
-      <dsh-card class="preset-card" title="预设" subtitle="保存导出页的规则、消息类型和格式">
+      <yakit-card class="preset-card" title="预设" subtitle="保存导出页的规则、消息类型和格式">
         <div slot="extra" class="btn-row" id="preset-actions">
-          <dsh-button id="preset-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</dsh-button>
-          <dsh-button id="preset-create" size="sm" variant="primary" icon="../icons/plus.svg">存为新预设</dsh-button>
+          <yakit-button id="preset-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
+          <yakit-button id="preset-create" size="sm" variant="primary" icon="../icons/plus.svg">存为新预设</yakit-button>
         </div>
         <div class="preset-list" id="preset-list" role="list"></div>
         <p class="preset-empty" id="preset-empty" hidden></p>
-      </dsh-card>
+      </yakit-card>
 
       <!-- 其他功能：备份 -->
-      <dsh-card class="backup-card" title="备份">
+      <yakit-card class="backup-card" title="备份">
         <p class="field-note backup-note">把全部预设和纪实的设置存成一个文件。<br>建议换设备或重装前先备份一份。</p>
         <div class="btn-row">
-          <dsh-button id="backup-export" size="sm" icon="../icons/ouput.svg">备份全部</dsh-button>
-          <dsh-button id="backup-restore" size="sm" icon="../icons/input.svg">从备份恢复</dsh-button>
+          <yakit-button id="backup-export" size="sm" icon="../icons/ouput.svg">备份全部</yakit-button>
+          <yakit-button id="backup-restore" size="sm" icon="../icons/input.svg">从备份恢复</yakit-button>
         </div>
-      </dsh-card>
+      </yakit-card>
       <input type="file" id="preset-file" hidden>
     </div>
 
     <!-- ========== 页签：API 管理 ========== -->
     <div data-page="api" hidden>
-      <dsh-card title="API 管理">这里是「API 管理」页签的内容区。</dsh-card>
+      <yakit-card title="API 管理">这里是「API 管理」页签的内容区。</yakit-card>
     </div>
   </main>
 
   <!-- 文本导出：导出设置抽屉 -->
-  <dsh-drawer id="export-drawer" title="导出设置" side="left">
+  <yakit-drawer id="export-drawer" title="导出设置" side="left">
     <section class="drawer-section">
       <h3>楼层范围</h3>
-      <dsh-switch id="opt-all-floors" label="导出全部楼层"></dsh-switch>
+      <yakit-switch id="opt-all-floors" label="导出全部楼层"></yakit-switch>
       <div id="floor-range">
         <div class="range-inputs">
-          <dsh-input id="opt-start" label="起始楼层" type="number" size="sm" placeholder="0"></dsh-input>
-          <dsh-input id="opt-end" label="结束楼层" type="number" size="sm" placeholder="最后一楼"></dsh-input>
+          <yakit-input id="opt-start" label="起始楼层" type="number" size="sm" placeholder="0"></yakit-input>
+          <yakit-input id="opt-end" label="结束楼层" type="number" size="sm" placeholder="最后一楼"></yakit-input>
         </div>
       </div>
       <p class="field-note" id="floor-hint"></p>
@@ -165,9 +165,9 @@
     <section class="drawer-section">
       <h3>消息类型</h3>
       <div class="drawer-rows">
-        <dsh-switch id="opt-type-ai" label="AI 回复" description="角色说的话，不含隐藏的楼层"></dsh-switch>
-        <dsh-switch id="opt-type-user" label="用户台词" description="你发的消息，不含隐藏的楼层"></dsh-switch>
-        <dsh-switch id="opt-type-system" label="系统提示" description="系统消息、旁白（/sys）和隐藏的楼层"></dsh-switch>
+        <yakit-switch id="opt-type-ai" label="AI 回复" description="角色说的话，不含隐藏的楼层"></yakit-switch>
+        <yakit-switch id="opt-type-user" label="用户台词" description="你发的消息，不含隐藏的楼层"></yakit-switch>
+        <yakit-switch id="opt-type-system" label="系统提示" description="系统消息、旁白（/sys）和隐藏的楼层"></yakit-switch>
       </div>
       <div class="notice" id="type-warning" role="alert" hidden>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
@@ -177,15 +177,15 @@
 
     <section class="drawer-section drawer-stack">
       <h3>导出格式</h3>
-      <dsh-segmented id="opt-format" block aria-label="文件格式" value="txt">
+      <yakit-segmented id="opt-format" block aria-label="文件格式" value="txt">
         <option value="txt">TXT</option>
         <option value="md">Markdown</option>
         <option value="epub">EPUB</option>
-      </dsh-segmented>
-      <dsh-segmented id="opt-labels" block aria-label="内容格式" value="with">
+      </yakit-segmented>
+      <yakit-segmented id="opt-labels" block aria-label="内容格式" value="with">
         <option value="with">带类别标注</option>
         <option value="plain">仅正文</option>
-      </dsh-segmented>
+      </yakit-segmented>
       <figure class="format-example" aria-label="导出效果示例">
         <figcaption>示例</figcaption>
         <pre id="format-example-text"></pre>
@@ -194,106 +194,106 @@
 
     <section class="drawer-section">
       <h3>文件名</h3>
-      <dsh-input id="opt-file-name" size="sm" placeholder="不填就用角色名加日期"></dsh-input>
+      <yakit-input id="opt-file-name" size="sm" placeholder="不填就用角色名加日期"></yakit-input>
     </section>
 
-    <dsh-button slot="footer" id="export-drawer-done" variant="primary">完成</dsh-button>
-  </dsh-drawer>
+    <yakit-button slot="footer" id="export-drawer-done" variant="primary">完成</yakit-button>
+  </yakit-drawer>
 
   <!-- 组件示例：收在设置里的宽抽屉 -->
-  <dsh-drawer id="demo-drawer" title="组件示例" width="760">
+  <yakit-drawer id="demo-drawer" title="组件示例" width="760">
       <section class="section">
       <h2 class="section-title">按钮</h2>
-      <dsh-card>
+      <yakit-card>
         <div class="demo-rows">
           <div>
             <p class="demo-label">三种样式：主操作（一块区域最多一个）/ 普通 / 只有文字</p>
             <div class="btn-row">
-              <dsh-button variant="primary">开始导出</dsh-button>
-              <dsh-button>预览</dsh-button>
-              <dsh-button variant="ghost">取消</dsh-button>
+              <yakit-button variant="primary">开始导出</yakit-button>
+              <yakit-button>预览</yakit-button>
+              <yakit-button variant="ghost">取消</yakit-button>
             </div>
           </div>
           <div>
             <p class="demo-label">三种大小：小 / 中 / 大</p>
             <div class="btn-row">
-              <dsh-button size="sm">小号</dsh-button>
-              <dsh-button>中号</dsh-button>
-              <dsh-button size="lg">大号</dsh-button>
+              <yakit-button size="sm">小号</yakit-button>
+              <yakit-button>中号</yakit-button>
+              <yakit-button size="lg">大号</yakit-button>
             </div>
           </div>
           <div>
             <p class="demo-label">带图标 / 只有图标</p>
             <div class="btn-row">
-              <dsh-button icon="../icons/plus.svg">新建规则</dsh-button>
-              <dsh-button icon="../icons/ouput.svg">导入</dsh-button>
-              <dsh-button variant="ghost" icon="../icons/edit.svg" aria-label="编辑"></dsh-button>
-              <dsh-button variant="ghost" icon="../icons/trash.svg" aria-label="删除"></dsh-button>
+              <yakit-button icon="../icons/plus.svg">新建规则</yakit-button>
+              <yakit-button icon="../icons/ouput.svg">导入</yakit-button>
+              <yakit-button variant="ghost" icon="../icons/edit.svg" aria-label="编辑"></yakit-button>
+              <yakit-button variant="ghost" icon="../icons/trash.svg" aria-label="删除"></yakit-button>
             </div>
           </div>
           <div>
             <p class="demo-label">加载中 / 禁用（点「保存」试试加载效果）</p>
             <div class="btn-row">
-              <dsh-button variant="primary" id="save-demo">保存</dsh-button>
-              <dsh-button loading>加载中</dsh-button>
-              <dsh-button disabled>不能点</dsh-button>
+              <yakit-button variant="primary" id="save-demo">保存</yakit-button>
+              <yakit-button loading>加载中</yakit-button>
+              <yakit-button disabled>不能点</yakit-button>
             </div>
           </div>
           <div>
             <p class="demo-label">撑满整行</p>
-            <dsh-button variant="primary" size="lg" block icon="../icons/input.svg">下载导出文件</dsh-button>
+            <yakit-button variant="primary" size="lg" block icon="../icons/input.svg">下载导出文件</yakit-button>
           </div>
         </div>
-      </dsh-card>
+      </yakit-card>
     </section>
 
     <section class="section">
       <h2 class="section-title">输入框</h2>
-      <dsh-card>
+      <yakit-card>
         <div class="inputs">
-          <dsh-input label="文件名" placeholder="不填就用聊天名" hint="导出时会自动加上日期"></dsh-input>
-          <dsh-input label="搜索消息" placeholder="输入关键词" icon="../icons/search.svg" clearable value="妖精"></dsh-input>
-          <dsh-input id="url-demo" label="接口地址" type="url" required placeholder="https://" value="api.example"
-            hint="以 https:// 开头"></dsh-input>
-          <dsh-input label="每页条数（小号）" type="number" size="sm" value="50"></dsh-input>
-          <dsh-input class="wide" label="备注" multiline rows="3" maxlength="200"
-            placeholder="写几句话，内容多了输入框会自动变高"></dsh-input>
-          <dsh-input label="只读" readonly value="双色盒子-浅色毛玻璃"></dsh-input>
-          <dsh-input label="禁用" disabled placeholder="现在不能填"></dsh-input>
+          <yakit-input label="文件名" placeholder="不填就用聊天名" hint="导出时会自动加上日期"></yakit-input>
+          <yakit-input label="搜索消息" placeholder="输入关键词" icon="../icons/search.svg" clearable value="妖精"></yakit-input>
+          <yakit-input id="url-demo" label="接口地址" type="url" required placeholder="https://" value="api.example"
+            hint="以 https:// 开头"></yakit-input>
+          <yakit-input label="每页条数（小号）" type="number" size="sm" value="50"></yakit-input>
+          <yakit-input class="wide" label="备注" multiline rows="3" maxlength="200"
+            placeholder="写几句话，内容多了输入框会自动变高"></yakit-input>
+          <yakit-input label="只读" readonly value="双色盒子-浅色毛玻璃"></yakit-input>
+          <yakit-input label="禁用" disabled placeholder="现在不能填"></yakit-input>
         </div>
-      </dsh-card>
+      </yakit-card>
     </section>
 
     <section class="section">
       <h2 class="section-title">开关</h2>
-      <dsh-card>
+      <yakit-card>
         <div class="switch-list">
-          <dsh-switch checked label="导出时去掉思维链" description="删掉 &lt;thinking&gt; 标签里的内容"></dsh-switch>
-          <dsh-switch id="switch-demo" label="保留角色头像" description="关闭后导出文件更小"></dsh-switch>
+          <yakit-switch checked label="导出时去掉思维链" description="删掉 &lt;thinking&gt; 标签里的内容"></yakit-switch>
+          <yakit-switch id="switch-demo" label="保留角色头像" description="关闭后导出文件更小"></yakit-switch>
           <div class="switch-row">
             <div class="switch-row-text">
               <div class="switch-row-title">开关放在右边（小号）</div>
               <div class="switch-row-note" id="switch-note">设置列表常用这种排法，当前：关</div>
             </div>
-            <dsh-switch id="switch-right" size="sm" aria-label="示例开关"></dsh-switch>
+            <yakit-switch id="switch-right" size="sm" aria-label="示例开关"></yakit-switch>
           </div>
-          <dsh-switch checked disabled label="禁用（打开）"></dsh-switch>
-          <dsh-switch disabled label="禁用（关闭）"></dsh-switch>
+          <yakit-switch checked disabled label="禁用（打开）"></yakit-switch>
+          <yakit-switch disabled label="禁用（关闭）"></yakit-switch>
         </div>
-      </dsh-card>
+      </yakit-card>
     </section>
 
     <section class="section">
       <h2 class="section-title">下拉选择</h2>
-      <dsh-card>
+      <yakit-card>
         <div class="inputs">
-          <dsh-select id="select-demo" label="导出格式" value="md" hint="当前选择：Markdown">
+          <yakit-select id="select-demo" label="导出格式" value="md" hint="当前选择：Markdown">
             <option value="txt" description="纯文字，哪里都能打开">TXT</option>
             <option value="md" description="保留标题和粗体">Markdown</option>
             <option value="epub" description="适合在阅读器里看">EPUB</option>
             <option value="pdf" disabled description="还没做">PDF</option>
-          </dsh-select>
-          <dsh-select label="角色（可搜索、分组）" searchable placeholder="选择一个角色">
+          </yakit-select>
+          <yakit-select label="角色（可搜索、分组）" searchable placeholder="选择一个角色">
             <optgroup label="エロマンガ先生">
               <option value="sagiri">和泉纱雾</option>
               <option value="elf">山田妖精</option>
@@ -305,91 +305,91 @@
               <option value="kyouka">和泉京香</option>
               <option value="tomoe">高砂智惠</option>
             </optgroup>
-          </dsh-select>
-          <dsh-select id="select-required" label="API 来源" required placeholder="请选择" error="请选择一个 API 来源">
+          </yakit-select>
+          <yakit-select id="select-required" label="API 来源" required placeholder="请选择" error="请选择一个 API 来源">
             <option value="openai">OpenAI 兼容</option>
             <option value="claude">Claude</option>
             <option value="gemini">Gemini</option>
-          </dsh-select>
-          <dsh-select label="禁用" disabled value="a">
+          </yakit-select>
+          <yakit-select label="禁用" disabled value="a">
             <option value="a">现在不能选</option>
-          </dsh-select>
+          </yakit-select>
         </div>
-      </dsh-card>
+      </yakit-card>
     </section>
 
     <section class="section">
       <h2 class="section-title">分段选择器</h2>
-      <dsh-card>
+      <yakit-card>
         <div class="field">
           <span class="field-label">导出格式</span>
           <div>
-            <dsh-segmented id="format" value="md" aria-label="导出格式">
+            <yakit-segmented id="format" value="md" aria-label="导出格式">
               <option value="txt">TXT</option>
               <option value="md">Markdown</option>
               <option value="epub">EPUB</option>
-            </dsh-segmented>
+            </yakit-segmented>
             <p class="field-note" id="format-note">当前选择：Markdown</p>
           </div>
         </div>
         <div class="field">
           <span class="field-label">导出范围</span>
-          <dsh-segmented block value="all" aria-label="导出范围">
+          <yakit-segmented block value="all" aria-label="导出范围">
             <option value="all">全部消息</option>
             <option value="recent">最近 50 条</option>
             <option value="custom">自定义</option>
-          </dsh-segmented>
+          </yakit-segmented>
         </div>
         <div class="field">
           <span class="field-label">排序（小号）</span>
           <div>
-            <dsh-segmented size="sm" value="asc" aria-label="排序">
+            <yakit-segmented size="sm" value="asc" aria-label="排序">
               <option value="asc">正序</option>
               <option value="desc">倒序</option>
-            </dsh-segmented>
+            </yakit-segmented>
           </div>
         </div>
-      </dsh-card>
+      </yakit-card>
     </section>
 
     <section class="section">
       <h2 class="section-title">卡片</h2>
       <div class="cards">
-        <dsh-card title="当前聊天" subtitle="和泉纱雾 · 今天 18:35">
+        <yakit-card title="当前聊天" subtitle="和泉纱雾 · 今天 18:35">
           <div class="stat">128</div>
           <div class="muted">条消息可导出</div>
-        </dsh-card>
+        </yakit-card>
 
-        <dsh-card title="导出设置" subtitle="带底部按钮的卡片">
+        <yakit-card title="导出设置" subtitle="带底部按钮的卡片">
           <ul class="rows">
             <li><span>格式</span><span>Markdown</span></li>
             <li><span>范围</span><span>全部消息</span></li>
           </ul>
           <div slot="footer" class="btn-row">
-            <dsh-button variant="ghost">重置</dsh-button>
-            <dsh-button variant="primary">开始导出</dsh-button>
+            <yakit-button variant="ghost">重置</yakit-button>
+            <yakit-button variant="primary">开始导出</yakit-button>
           </div>
-        </dsh-card>
+        </yakit-card>
 
-        <dsh-card id="rules-card" interactive title="正则规则" subtitle="可点击的卡片">
+        <yakit-card id="rules-card" interactive title="正则规则" subtitle="可点击的卡片">
           <div class="stat">3</div>
           <div class="muted">条规则，点击在抽屉里查看</div>
-        </dsh-card>
+        </yakit-card>
       </div>
     </section>
 
     <section class="section">
       <h2 class="section-title">抽屉</h2>
       <div class="btn-row">
-        <dsh-button data-open="drawer-right">从右侧打开</dsh-button>
-        <dsh-button data-open="drawer-left">从左侧打开</dsh-button>
-        <dsh-button data-open="drawer-bottom">从底部打开</dsh-button>
+        <yakit-button data-open="drawer-right">从右侧打开</yakit-button>
+        <yakit-button data-open="drawer-left">从左侧打开</yakit-button>
+        <yakit-button data-open="drawer-bottom">从底部打开</yakit-button>
       </div>
     </section>
-  </dsh-drawer>
+  </yakit-drawer>
 
   <!-- 抽屉示例 -->
-  <dsh-drawer id="drawer-right" title="正则规则">
+  <yakit-drawer id="drawer-right" title="正则规则">
     <div class="rule">
       <div class="rule-name">去掉思维链</div>
       <code>/&lt;thinking&gt;[\s\S]*?&lt;\/thinking&gt;/g</code>
@@ -403,26 +403,26 @@
       <code>/&lt;status&gt;[\s\S]*?&lt;\/status&gt;/g</code>
     </div>
     <div slot="footer" class="btn-row">
-      <dsh-button variant="ghost" data-close>取消</dsh-button>
-      <dsh-button variant="primary" data-close>保存</dsh-button>
+      <yakit-button variant="ghost" data-close>取消</yakit-button>
+      <yakit-button variant="primary" data-close>保存</yakit-button>
     </div>
-  </dsh-drawer>
+  </yakit-drawer>
 
-  <dsh-drawer id="drawer-left" title="左侧抽屉" side="left" width="320">
+  <yakit-drawer id="drawer-left" title="左侧抽屉" side="left" width="320">
     <p>宽度可以用 width 属性调整，这个是 320。</p>
-  </dsh-drawer>
+  </yakit-drawer>
 
-  <dsh-drawer id="drawer-bottom" title="底部抽屉" side="bottom">
+  <yakit-drawer id="drawer-bottom" title="底部抽屉" side="bottom">
     <p>从底部弹出，适合手机上做快捷操作。顶上有一个小横条。</p>
-    <dsh-segmented block value="md" aria-label="导出格式">
+    <yakit-segmented block value="md" aria-label="导出格式">
       <option value="txt">TXT</option>
       <option value="md">Markdown</option>
       <option value="epub">EPUB</option>
-    </dsh-segmented>
+    </yakit-segmented>
     <div slot="footer" class="btn-row">
-      <dsh-button variant="primary" data-close>确定</dsh-button>
+      <yakit-button variant="primary" data-close>确定</yakit-button>
     </div>
-  </dsh-drawer>
+  </yakit-drawer>
 
   <script src="main.js"></script>
   <script src="settings.js"></script>

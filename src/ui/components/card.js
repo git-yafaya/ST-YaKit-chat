@@ -1,12 +1,12 @@
 /**
- * <dsh-card> 卡片
+ * <yakit-card> 卡片
  *
  * 用法：
- *   <dsh-card title="当前聊天" subtitle="128 条消息">
+ *   <yakit-card title="当前聊天" subtitle="128 条消息">
  *     <span slot="extra">右上角放的东西</span>
  *     卡片正文
  *     <div slot="footer">底部按钮</div>
- *   </dsh-card>
+ *   </yakit-card>
  *
  * 可用属性：
  *   title         标题
@@ -21,7 +21,7 @@
  * 细滚动条：先引入 components/scrollbar.js
  */
 (() => {
-  if (customElements.get('dsh-card')) return;
+  if (customElements.get('yakit-card')) return;
 
   const styles = `
     :host {
@@ -87,16 +87,16 @@
       :host { transition: none; }
       :host([interactive]:hover) { transform: none; }
     }
-    ${globalThis.DshScrollbar?.css ?? ''}
+    ${globalThis.YaKitScrollbar?.css ?? ''}
   `;
 
-  class DshCard extends HTMLElement {
+  class YaKitCard extends HTMLElement {
     static observedAttributes = ['title', 'subtitle', 'interactive'];
 
     constructor() {
       super();
       const root = this.attachShadow({ mode: 'open' });
-      globalThis.DshScrollbar?.watch(root);
+      globalThis.YaKitScrollbar?.watch(root);
       root.innerHTML = `
         <style>${styles}</style>
         <div class="header" part="header">
@@ -150,5 +150,5 @@
     }
   }
 
-  customElements.define('dsh-card', DshCard);
+  customElements.define('yakit-card', YaKitCard);
 })();

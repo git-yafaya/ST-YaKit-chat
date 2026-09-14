@@ -90,7 +90,7 @@ ST-YaKit-chat/
 2. `src/index.js` 把公开函数和 `exportUI` 组装进冻结的 `globalThis.YaKitChat`，然后调用 `initPanelUI`。
 3. `initPanelUI` 在魔法棒菜单（`#extensionsMenu`）加入「纪实」；菜单未就绪时等待宿主 `APP_READY`。
 4. 点击后创建居中 `<dialog>`，内容区用 iframe 加载 `src/ui/page/index.html`。
-5. 弹窗与 iframe 之间用消息通信：弹窗发 `dsh:tab`、`dsh:theme`、`dsh:nav`、`dsh:preload-font`（面板加载完后直接调用面板的 `window.dshReceive`，加载前用 `postMessage`）；面板用 `postMessage` 发 `dsh:set-theme`、`dsh:set-nav`。
+5. 弹窗与 iframe 之间用消息通信：弹窗发 `yakit:tab`、`yakit:theme`、`yakit:nav`、`yakit:preload-font`（面板加载完后直接调用面板的 `window.yakitReceive`，加载前用 `postMessage`）；面板用 `postMessage` 发 `yakit:set-theme`、`yakit:set-nav`。
 6. 文本导出页（`src/ui/page/export.js`）：
    - 打开时 `loadSettings()` → `getChatInfo()` → `previewMessages(settings, 2)` → `scanRecentTags()`
    - 设置或规则变化：`saveSettings(settings)`，200ms 防抖后重新 `previewMessages`
@@ -98,11 +98,11 @@ ST-YaKit-chat/
    - `onChatChanged` 回调：刷新摘要、预览、标签
 7. 预设（`src/ui/page/preset.js`，预设页与导出页底部下拉框）：
    - 打开面板和切到预设页时 `list()` + `getActiveId()`
-   - 选择预设：有未保存改动时先确认 → `activate(id)` → 用返回的 settings 刷新导出页（`window.DshExportPage.replaceState`）
+   - 选择预设：有未保存改动时先确认 → `activate(id)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）
    - 「已修改」由界面比对当前导出设置与当前预设的五项内容；「更新预设」→ `update(activeId, content)`
    - 存为新预设：`suggestName()` 预填（空串回退「新预设」）→ `create(name, content)` → `activate(新 id)`
    - 导入 / 从备份恢复：界面选文件读文字 → `importPreset(text)` / 确认后 `restoreBackup(text)`；恢复后 `exportUI.loadSettings()` 刷新导出页，并应用返回的 `uiPrefs`（`theme`、`nav`、`themeSwitch`，值不合法时忽略）
-   - 备份全部：界面读取 `dsh-theme`、`dsh-nav`、`dsh-theme-switch` 作为 `uiPrefs` → `exportBackup(uiPrefs)`
+   - 备份全部：界面读取 `yakit-theme`、`yakit-nav`、`yakit-theme-switch` 作为 `uiPrefs` → `exportBackup(uiPrefs)`
 8. 设置页「插件更新」（`src/ui/page/settings.js`）：
    - 切到设置页时 `updater.checkUpdate()`，一分钟内不重复自动检查；已是最新或检查失败时按钮为「检查更新」，点击立即重新检查
    - 有新版本时点「更新」：`updater.update()` → `updated: true` 时提示并在约 1.2 秒后由界面 `parent.location.reload()`；`updated: false` 提示「已经是最新版本」
@@ -230,15 +230,17 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 
 | 键 | 默认 | 含义 |
 | --- | --- | --- |
-| `dsh-theme` | `fir` | 主题 id：`tavern`（跟随ST）、`light`、`dark`、`fir`、`fig`、`olive`、`orange`、`miemie`（咩咩）、`neon`（霓虹夜城） |
-| `dsh-nav` | `auto` | 导航栏位置 `auto` / `top` / `bottom` |
-| `dsh-theme-switch` | `auto` | 设置页主题选择区 `auto` / `icon` / `select` |
-| `dsh-tavern-theme` | 首次使用时生成 | 「跟随ST」取色结果与美化指纹 |
+| `yakit-theme` | `fir` | 主题 id：`tavern`（跟随ST）、`light`、`dark`、`fir`、`fig`、`olive`、`orange`、`miemie`（咩咩）、`neon`（霓虹夜城） |
+| `yakit-nav` | `auto` | 导航栏位置 `auto` / `top` / `bottom` |
+| `yakit-theme-switch` | `auto` | 设置页主题选择区 `auto` / `icon` / `select` |
+| `yakit-tavern-theme` | 首次使用时生成 | 「跟随ST」取色结果与美化指纹 |
+
+旧版本存在 `dsh-theme`、`dsh-nav`、`dsh-theme-switch`、`dsh-tavern-theme` 里的值，弹窗初始化时自动搬到对应的 `yakit-` 键（新键已有值时不覆盖），并删除旧键。
 
 **主题机制**
 
-- 主题变量只在 `.dsh-scope` 内生效（`src/ui/components/themes.css`），不改动酒馆本身。
-- 「跟随ST」由 `src/ui/panel/tavern-theme.js` 读取宿主 `--SmartTheme*` 最终值和实际字体，拼成主题变量写到弹窗上，并随 `dsh:theme` 发给 iframe；用美化名、各项颜色和美化 CSS 计算指纹，指纹不变时直接使用缓存。
+- 主题变量只在 `.yakit-scope` 内生效（`src/ui/components/themes.css`），不改动酒馆本身。
+- 「跟随ST」由 `src/ui/panel/tavern-theme.js` 读取宿主 `--SmartTheme*` 最终值和实际字体，拼成主题变量写到弹窗上，并随 `yakit:theme` 发给 iframe；用美化名、各项颜色和美化 CSS 计算指纹，指纹不变时直接使用缓存。
 - 「自动」判断电脑：`(hover: hover) and (pointer: fine) and (min-width: 768px)`。
 - 界面规格以本地 `DESIGN.md` 为准。
 

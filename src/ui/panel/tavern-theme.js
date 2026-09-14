@@ -160,7 +160,7 @@ export function readTavernTheme() {
 
 /* ---------- 缓存：美化没变就不重读 ---------- */
 
-const CACHE_KEY = 'dsh-tavern-theme';
+const CACHE_KEY = 'yakit-tavern-theme';
 
 // 美化的「指纹」：直接从酒馆设置里取美化名、各项颜色和美化 CSS，算一个短字符串
 // 这一步不需要浏览器重算页面样式，很快；指纹不变就说明美化没变

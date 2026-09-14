@@ -1,9 +1,9 @@
 /**
- * <dsh-icon> 图标
+ * <yakit-icon> 图标
  * 把 SVG 文件读进来直接画在页面上。不管图标原本画多大，线条粗细都保持一致。
  *
  * 用法：
- *   <dsh-icon src="../icons/theme/冷杉与海盐.svg" size="28"></dsh-icon>
+ *   <yakit-icon src="../icons/theme/冷杉与海盐.svg" size="28"></yakit-icon>
  *
  * 可用属性：
  *   src    SVG 文件地址
@@ -11,7 +11,7 @@
  *   line   线条粗细，单位像素，默认 1.5
  */
 (() => {
-  if (customElements.get('dsh-icon')) return;
+  if (customElements.get('yakit-icon')) return;
 
   // 每个图标只下载、解析一次，之后直接复制解析好的图形
   const cache = new Map();
@@ -46,7 +46,7 @@
     svg * { vector-effect: non-scaling-stroke; stroke-width: var(--icon-line, 1.5px); }
   `;
 
-  class DshIcon extends HTMLElement {
+  class YaKitIcon extends HTMLElement {
     static observedAttributes = ['src', 'size', 'line'];
 
     constructor() {
@@ -75,5 +75,5 @@
     }
   }
 
-  customElements.define('dsh-icon', DshIcon);
+  customElements.define('yakit-icon', YaKitIcon);
 })();

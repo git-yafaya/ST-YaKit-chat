@@ -1,14 +1,14 @@
 /**
- * <dsh-select> 下拉选择
+ * <yakit-select> 下拉选择
  *
  * 用法：
- *   <dsh-select label="导出格式" value="md" hint="EPUB 适合在阅读器里看">
+ *   <yakit-select label="导出格式" value="md" hint="EPUB 适合在阅读器里看">
  *     <option value="txt">TXT</option>
  *     <option value="md" description="保留标题和粗体">Markdown</option>
  *     <optgroup label="电子书">
  *       <option value="epub">EPUB</option>
  *     </optgroup>
- *   </dsh-select>
+ *   </yakit-select>
  *
  * 可用属性：
  *   label        上方的名字
@@ -29,12 +29,12 @@
  * 事件：
  *   change  选中变化时触发，event.detail.value 是新值
  *
- * 外框和输入框（dsh-input）长得一样；当前选中项右边是点睛色的小圆勾。
+ * 外框和输入框（yakit-input）长得一样；当前选中项右边是点睛色的小圆勾。
  *
  * 细滚动条：先引入 components/scrollbar.js
  */
 (() => {
-  if (customElements.get('dsh-select')) return;
+  if (customElements.get('yakit-select')) return;
 
   const CHEVRON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   const CHECK = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>';
@@ -94,7 +94,7 @@
 
     .value-icon { --icon-size: 20px; }
     .value-icon[hidden] { display: none; }
-    .option dsh-icon { --icon-size: 22px; }
+    .option yakit-icon { --icon-size: 22px; }
     .value {
       flex: 1;
       min-width: 0;
@@ -245,23 +245,23 @@
       .trigger, .chevron { transition: none; }
       .menu.is-open { animation: none; }
     }
-    ${globalThis.DshScrollbar?.css ?? ''}
+    ${globalThis.YaKitScrollbar?.css ?? ''}
   `;
 
-  class DshSelect extends HTMLElement {
+  class YaKitSelect extends HTMLElement {
     static observedAttributes = ['label', 'placeholder', 'value', 'hint', 'error', 'searchable', 'required', 'disabled', 'aria-label'];
 
     constructor() {
       super();
       const id = ++uid;
       const root = this.attachShadow({ mode: 'open', delegatesFocus: true });
-      globalThis.DshScrollbar?.watch(root);
+      globalThis.YaKitScrollbar?.watch(root);
       root.innerHTML = `
         <style>${styles}</style>
         <span class="label" id="label"></span>
         <button class="trigger" type="button" part="trigger" aria-haspopup="listbox" aria-expanded="false"
           aria-controls="list-${id}">
-          <dsh-icon class="value-icon" hidden aria-hidden="true"></dsh-icon>
+          <yakit-icon class="value-icon" hidden aria-hidden="true"></yakit-icon>
           <span class="value"></span>
           <span class="chevron">${CHEVRON}</span>
         </button>
@@ -345,7 +345,7 @@
         const label = option.textContent.trim();
         const icon = option.getAttribute('icon');
         if (icon) {
-          const iconEl = document.createElement('dsh-icon');
+          const iconEl = document.createElement('yakit-icon');
           iconEl.setAttribute('src', new URL(icon, document.baseURI).href);
           iconEl.setAttribute('aria-hidden', 'true');
           li.prepend(iconEl);
@@ -571,5 +571,5 @@
     }
   }
 
-  customElements.define('dsh-select', DshSelect);
+  customElements.define('yakit-select', YaKitSelect);
 })();

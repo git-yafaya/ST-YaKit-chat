@@ -49,6 +49,6 @@
   });
   $('rules-card').addEventListener('click', () => $('drawer-right').show());
   document.querySelectorAll('[data-close]').forEach((button) => {
-    button.addEventListener('click', () => button.closest('dsh-drawer').close());
+    button.addEventListener('click', () => button.closest('yakit-drawer').close());
   });
 })();

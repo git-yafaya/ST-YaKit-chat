@@ -1,10 +1,10 @@
 /**
- * <dsh-button> 按钮
+ * <yakit-button> 按钮
  *
  * 用法：
- *   <dsh-button variant="primary">开始导出</dsh-button>
- *   <dsh-button icon="../icons/plus.svg">新建规则</dsh-button>
- *   <dsh-button variant="ghost" icon="../icons/trash.svg" aria-label="删除"></dsh-button>
+ *   <yakit-button variant="primary">开始导出</yakit-button>
+ *   <yakit-button icon="../icons/plus.svg">新建规则</yakit-button>
+ *   <yakit-button variant="ghost" icon="../icons/trash.svg" aria-label="删除"></yakit-button>
  *
  * 可用属性：
  *   variant    primary   主操作，点睛色（一块区域里最多放一个）
@@ -21,7 +21,7 @@
  * 删除这类操作，先弹出提示框让用户确认。
  */
 (() => {
-  if (customElements.get('dsh-button')) return;
+  if (customElements.get('yakit-button')) return;
 
   const styles = `
     :host {
@@ -91,11 +91,11 @@
     button:disabled { cursor: not-allowed; opacity: 0.45; transform: none; filter: none; }
     :host([loading]) button:disabled { opacity: 1; cursor: progress; }
     :host([loading]) .label,
-    :host([loading]) dsh-icon,
+    :host([loading]) yakit-icon,
     :host([loading]) .icon-slot { visibility: hidden; }
 
-    dsh-icon, .icon-slot { width: var(--btn-icon); height: var(--btn-icon); --icon-size: var(--btn-icon); }
-    dsh-icon[hidden] { display: none; }
+    yakit-icon, .icon-slot { width: var(--btn-icon); height: var(--btn-icon); --icon-size: var(--btn-icon); }
+    yakit-icon[hidden] { display: none; }
 
     /* 加载转圈：跟随按钮文字颜色，保证在点睛色按钮上也看得清 */
     .spinner {
@@ -119,7 +119,7 @@
     }
   `;
 
-  class DshButton extends HTMLElement {
+  class YaKitButton extends HTMLElement {
     static observedAttributes = ['icon', 'loading', 'disabled', 'aria-label'];
 
     constructor() {
@@ -128,7 +128,7 @@
       root.innerHTML = `
         <style>${styles}</style>
         <button type="button" part="button">
-          <dsh-icon hidden></dsh-icon>
+          <yakit-icon hidden></yakit-icon>
           <span class="label"><slot></slot></span>
           <span class="spinner" hidden aria-hidden="true"></span>
         </button>
@@ -156,7 +156,7 @@
 
     render() {
       const icon = this.getAttribute('icon');
-      const iconEl = this.$('dsh-icon');
+      const iconEl = this.$('yakit-icon');
       iconEl.hidden = !icon;
       if (icon) {
         iconEl.setAttribute('src', new URL(icon, document.baseURI).href);
@@ -177,5 +177,5 @@
     }
   }
 
-  customElements.define('dsh-button', DshButton);
+  customElements.define('yakit-button', YaKitButton);
 })();

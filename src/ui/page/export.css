@@ -7,7 +7,7 @@
   height: calc(100vh - 40px);
   min-height: 460px;
 }
-.export-page > dsh-card { flex: none; }
+.export-page > yakit-card { flex: none; }
 .export-page > .preview-card {
   flex: 1;
   min-height: 180px;
@@ -38,7 +38,7 @@
 }
 .rule-row { display: flex; align-items: flex-start; gap: 4px; }
 .rule-row + .rule-row { margin-top: 8px; }
-.rule-row dsh-input { flex: 1; min-width: 0; }
+.rule-row yakit-input { flex: 1; min-width: 0; }
 /* 识别到的标签：点一下加对应规则，再点取消 */
 .tag-scan { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
 .tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }

@@ -1,7 +1,7 @@
 /**
  * 全局配色主题
  *
- * 生效范围：只在带 class="dsh-scope" 的元素里面生效，不会改动酒馆本身的颜色
+ * 生效范围：只在带 class="yakit-scope" 的元素里面生效，不会改动酒馆本身的颜色
  * 切换方式：在同一个元素上写 data-theme="fir" / "fig" / "olive" / "orange" / "miemie" / "neon" / "light" / "dark"
  *          「跟随ST」data-theme="tavern"，颜色由 src/ui/panel/tavern-theme.js 从酒馆美化里取，直接写在元素上
  * 不写 data-theme 时：跟随系统，浅色用「浅色」，深色用「深色」
@@ -10,8 +10,8 @@
  */
 
 /* ---------- 浅色（默认） ---------- */
-.dsh-scope,
-.dsh-scope[data-theme="light"] {
+.yakit-scope,
+.yakit-scope[data-theme="light"] {
   --panel-bg: #F4F5F6;
   --card-bg: #FFFFFF;
   --divider: #DFE2E5;
@@ -34,7 +34,7 @@
 }
 
 /* ---------- 深色 ---------- */
-.dsh-scope[data-theme="dark"] {
+.yakit-scope[data-theme="dark"] {
   --panel-bg: #17181A;
   --card-bg: #202226;
   --divider: #2F3237;
@@ -58,7 +58,7 @@
 
 /* 没选主题时，系统是深色就用深色 */
 @media (prefers-color-scheme: dark) {
-  .dsh-scope:not([data-theme]) {
+  .yakit-scope:not([data-theme]) {
     --panel-bg: #17181A;
     --card-bg: #202226;
     --divider: #2F3237;
@@ -79,7 +79,7 @@
 }
 
 /* ---------- 方案一【冷杉与海盐】浅底，极简理智 ---------- */
-.dsh-scope[data-theme="fir"] {
+.yakit-scope[data-theme="fir"] {
   --panel-bg: #F8F9FA;
   --card-bg: #FFFFFF;
   --divider: #E4E9EC;
@@ -102,7 +102,7 @@
 }
 
 /* ---------- 方案二【暮色无花果】浅底，温暖人文 ---------- */
-.dsh-scope[data-theme="fig"] {
+.yakit-scope[data-theme="fig"] {
   --panel-bg: #FAF9F6;
   --card-bg: #FFFFFF;
   --divider: #E8E1D6;
@@ -125,7 +125,7 @@
 }
 
 /* ---------- 方案三【橄榄岩与日光柠檬】浅底，静谧先锋 ---------- */
-.dsh-scope[data-theme="olive"] {
+.yakit-scope[data-theme="olive"] {
   --panel-bg: #F4F5F0;
   --card-bg: #FFFFFF;
   --divider: #E2E5DC;
@@ -148,7 +148,7 @@
 }
 
 /* ---------- 暖橙晨曦 浅底，温暖明亮（配色按插画取色拟定） ---------- */
-.dsh-scope[data-theme="orange"] {
+.yakit-scope[data-theme="orange"] {
   --panel-bg: #FAF6F1;
   --card-bg: #FFFFFF;
   --divider: #EDE3D8;
@@ -171,7 +171,7 @@
 }
 
 /* ---------- 咩咩 深底，暗夜紫配赛博青（按咩咩工具箱视觉规范取色） ---------- */
-.dsh-scope[data-theme="miemie"] {
+.yakit-scope[data-theme="miemie"] {
   --panel-bg: #171320;
   --card-bg: #211A2D;
   --divider: #3E3150;
@@ -194,7 +194,7 @@
 }
 
 /* ---------- 霓虹夜城 深底，近黑配荧光黄，焦点用青色（赛博朋克风） ---------- */
-.dsh-scope[data-theme="neon"] {
+.yakit-scope[data-theme="neon"] {
   --panel-bg: #0A0A0C;
   --card-bg: #141417;
   --divider: #2A2A30;
