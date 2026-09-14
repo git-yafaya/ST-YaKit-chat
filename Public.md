@@ -2,27 +2,32 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展"纪实"（YaKit 系列）。"文本导出"功能已完整实现（含界面）：按楼层范围/消息类型/正则规则筛选当前聊天并导出 TXT。另有"副 API 配置管理"和"提示词管理"两个业务模块已实现，为后续 AI 功能做准备，但**尚未接入界面或全局入口**。
-- **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS，无构建步骤，酒馆直接加载。
-- **入口文件**：`src/index.js`（`manifest.json` 的 `js` 字段指向），注册全局对象 `globalThis.YaKitChat` 并初始化文本导出界面。
-- **公开 API 一览**（均挂在 `globalThis.YaKitChat` 上）：`version`、`readCurrentChat(range)`、`filterMessages(messages, types)`、`cleanMessages(messages, rules, mode)`、`saveTxt(messages, format)`。
-- **当前还没做什么**：设置页（副 API 配置、破限词/正则/文风提示词三类管理）尚未接入界面或全局入口——对应业务模块已经写好，只是还没有 UI 和 Tab 导航把它们露出来；提示词注入组装（`buildFinalMessages`/`applyInjection` 等）尚未实现；不含任何实际发起 AI 请求的能力；不含 AI 辅助过滤、标签提取、TXT 以外的导出格式、TauriTavern/移动端专用保存、群聊支持（长期不支持）、与绘界等同系列扩展之间的公共界面文件。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列）。「文本导出」页完整可用：导出预览、正则匹配（含识别最近两楼标签）、导出设置抽屉，导出 TXT / Markdown / EPUB。
+- **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
+- **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。
+- **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat.exportUI` 调用业务。
+- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；文本导出页接口 `exportUI.{getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences`；副 API 配置与提示词管理函数（见第 6 节）。
+- **当前还没做什么**：润色、预设、API 管理三个页签只有占位卡片；副 API 配置、提示词管理、EPUB 分章偏好没有界面；提示词注入组装未实现；不发起任何 AI 请求；不支持群聊。
 
 ## 仓库结构
 
 ```text
 ST-YaKit-chat/
-├── manifest.json                 扩展声明，js 指向 src/index.js，css 指向 src/ui/text-export/style.css
+├── manifest.json           扩展声明：js 指向 src/index.js，css 指向 src/ui/style.css
 ├── src/
-│   ├── index.js                  宿主接入注册，组装 YaKitChat 公开入口，初始化文本导出界面
+│   ├── index.js            入口：组装 YaKitChat，初始化界面
 │   ├── features/
-│   │   ├── text-export/          按楼层读取、类型过滤、正则清洗、生成并保存 TXT 四个模块
-│   │   ├── api-management/       副 API 配置的增删改查与校验（未接入界面）
-│   │   └── prompt-management/    三类提示词的增删改查与校验（未接入界面）
-│   ├── shared/                   settings.js（扩展设置读写）、validation.js（配置/提示词校验）
+│   │   ├── text-export/        读取、类型过滤、正则清洗、三种格式生成与下载、文本导出页接口、标签扫描
+│   │   ├── api-management/     副 API 配置的增删改查与校验（无界面）
+│   │   └── prompt-management/  三类提示词的增删改查与校验（无界面）
+│   ├── shared/             扩展设置读写、配置与提示词校验
 │   └── ui/
-│       └── text-export/          扩展菜单入口、面板视图、主题映射、Toast、样式
-└── tests/                        本地自动化测试，按功能分子目录，不随扩展加载
+│       ├── style.css       弹窗外壳样式
+│       ├── panel/          界面总文件：魔法棒入口、弹窗外壳、页签、主题、跟随ST取色
+│       ├── page/           iframe 面板页面：结构、公共逻辑、各页脚本与样式
+│       ├── components/     组件库（按钮、输入框、下拉、开关、分段选择器、卡片、抽屉等）与主题色值
+│       └── icons/          线条图标与主题插画
+└── tests/                  本地自动化测试（不提交、不随扩展加载）
 ```
 
 <details>
@@ -35,152 +40,260 @@ ST-YaKit-chat/
 ├── src/features/text-export/read-chat.js
 ├── src/features/text-export/filter-messages.js
 ├── src/features/text-export/clean-messages.js
+├── src/features/text-export/export-common.js
 ├── src/features/text-export/export-txt.js
+├── src/features/text-export/export-markdown.js
+├── src/features/text-export/export-epub.js
+├── src/features/text-export/epub-chapters.js
+├── src/features/text-export/epub-preferences.js
+├── src/features/text-export/save-export.js
+├── src/features/text-export/export-ui.js
+├── src/features/text-export/export-ui-settings.js
+├── src/features/text-export/scan-recent-tags.js
 ├── src/features/api-management/index.js
 ├── src/features/prompt-management/index.js
 ├── src/shared/settings.js
 ├── src/shared/validation.js
-├── src/ui/text-export/index.js
-├── src/ui/text-export/view.js
-├── src/ui/text-export/theme.js
-├── src/ui/text-export/feedback.js
-├── src/ui/text-export/style.css
-├── tests/text-export/text-export.test.mjs
-├── tests/text-export/filter-messages.test.mjs
-├── tests/text-export/clean-messages.test.mjs
-├── tests/text-export/export-txt.test.mjs
-├── tests/text-export/ui.test.mjs
-├── tests/shared/settings.test.mjs
-├── DESIGN.md                     UI 与动效规范
-├── AGENT_LOG.md                  Claude / Codex 协作节点记录
-├── AGENTS.md / CLAUDE.md         协作协议（符号链接）
+├── src/ui/style.css
+├── src/ui/panel/index.js
+├── src/ui/panel/tavern-theme.js
+├── src/ui/page/index.html
+├── src/ui/page/style.css
+├── src/ui/page/main.js
+├── src/ui/page/export.js / export.css
+├── src/ui/page/settings.js / settings.css
+├── src/ui/page/demo.js / demo.css
+├── src/ui/components/embed-frame.js、icon.js、segmented.js、card.js、collapse.js、drawer.js、button.js、input.js、select.js、switch.js、toast.js、scrollbar.js、theme-list.js、themes.css
+├── src/ui/icons/*.svg、src/ui/icons/theme/*.svg
+├── README.md / Public.md
+├── CLAUDE.md / AGENTS.md / CLAUDE.local.md
+├── AGENT_LOG.md
 └── .gitignore
 ```
 
-`需求文档-*.md`、`技术交接-*.md`、`技术评估-*.md`、`sillytavern_API.md`、`CLAUDE.local.md` 属于本地协作文档，按 `.gitignore` 规则不提交仓库。
+`DESIGN.md`、`tests/`、`需求文档-*`、`技术交接-*`、`技术核对-*`、`技术评估-*`、`技术提案-*`、`审核-*`、`sillytavern_API.md` 属于本地资料，按 `.gitignore` 不提交。
 
 </details>
 
 ## 加载与数据流
 
-酒馆按 `manifest.json` 加载 `src/index.js` 和界面样式；`src/index.js` 把 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt` 四个函数和只读的 `version` 挂到 `globalThis.YaKitChat` 上，同时初始化文本导出界面。
-
-界面主链路：在输入框旁扩展菜单挂载图标"纪实"（`#yk-text-export-menu`，菜单未就绪时等待宿主 `APP_READY` 事件）→ 点击打开单页面板（原生 `dialog`，最大宽度 900px）→ 面板内楼层范围/消息类型/正则清洗三张卡片依次调用 `readCurrentChat` → `filterMessages` →（规则非空时）`cleanMessages` → 点击"导出"前先判断结果是否为空，非空才调用 `saveTxt`。
+1. 酒馆按 `manifest.json` 加载 `src/index.js` 与 `src/ui/style.css`。
+2. `src/index.js` 把公开函数和 `exportUI` 组装进冻结的 `globalThis.YaKitChat`，然后调用 `initPanelUI`。
+3. `initPanelUI` 在魔法棒菜单（`#extensionsMenu`）加入「纪实」；菜单未就绪时等待宿主 `APP_READY`。
+4. 点击后创建居中 `<dialog>`，内容区用 iframe 加载 `src/ui/page/index.html`。
+5. 弹窗与 iframe 之间只用 `postMessage` 通信：弹窗发 `dsh:tab`、`dsh:theme`、`dsh:nav`、`dsh:preload-font`；面板发 `dsh:set-theme`、`dsh:set-nav`、`dsh:theme-applied`。
+6. 文本导出页（`src/ui/page/export.js`）：
+   - 打开时 `loadSettings()` → `getChatInfo()` → `previewMessages(settings, 2)` → `scanRecentTags()`
+   - 设置或规则变化：`saveSettings(settings)`，200ms 防抖后重新 `previewMessages`
+   - 点击导出：`exportFile(settings)` → 成功提示「已导出 N 条消息」
+   - `onChatChanged` 回调：刷新摘要、预览、标签
 
 <details>
-<summary>边界情况</summary>
+<summary>边界情况（以业务交接单为准）</summary>
 
-**读取（`readCurrentChat`）**
-
-| 情况 | 实际行为 |
-| --- | --- |
-| 楼层编号 | 接口从 1 开始，闭区间；接口第 1 楼对应宿主内部 `#0`，过滤后保留原楼层号。 |
-| 不传范围或传 `'all'` | 读取全部楼层；对象范围省略 `start` 取 1，省略 `end` 取最后一楼。 |
-| 起止颠倒、超界 | 先交换颠倒端点，再各自收缩到 `[1, 消息数]`。 |
-| 空聊天、未选角色 | 返回 `[]`，不校验范围，也不导出宿主的欢迎消息。 |
-| 范围参数格式错误 | 非对象/非 `'all'` 或端点非整数，抛出 `TypeError`。 |
-| 群聊 | 读取和非空保存均抛出"仅支持单人聊天"；界面遇群聊直接显示提示，隐藏三张卡片和导出区。 |
-| 读取结果字段 | 每条为独立快照：`{ floor, name, mes, is_user, is_system, extra: { type } }`。 |
-
-**过滤（`filterMessages`）**
+**楼层与范围**
 
 | 情况 | 实际行为 |
 | --- | --- |
-| 未传类型参数 | `ai`/`user`/`system` 全部启用。 |
-| 已传类型参数但全部关闭 | 抛出"请至少选择一种消息类型"；界面上直接禁用"导出"按钮并提示，不等点击才报错。 |
-| 消息分类 | `is_system` 为真值或 `extra.type === 'narrator'` 优先归系统；其次 `is_user` 归用户；其余归 AI。 |
-| 筛选结果 | 返回新数组，不修改输入。 |
+| 楼层编号 | `exportUI` 从 0 起算，区间包含两端；既有 `readCurrentChat` 仍从 1 起算 |
+| `allFloors: true` | 忽略残留的 `start`/`end`，仍执行消息类型和正则过滤 |
+| 指定范围 | 先 `Number` 转换，小数向零截断；空白、非数字、非有限值分别回退为首楼层、末楼层；颠倒时交换，再各自夹到有效范围；全部越界落到最近端点 |
 
-**清洗（`cleanMessages`）**
-
-| 情况 | 实际行为 |
-| --- | --- |
-| 规则格式 | 对象数组 `{ pattern, flags? }`；内部补充 `g` 匹配全部位置。 |
-| 删除/保留模式 | `remove` 删除全部规则命中区间的并集；`keep` 保留全部规则命中区间的并集，按原文顺序拼接。 |
-| 无效正则语法 | 跳过该条规则，其余规则照常生效；规则全部为空/无效时两种模式都保留原正文。 |
-| 空表达式 `{ pattern: '' }` | 合法的零长度正则；`remove` 保留正文，`keep` 得到空字符串。 |
-| 清洗后正文为空 | 消息仍保留在数组里，`mes` 为 `''`，不整条删除，不 trim 残留空白。 |
-| 界面上的无效规则提示 | 该行下方出现危险色行内提示框（图标+"这条规则无效，已忽略"），输入框本身不变色；不阻断其他规则或导出。 |
-
-**保存（`saveTxt`）**
+**消息类型**
 
 | 情况 | 实际行为 |
 | --- | --- |
-| 文本格式 | `speaker`：固定前缀"AI："/"用户："/"系统："（不用真实姓名）+ 正文；`plain`：仅正文；消息间以两个换行分隔。 |
-| 文件名 | `<调用保存时的角色卡名称><本地时间戳 YYYYMMDDHHmmssSSS>.txt`，非法字符替换为 `_`。 |
-| 空数组保存 | 不触发下载，Promise 兑现为"无内容"；**`saveTxt` 本身只判断数组是否为空**，不判断"数组非空但全部消息正文为空字符串"的情况。 |
-| 界面层的空结果判断 | 面板在调用 `saveTxt` 前额外检查：数组为空，或 `messages.every(m => m.mes === '')`，两种都视为"无内容"、显示 Toast、不调用 `saveTxt`；直接调用 API 不享有这层检查。 |
-| 保存成功/失败 | 成功后 Promise 返回 `{ filename, text }`，界面显示"已导出"；失败通过 Promise 拒绝，界面用危险色 Toast 显示错误信息。返回成功只表示已触发下载，不代表磁盘落盘状态。 |
+| 系统提示 | `is_system=true` 的消息（含隐藏的 AI、用户楼层）及 `extra.type='narrator'` 的旁白（含未隐藏旁白） |
+| 用户台词 / AI 回复 | 其余消息按 `is_user` 区分 |
+| 一致性 | 预览类别、类型筛选和三种文件的类别标注使用同一判定 |
+
+**正则规则**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 写法 | 支持裸 pattern 和 `/pattern/flags`；以 `/` 开头且后面还有 `/` 时，最后一个 `/` 分隔 pattern 与 flags |
+| 空格与 flags | 不裁剪 pattern 首尾空格；匹配时补 `g`；无效语法、非法或重复 flags 的规则被忽略 |
+| 无有效规则 | 删除与保留模式都透传原文 |
+| 多规则 | 每条规则匹配原文，重叠及相邻范围合并，按原文顺序去重；零长度匹配不贡献正文 |
+| 模式 | 删除模式去掉匹配部分；保留模式仅保留匹配部分 |
+
+**预览与导出**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 预览 | 保留清洗后的空条和原楼层号，缺失名称回退空字符串；不修改宿主原消息 |
+| 导出 | 跳过清洗后 `trim()` 为空的消息，其余正文空白保持原样 |
+| 无内容 | 全空或类型全关时 `exportFile` reject `Error('无内容')` |
+| 群聊 / 无聊天 | reject `Error('仅支持单人聊天')` / `Error('请先在酒馆里打开一个聊天')` |
+| 文件名 | 自定义名去首尾空白、去掉末尾已有的 TXT/MD/EPUB 后缀（不分大小写），路径及控制字符替换为下划线，去掉末尾点和空格，再补目标后缀；结果为空时用角色名加本地毫秒时间戳 |
+| EPUB | 按最终非空消息顺序分章，复用已存 EPUB 偏好，默认每章 2 条、章节名为中文数字；书名与作者使用角色名；XML 不支持的正文字符会导致生成报错 |
+
+**标签扫描（`scanRecentTags`）**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 范围 | 聊天最后两条原文，含隐藏楼层；不受保存的范围、类型和规则影响；只读 |
+| 识别 | 完整成对标签、显式自闭合标签、带属性的 HTML 块，支持属性引号中的 `>`；标签名支持 Unicode 字母、数字及 `_ : - .` |
+| 大小写 | 英文名称统一小写，开闭标签大小写混用可配对 |
+| 去重排序 | 同名去重，按第一次有效开始标签出现的位置排序 |
+| 按钮文字 | 有完整成对写法时为 `<name>`，只有自闭合写法时为 `<name/>`；不显示属性 |
+| 配对 | 每条消息独立配对，不跨楼层；孤立结束标签、未闭合开始标签不产生结果 |
+| 规则 | `/pattern/gi` 字符串，同一名称的规则同时支持成对块和自闭合；成对规则匹配标签连同内容；同名成对嵌套只匹配最内层完整块 |
+| 空结果 | 群聊、无聊天、空聊天或未识别到时返回 `[]`；非字符串正文跳过 |
+
+**事件订阅（`onChatChanged`）**
+
+使用宿主 `eventTypes`：`CHAT_CHANGED`、`CHAT_LOADED`、`CHAT_CREATED`、`CHAT_DELETED`、`MESSAGE_SENT`、`MESSAGE_RECEIVED`、`MESSAGE_EDITED`、`MESSAGE_UPDATED`、`MESSAGE_DELETED`、`MESSAGE_SWIPED`、`MESSAGE_SWIPE_DELETED`、`USER_MESSAGE_RENDERED`、`CHARACTER_MESSAGE_RENDERED`。回调无参数，在微任务中执行；卸载后移除监听并取消尚未开始的回调。
 
 </details>
 
 ## 设置与主题
 
-面板默认主题跟随酒馆：面板底色、卡片底色、边框、正文/标题字色、说明小字分别取宿主的 `--SmartThemeBlurTintColor`、`--SmartThemeChatTintColor`、`--SmartThemeBorderColor`、`--SmartThemeBodyColor`、`--SmartThemeEmColor`。明暗按面板底色亮度判断（`0.2126R + 0.7152G + 0.0722B` 不小于 128 取中性浅色，否则取中性深色），不依赖宿主 `color-scheme`；取不到或取到透明的槽位回落对应中性色。面板会观察宿主根元素和 `body` 的 class/style 变化，直接换色，不做过场动画。
+**导出设置**（`exportUI.saveSettings` 整组写入 `extensionSettings['ST-YaKit-chat'].exportUI`，并调用 `saveSettingsDebounced()`）
 
-尚无独立的"设置"页或主题切换控件；副 API 配置、提示词管理的业务逻辑已实现但未接入任何界面，见下节。
+| 字段 | 默认值 | 含义 |
+| --- | --- | --- |
+| `allFloors` | `true` | 导出全部楼层 |
+| `start` / `end` | `''` | 起止楼层（原字符串保存） |
+| `types` | `{ ai: true, user: true, system: true }` | 三种消息类型开关 |
+| `format` | `'txt'` | `txt` / `md` / `epub` |
+| `labels` | `'with'` | `with` 带类别标注 / `plain` 仅正文 |
+| `fileName` | `''` | 自定义文件名，空为默认名 |
+| `mode` | `'delete'` | `delete` 删除匹配 / `keep` 只保留匹配 |
+| `rules` | `[]` | 规则字符串数组（原样保存） |
+
+EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面。
+
+**界面设置**（浏览器 `localStorage`）
+
+| 键 | 默认 | 含义 |
+| --- | --- | --- |
+| `dsh-theme` | `fir` | 主题 id：`tavern`（跟随ST）、`light`、`dark`、`fir`、`fig`、`olive`、`orange` |
+| `dsh-nav` | `auto` | 导航栏位置 `auto` / `top` / `bottom` |
+| `dsh-theme-switch` | `auto` | 设置页主题选择区 `auto` / `icon` / `select` |
+| `dsh-tavern-theme` | 首次使用时生成 | 「跟随ST」取色结果与美化指纹 |
+
+**主题机制**
+
+- 主题变量只在 `.dsh-scope` 内生效（`src/ui/components/themes.css`），不改动酒馆本身。
+- 「跟随ST」由 `src/ui/panel/tavern-theme.js` 读取宿主 `--SmartTheme*` 最终值和实际字体，拼成主题变量写到弹窗上，并随 `dsh:theme` 发给 iframe；用美化名、各项颜色和美化 CSS 计算指纹，指纹不变时直接使用缓存。
+- 「自动」判断电脑：`(hover: hover) and (pointer: fine) and (min-width: 768px)`。
+- 界面规格以本地 `DESIGN.md` 为准。
 
 ## 公开 API
 
-以下示例代码可直接复制到已安装本扩展、并打开单人聊天的酒馆页面的浏览器控制台运行；`readCurrentChat`/`filterMessages`/`cleanMessages` 同步返回结果，`saveTxt` 为异步函数需要 `await`。
+以下代码来自业务交接单原文，在已启用插件的酒馆顶层控制台运行。`exportUI` 的参数、返回与错误：
+
+| 接口 | 参数、返回与错误 |
+| --- | --- |
+| `getChatInfo()` | 同步返回 `{status, floorCount}`。群聊为 `group/0`；无宿主、未选角色或缺少聊天数组为 `none/0`；单人聊天为 `ok/实际条数`，已选角色的空聊天为 `ok/0`。宿主读取异常向调用方抛出。 |
+| `previewMessages(settings={}, count=2)` | 同步返回最后 `count` 条 `{floor,type,name,text}`，保持原顺序。`count` 必须为非负整数，0 返回空数组，否则非法值抛中文 `TypeError`。群聊、无聊天、空聊天及三类全关返回 `[]`；参数或消息结构错误抛出。 |
+| `isValidRule(source)` | 同步返回 boolean。非字符串、空白或无效正则返回 false。 |
+| `exportFile(settings={})` | 返回 `Promise<{count}>`，触发宿主下载后返回实际导出消息数。全空或全关类型 reject `Error('无内容')`；群聊 reject `Error('仅支持单人聊天')`；无聊天 reject `Error('请先在酒馆里打开一个聊天')`；其余校验、生成和下载错误原样传播。 |
+| `onChatChanged(callback)` | 同步返回幂等 `unsubscribe()`；非函数抛中文 `TypeError`。宿主未提供事件系统时返回空操作卸载函数。回调无参数，在微任务中执行；同步异常和 Promise 拒绝记入控制台，不阻塞宿主。 |
+| `loadSettings()` | 同步返回独立设置副本，尚未保存时返回 null。宿主设置未就绪、结构损坏或已存字段非法时抛错。 |
+| `saveSettings(settings)` | 同步返回保存后的独立副本。缺项补默认，已提供字段校验类型和枚举，忽略未知字段；错误抛出。整组写入 `extensionSettings['ST-YaKit-chat'].exportUI`，保留其他模块设置，调用 `saveSettingsDebounced()`；排队失败回滚原设置。成功表示已提交给宿主保存队列。 |
+| `scanRecentTags()` | 无参数，同步返回 `Array<{label:string,rule:string}>`。扫描最后两条原文，含隐藏楼层，不受保存的范围、类型与规则影响。群聊、无聊天、空聊天或未识别到时返回 `[]`，非字符串正文跳过；宿主读取异常抛出。只读，不保存设置或修改聊天。 |
+
+读取保存设置并预览，不触发下载：
 
 ```js
-// 查看版本，读取第 1–10 楼，按类型过滤。
-console.log(YaKitChat.version);
-const messages = YaKitChat.readCurrentChat({ start: 1, end: 10 });
-console.table(YaKitChat.filterMessages(messages, { ai: true, user: true, system: false }));
+(() => {
+    const api = globalThis.YaKitChat.exportUI;
+    const settings = api.loadSettings() ?? {};
+    console.log(api.getChatInfo());
+    console.log(api.isValidRule('/<think>[\\s\\S]*?<\\/think>/g'));
+    console.table(api.previewMessages(settings, 2));
+})();
 ```
 
-```js
-// 删除当前聊天正文中的数字，导出为带类别标注的 TXT；与面板一致的空结果判断。
-let result = YaKitChat.filterMessages(YaKitChat.readCurrentChat('all'));
-result = YaKitChat.cleanMessages(result, [{ pattern: '\\d+' }], 'remove');
-if (result.length === 0 || result.every(m => m.mes === '')) {
-    console.log('无内容');
-} else {
-    console.log(await YaKitChat.saveTxt(result, 'speaker'));
-}
-```
+保存「全部楼层、三类全开、无规则」的 TXT 设置，并执行一次下载：
 
 ```js
-// 正则清洗语义：多规则命中区间取并集，无效规则被跳过。
-const sample = [{ floor: 1, mes: '甲123乙456丙' }];
-const rules = [{ pattern: '123乙' }, { pattern: '乙456' }, { pattern: '(' }]; // 最后一条无效
-console.log(YaKitChat.cleanMessages(sample, rules, 'remove')[0].mes); // 甲丙
-console.log(YaKitChat.cleanMessages(sample, rules, 'keep')[0].mes);   // 123乙456
+(async () => {
+    const api = globalThis.YaKitChat.exportUI;
+    const settings = {
+        allFloors: true,
+        start: '',
+        end: '',
+        types: { ai: true, user: true, system: true },
+        format: 'txt',
+        labels: 'with',
+        fileName: '',
+        mode: 'delete',
+        rules: [],
+    };
+    try {
+        api.saveSettings(settings);
+        const result = await api.exportFile(settings);
+        console.log(`已导出 ${result.count} 条消息`);
+    } catch (error) {
+        console.error(error.message === '无内容' ? '没有可导出的内容' : error.message);
+    }
+})();
 ```
+
+订阅聊天变化，并在页面卸载时清理：
+
+```js
+(() => {
+    const api = globalThis.YaKitChat.exportUI;
+    const unsubscribe = api.onChatChanged(() => {
+        console.log(api.getChatInfo());
+        console.table(api.previewMessages(api.loadSettings() ?? {}, 2));
+    });
+    window.addEventListener('pagehide', unsubscribe, { once: true });
+    return unsubscribe;
+})();
+```
+
+扫描标签并使用第一条生成规则检查删除和保留预览，不保存设置或触发下载：
+
+```js
+(() => {
+    const api = globalThis.YaKitChat.exportUI;
+    const tags = api.scanRecentTags();
+    console.table(tags);
+    if (tags.length === 0) return;
+    const { label, rule } = tags[0];
+    console.log(label, api.isValidRule(rule));
+    const settings = {
+        allFloors: true,
+        types: { ai: true, user: true, system: true },
+        rules: [rule],
+    };
+    console.table(api.previewMessages({ ...settings, mode: 'delete' }, 2));
+    console.table(api.previewMessages({ ...settings, mode: 'keep' }, 2));
+})();
+```
+
+例如原文 `<thinking>内容</thinking><br/>` 返回两个条目，`label` 依次为 `<thinking>`、`<br/>`。
+
+`readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及第 6 节列出的管理函数本次交接未更新契约，调用前以源码为准。
 
 ## 当前接入状态
 
-**已实现（含界面）**：文本导出全流程——按楼层范围读取、按消息类型过滤、正则清洗（删除/保留两种模式）、生成并保存 TXT（两种格式）；扩展菜单入口、单页面板、三张卡片和导出区均已接入并通过人工验收。
+**已实现（含界面，已通过小主复测）**
+- 文本导出页：导出预览、正则匹配、识别到的标签、导出设置抽屉（楼层范围、消息类型、格式、文件名）、TXT / Markdown / EPUB 导出；`exportUI` 八个接口全部接入
+- 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、七套主题、设置页（主题、导航栏位置、组件示例）
 
-**已实现但未接入界面/全局入口**：
-- 副 API 配置管理（`src/features/api-management/`）：`getApiProfiles`、`validateApiConfig`、`shouldWarnEmptyKey`、`saveApiProfile`、`deleteApiProfile`、`selectApiProfile`、`getActiveApiConfig`；配置字段 `{ id?, name, baseUrl, key, model, provider? }`，`getActiveApiConfig` 返回 `{ source: 'main' }` 或 `{ source: 'secondary', config }`
-- 提示词管理（`src/features/prompt-management/`）：`getPromptTemplates`、`validatePromptTemplate`、`savePromptTemplate`、`deletePromptTemplate`、`selectPromptTemplate`、`getActivePrompt`；记录字段 `{ category, id?, name, content }`，类别为 `jailbreak`/`regex`/`style`（对应破限词/正则提示词/文风提示词）
-- 这两个模块目前**不在** `globalThis.YaKitChat` 上，只能通过模块内部引用调用，尚未暴露为公开 API
+**已实现但无界面**
+- 副 API 配置管理（`src/features/api-management/`，已在 `YaKitChat` 上）：`getApiProfiles`、`validateApiConfig`、`shouldWarnEmptyKey`、`saveApiProfile`、`deleteApiProfile`、`selectApiProfile`、`getActiveApiConfig`
+- 提示词管理（`src/features/prompt-management/`，已在 `YaKitChat` 上）：`getPromptTemplates`、`validatePromptTemplate`、`savePromptTemplate`、`deletePromptTemplate`、`selectPromptTemplate`、`getActivePrompt`
+- EPUB 分章偏好（`getEpubPreferences` / `saveEpubPreferences`）：导出时读取已存偏好，无设置界面
 
-**未实现**：
-- "设置"Tab 及对应 UI（副 API 配置卡片、三类提示词管理卡片）
-- 提示词注入组装（`buildFinalMessages`/`injectionPlan`/`applyInjection`/`CHAT_COMPLETION_PROMPT_READY` 监听/`previewMessages`）
-- 任何实际发起 AI 请求的能力
-- AI 辅助过滤、标签内容提取、TXT 以外的导出格式、TauriTavern/移动端专用保存
-- 群聊支持（项目长期方向，不计划支持）
-- 与绘界等同系列扩展之间的公共界面文件/版本兼容
+**未实现**
+- 润色、预设、API 管理三个页签的内容（目前为占位卡片）
+- 提示词注入组装、任何实际发起 AI 请求的能力
+- 群聊支持
 
-**依赖宿主接口**：`SillyTavern.getContext()` 读取当前聊天状态；`/scripts/utils.js` 的 `download()` 触发文件保存。未新增第三方依赖，未调用任何后端 HTTP 接口。副 API 配置和提示词记录计划通过宿主 `extensionSettings` + `saveSettingsDebounced()` 持久化（含密钥，已知会明文写入服务端 `settings.json` 并对同源前端可读，小主已接受此风险）。
+**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、群组、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）。未调用后端 HTTP 接口，无第三方依赖。
 
-**版本门槛**：已验证版本为 SillyTavern 1.18.0（本次开发与人工验收所用版本）。所用的 `SillyTavern.getContext()` 与 `download()` 至少从 1.9.1 起已存在，但官方未承诺跨版本的稳定兼容下限，因此最低兼容版本暂未确认；`manifest.json` 未填写 `minimum_client_version`。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约并完成人工验收，其他版本未单独验证。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，需要支持这两项的浏览器；换主题交叉淡化使用 View Transitions，不支持的浏览器直接切换。
 
 ## 开发与验证
 
-- **分工**：Claude 负责需求/业务逻辑文档、README.md/Public.md/DESIGN.md 撰写与设计一致性核对；Codex（主窗口）负责核实技术事实、评估可行性、整理交接、协调验收，代码实现由"UI"和"API"两个专门会话分别推进；人工验收由小主在浏览器完成。
-- **测试脚本**：
-  ```sh
-  node tests/text-export/text-export.test.mjs
-  node tests/text-export/filter-messages.test.mjs
-  node tests/text-export/clean-messages.test.mjs
-  node --experimental-vm-modules tests/text-export/export-txt.test.mjs
-  node --experimental-vm-modules tests/text-export/ui.test.mjs
-  node tests/shared/settings.test.mjs
-  ```
-- **验收记录**：见 `AGENT_LOG.md` 中的人工验收条目——楼层范围与两种下载格式、speaker 固定类别标签、正则清洗独立示例及实际链路、文本导出界面（菜单入口/面板/三张卡片/导出区）均已在浏览器中确认。副 API 配置、提示词管理和注入组装尚未做浏览器人工验收。
+- **分工**：Claude 负责界面代码（`src/ui/`）、README.md / Public.md / DESIGN.md 与设计一致性核对；Codex 负责业务逻辑（`src/features/`、`src/shared/`）与业务测试；入口文件改动由小主协调；界面与业务通过接口说明对接，不共同修改同一文件。
+- **验收方式**：业务由 Codex 自测（不使用浏览器），界面由 Claude 在浏览器中自测，再由小主整体复测。
+- **构建**：不涉及，浏览器直接加载 ES 模块；插件须在酒馆扩展设置中启用。
+- **协作记录**：关键节点见 `AGENT_LOG.md`。
