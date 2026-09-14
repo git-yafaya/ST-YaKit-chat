@@ -27,14 +27,14 @@
   <main>
     <!-- ========== 页签：文本导出 ========== -->
     <div data-page="export" class="export-page">
-      <!-- 主要内容：清洗预览 -->
-      <dsh-card class="preview-card" title="清洗预览" subtitle="最近 2 条消息清洗后的样子">
+      <!-- 主要内容：导出预览 -->
+      <dsh-card class="preview-card" title="导出预览" subtitle="最近 2 条消息清洗后的样子">
         <span slot="extra" class="card-extra" id="preview-count"></span>
         <div id="preview-body"></div>
       </dsh-card>
 
-      <!-- 紧跟其下：正则清洗 -->
-      <dsh-card title="正则清洗">
+      <!-- 紧跟其下：正则匹配 -->
+      <dsh-card title="正则匹配">
         <dsh-segmented slot="extra" id="rule-mode" size="sm" aria-label="清洗方式" value="delete">
           <option value="delete">删除匹配</option>
           <option value="keep">只保留匹配</option>
