@@ -1,19 +1,17 @@
 function connectionDraft(draft) {
-    if (!draft || typeof draft !== 'object' || Array.isArray(draft)) throw new Error('副 API 配置必须是对象');
+    if (!draft || typeof draft !== 'object' || Array.isArray(draft)) throw new Error('配置内容不对，请重新填写');
     if (![undefined, '', 'auto', 'openai', 'local'].includes(draft.provider)) {
-        throw new Error('供应商类型只支持自动判断、openai 或 local');
+        throw new Error('请选择自动判断、openai 或 local');
     }
-    if (typeof draft.url !== 'string' || /[\u0000-\u001f\u007f-\u009f]/u.test(draft.url)) {
-        throw new Error('服务地址必须是有效 URL，且不能包含控制字符');
-    }
+    if (typeof draft.url !== 'string') throw new Error('服务地址格式不对，要以 http:// 或 https:// 开头');
+    if (/[\u0000-\u001f\u007f-\u009f]/u.test(draft.url)) throw new Error('服务地址里有不能用的字符');
     let url;
-    try { url = new URL(draft.url); } catch { throw new Error('服务地址必须是有效 URL'); }
-    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('服务地址只支持 HTTP 或 HTTPS');
-    if (/[?#]/u.test(draft.url)) throw new Error('服务地址不能包含查询参数或锚点');
-    if (url.username || url.password) throw new Error('服务地址不能包含用户名或密码，请使用密钥字段');
-    if (typeof draft.key !== 'string' || /[\u0000-\u001f\u007f-\u009f]/u.test(draft.key.trim())) {
-        throw new Error('密钥必须是字符串且不能包含控制字符，可以留空');
-    }
+    try { url = new URL(draft.url); } catch { throw new Error('服务地址格式不对，要以 http:// 或 https:// 开头'); }
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('服务地址格式不对，要以 http:// 或 https:// 开头');
+    if (/[?#]/u.test(draft.url)) throw new Error('服务地址不能带 ? 或 #');
+    if (url.username || url.password) throw new Error('服务地址里不要写账号密码');
+    if (typeof draft.key !== 'string') throw new Error('密钥内容不对，请重新填写或留空');
+    if (/[\u0000-\u001f\u007f-\u009f]/u.test(draft.key.trim())) throw new Error('密钥里有不能用的字符');
     return { url: url.href.replace(/\/+$/u, ''), key: draft.key.trim() };
 }
 
@@ -32,7 +30,7 @@ export async function fetchModels(draft) {
     const config = connectionDraft(draft);
     const headers = requestHeaders();
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 10000);
     let response;
     let data;
     try {
@@ -54,7 +52,7 @@ export async function fetchModels(draft) {
             }
         }
     } catch (error) {
-        if (controller.signal.aborted) throw new Error('获取模型列表超时，请稍后重试');
+        if (controller.signal.aborted) throw new Error('等了 10 秒还没收到结果，请检查地址和网络后重试');
         if (error?.message === '酒馆返回的模型列表不是有效 JSON') throw error;
         throw new Error('无法连接酒馆，请检查网络后重试');
     } finally {
