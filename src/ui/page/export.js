@@ -273,20 +273,38 @@
     if (hiddenCount === 0 && tagsExpanded) {
       tagsExpanded = false;
       row.classList.remove('is-expanded');
+      lockRuleCard(false);
+    }
+  }
+
+  // 电脑上（导出页固定一屏高）展开时锁住正则匹配卡片的高度，保证导出预览高度不变；手机上整页滚动，不锁
+  const phoneQuery = matchMedia('(max-width: 600px)');
+  function lockRuleCard(lock) {
+    const card = $('rule-card');
+    if (lock && !phoneQuery.matches) {
+      card.style.height = `${card.getBoundingClientRect().height}px`;
+      card.classList.add('is-locked');
+    } else {
+      card.classList.remove('is-locked');
+      card.style.height = '';
     }
   }
 
   function setTagsExpanded(expanded) {
+    if (expanded === tagsExpanded) return;
+    if (expanded) lockRuleCard(true); // 先按收起时的高度锁住，再展开
     tagsExpanded = expanded;
     updateTagToggle();
+    if (!expanded) lockRuleCard(false);
   }
 
   // 鼠标或手指点击时不抢焦点，避免出现焦点框；键盘操作不受影响
   $('tag-toggle').addEventListener('mousedown', (event) => event.preventDefault());
   $('tag-toggle').addEventListener('click', () => setTagsExpanded(!tagsExpanded));
-  // 展开时点标签区外面、按 Esc 收起（点标签本身不收起，方便连续选）
-  document.addEventListener('pointerdown', (event) => {
-    if (tagsExpanded && !event.target.closest('.tag-scan')) setTagsExpanded(false);
+  // 窗口大小变化（如电脑、手机布局切换）时，展开状态下重新按新布局锁定
+  phoneQuery.addEventListener('change', () => {
+    if (!tagsExpanded) return;
+    setTagsExpanded(false);
   });
   document.addEventListener('keydown', (event) => {
     if (tagsExpanded && event.key === 'Escape') {

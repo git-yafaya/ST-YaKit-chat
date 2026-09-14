@@ -42,23 +42,18 @@
 /* 识别到的标签：点一下加对应规则，再点取消 */
 .tag-scan { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
 .tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }
-/* 标签区在页面里始终只占一行高；展开时标签浮起来盖在下方规则列表上，不撑高卡片、不挤压导出预览 */
-.tag-chips-wrap { position: relative; flex: 1; min-width: 0; height: 24px; }
+/* 收起时只显示一行；展开时在原位变成多行，把下面的规则列表往下推 */
+.tag-chips-wrap { flex: 1; min-width: 0; }
 .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 24px; overflow: hidden; }
-.tag-scan.is-expanded .tag-chips {
-  position: absolute;
-  top: -8px;
-  left: -8px;
-  right: -8px;
-  z-index: 5;
-  max-height: 130px;
-  padding: 8px;
-  overflow-y: auto;
-  border-radius: 10px;
-  border: 1px solid var(--divider);
-  background: var(--card-bg);
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.28);
-}
+.tag-scan.is-expanded .tag-chips { max-height: none; }
+
+/* 电脑上展开时锁住「正则匹配」卡片高度（由脚本写入），多出的标签行从规则列表借空间，导出预览高度不变 */
+.rule-card.is-locked { display: flex; flex-direction: column; }
+.rule-card.is-locked::part(body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rule-card.is-locked .rule-list { flex: 1 1 auto; flex-shrink: 1000; min-height: 0; max-height: none; }
+.rule-card.is-locked .tag-scan { flex: 0 1 auto; min-height: 24px; }
+.rule-card.is-locked .tag-chips-wrap { align-self: stretch; min-height: 24px; overflow-y: auto; }
+
 .tag-toggle {
   flex: none;
   height: 24px;
