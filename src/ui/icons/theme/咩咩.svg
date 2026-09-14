@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-label="咩咩">
+<title>咩咩</title>
+<g stroke="#7A62A8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M84 124A22 22 0 0 1 94 84A24 24 0 0 1 128 66A24 24 0 0 1 162 84A22 22 0 0 1 172 124A22 22 0 0 1 158 158A30 30 0 0 1 98 158A22 22 0 0 1 84 124Z" fill="#F1ECFA"/>
+<path d="M106 116C94 108 76 110 66 122C78 131 96 130 108 124"/>
+<path d="M150 116C162 108 180 110 190 122C178 131 160 130 148 124"/>
+<path d="M104 118C104 98 152 98 152 118L148 154C145 172 111 172 108 154Z" fill="#D8CBF3"/>
+<path d="M110 104A10 10 0 0 1 128 96A10 10 0 0 1 146 104A9 9 0 0 1 140 116H116A9 9 0 0 1 110 104Z" fill="#F1ECFA"/>
+<circle cx="118" cy="132" r="3.5" fill="#7A62A8" stroke="none"/>
+<circle cx="138" cy="132" r="3.5" fill="#7A62A8" stroke="none"/>
+<path d="M122 152Q128 157 134 152"/>
+<path d="M198 56L202 68L214 72L202 76L198 88L194 76L182 72L194 68Z" fill="#C6F4EC" stroke="#22A898"/>
+<circle cx="58" cy="70" r="2.5" fill="#22A898" stroke="none"/>
+<circle cx="212" cy="118" r="2.5" fill="#7A62A8" stroke="none"/>
+<path d="M54 178V190M48 184H60" stroke="#22A898"/>
+</g>
+</svg>

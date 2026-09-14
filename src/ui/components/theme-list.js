@@ -11,4 +11,5 @@ globalThis.DSH_THEMES = [
   { id: 'fig', label: '暮色无花果', icon: '暮色无花果' },
   { id: 'olive', label: '橄榄岩与日光柠檬', icon: '橄榄岩与日光柠檬' },
   { id: 'orange', label: '暖橙晨曦', icon: '暖橙晨曦' },
+  { id: 'miemie', label: '咩咩', icon: '咩咩' },
 ];

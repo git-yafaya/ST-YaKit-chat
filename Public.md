@@ -230,7 +230,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 
 | 键 | 默认 | 含义 |
 | --- | --- | --- |
-| `dsh-theme` | `fir` | 主题 id：`tavern`（跟随ST）、`light`、`dark`、`fir`、`fig`、`olive`、`orange` |
+| `dsh-theme` | `fir` | 主题 id：`tavern`（跟随ST）、`light`、`dark`、`fir`、`fig`、`olive`、`orange`、`miemie`（咩咩） |
 | `dsh-nav` | `auto` | 导航栏位置 `auto` / `top` / `bottom` |
 | `dsh-theme-switch` | `auto` | 设置页主题选择区 `auto` / `icon` / `select` |
 | `dsh-tavern-theme` | 首次使用时生成 | 「跟随ST」取色结果与美化指纹 |
@@ -522,7 +522,7 @@ async function restorePresets(file) {
 
 **已实现（含界面，已通过小主复测）**
 - 文本导出页：导出预览、正则匹配、识别到的标签、导出设置抽屉（楼层范围、消息类型、格式、文件名）、TXT / Markdown / EPUB 导出；`exportUI` 八个接口全部接入
-- 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、七套主题、设置页（插件更新、主题、导航栏位置、组件示例）
+- 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、八套主题、设置页（插件更新、主题、导航栏位置、组件示例）
 - 插件更新：`updater` 两个接口全部接入，无未接入业务项
 - 预设：预设页（列表、切换、重命名、复制、导出、删除、导入、备份全部、从备份恢复）与导出页底部预设下拉框、「更新预设」；`presets` 十三个接口全部接入，无未接入业务项
 
