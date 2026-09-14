@@ -11,7 +11,8 @@
  *   {
  *     allFloors: boolean,            导出全部楼层
  *     start: string, end: string,    起止楼层（allFloors 为 false 时有效，可能为空字符串）
- *     types: { ai, user, system },   三种消息类型的开关
+ *     types: { ai, user, system },   三种消息类型的开关（隐藏的楼层按它原来的类型算）
+ *     includeHidden: boolean,        包含在酒馆里隐藏过的楼层
  *     format: 'txt' | 'md' | 'epub', 文件格式
  *     labels: 'with' | 'plain',      带类别标注 / 仅正文
  *     fileName: string,              文件名，空字符串表示用默认名
@@ -59,6 +60,7 @@
     start: '',
     end: '',
     types: { ai: true, user: true, system: true },
+    includeHidden: true,
     format: 'txt',
     labels: 'with',
     fileName: '',
@@ -385,7 +387,7 @@
       ? Object.keys(TYPE_LABELS).filter((key) => state.types[key]).map((key) => TYPE_LABELS[key]).join('/')
       : '未选择消息类型';
     const format = `${FORMAT_LABELS[state.format]}${state.labels === 'with' ? ' 带标注' : ' 仅正文'}`;
-    $('export-summary').textContent = `${range} · ${types} · ${format}`;
+    $('export-summary').textContent = `${range} · ${types}${state.includeHidden === false ? '（不含隐藏）' : ''} · ${format}`;
     $('floor-hint').textContent = floorCount ? `当前聊天共 ${floorCount} 条，楼层 0–${last}` : '当前聊天没有消息';
   }
 
@@ -413,6 +415,7 @@
     $('opt-start').value = state.start;
     $('opt-end').value = state.end;
     Object.keys(TYPE_LABELS).forEach((key) => { $(`opt-type-${key}`).checked = state.types[key]; });
+    $('opt-include-hidden').checked = state.includeHidden !== false;
     $('opt-format').value = state.format;
     $('opt-labels').value = state.labels;
     $('opt-file-name').value = state.fileName;
@@ -442,6 +445,11 @@
         state.types[key] = event.detail.checked;
         changed();
       });
+    });
+
+    $('opt-include-hidden').addEventListener('change', (event) => {
+      state.includeHidden = event.detail.checked;
+      changed();
     });
 
     $('opt-format').addEventListener('change', (event) => {
