@@ -275,13 +275,30 @@
     .dsh-bottom-tab, .dsh-bottom-tab dsh-icon { transition: none; }
 }
 
-/* 手机上铺满屏幕；导航在上方时页签换到第二行 */
+/* 手机上是从底部滑出的抽屉：贴底、顶部留一点空隙和圆角；导航在上方时页签换到第二行 */
 @media (max-width: 600px) {
     .dsh-dialog {
         width: 100vw;
-        height: 100dvh;
+        height: calc(100dvh - 12px);
+        margin: auto 0 0;
         border: 0;
-        border-radius: 0;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .dsh-dialog[open] {
+        animation: dsh-sheet-in 0.32s cubic-bezier(0.3, 0.7, 0.2, 1);
+    }
+
+    .dsh-dialog[open]::backdrop {
+        animation: dsh-backdrop-in 0.32s ease;
+    }
+
+    .dsh-dialog[open].is-closing {
+        animation: dsh-sheet-out 0.22s ease-in forwards;
+    }
+
+    .dsh-dialog[open].is-closing::backdrop {
+        animation: dsh-backdrop-out 0.22s ease-in forwards;
     }
 
     .dsh-dialog:not([data-nav="bottom"]) .dsh-dialog-header {
@@ -295,4 +312,23 @@
         grid-row: 2;
         justify-self: center;
     }
+}
+
+@keyframes dsh-sheet-in {
+    from { transform: translateY(100%); }
+}
+
+@keyframes dsh-sheet-out {
+    to { transform: translateY(100%); }
+}
+
+@keyframes dsh-backdrop-in {
+    from { opacity: 0; }
+}
+
+@media (max-width: 600px) and (prefers-reduced-motion: reduce) {
+    .dsh-dialog[open],
+    .dsh-dialog[open]::backdrop,
+    .dsh-dialog[open].is-closing,
+    .dsh-dialog[open].is-closing::backdrop { animation-duration: 1ms; }
 }

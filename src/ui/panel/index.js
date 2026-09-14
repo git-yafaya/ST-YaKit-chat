@@ -77,7 +77,7 @@ const readNav = () => readSetting(NAV_KEY, (v) => NAV_MODES.includes(v), 'auto')
 // 电脑：用鼠标（能悬停、指得准）并且窗口够宽
 const pcQuery = matchMedia('(hover: hover) and (pointer: fine) and (min-width: 768px)');
 
-// 关闭时先播放收起动画，结束后再真正关闭；万一动画没触发，160ms 后也会关
+// 关闭时先播放收起动画（电脑淡出、手机抽屉滑下），结束后再真正关闭；万一动画没触发，300ms 后也会关
 function closePanel(dialog) {
     if (!dialog.open || dialog.classList.contains('is-closing')) return;
     dialog.classList.add('is-closing');
@@ -87,7 +87,7 @@ function closePanel(dialog) {
         dialog.classList.remove('is-closing');
         dialog.close();
     };
-    const fallback = setTimeout(finish, 160);
+    const fallback = setTimeout(finish, 300);
     dialog.addEventListener('animationend', finish, { once: true });
 }
 
