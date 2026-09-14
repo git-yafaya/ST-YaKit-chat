@@ -276,9 +276,24 @@
     }
   }
 
-  $('tag-toggle').addEventListener('click', () => {
-    tagsExpanded = !tagsExpanded;
+  function setTagsExpanded(expanded) {
+    tagsExpanded = expanded;
     updateTagToggle();
+  }
+
+  // 鼠标或手指点击时不抢焦点，避免出现焦点框；键盘操作不受影响
+  $('tag-toggle').addEventListener('mousedown', (event) => event.preventDefault());
+  $('tag-toggle').addEventListener('click', () => setTagsExpanded(!tagsExpanded));
+  // 展开时点标签区外面、按 Esc 收起（点标签本身不收起，方便连续选）
+  document.addEventListener('pointerdown', (event) => {
+    if (tagsExpanded && !event.target.closest('.tag-scan')) setTagsExpanded(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (tagsExpanded && event.key === 'Escape') {
+      event.stopPropagation();
+      setTagsExpanded(false);
+      $('tag-toggle').focus();
+    }
   });
   // 宽度变了（窗口缩放、切页签回来）时重新计算藏了几个
   new ResizeObserver(() => updateTagToggle()).observe($('tag-chips'));

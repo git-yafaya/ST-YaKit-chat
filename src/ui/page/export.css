@@ -42,9 +42,23 @@
 /* 识别到的标签：点一下加对应规则，再点取消 */
 .tag-scan { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
 .tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }
-.tag-chips { display: flex; flex: 1; flex-wrap: wrap; gap: 6px; min-width: 0; max-height: 24px; overflow: hidden; }
-/* 展开：显示全部，最多 4 行，再多在框里滚动 */
-.tag-scan.is-expanded .tag-chips { max-height: 114px; overflow-y: auto; }
+/* 标签区在页面里始终只占一行高；展开时标签浮起来盖在下方规则列表上，不撑高卡片、不挤压导出预览 */
+.tag-chips-wrap { position: relative; flex: 1; min-width: 0; height: 24px; }
+.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 24px; overflow: hidden; }
+.tag-scan.is-expanded .tag-chips {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  z-index: 5;
+  max-height: 130px;
+  padding: 8px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid var(--divider);
+  background: var(--card-bg);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.28);
+}
 .tag-toggle {
   flex: none;
   height: 24px;
@@ -146,7 +160,7 @@
   .tag-scan { flex-wrap: wrap; row-gap: 6px; }
   .tag-scan-label { flex: 1; }
   .tag-toggle { order: 1; }
-  .tag-chips { order: 2; flex-basis: 100%; }
+  .tag-chips-wrap { order: 2; flex-basis: 100%; }
   .export-page { height: auto; min-height: 0; }
   .export-page > .preview-card { flex: none; }
   .preview-card::part(body) { max-height: 280px; }

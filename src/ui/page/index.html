@@ -41,7 +41,9 @@
         </dsh-segmented>
         <div class="tag-scan" id="tag-scan" hidden>
           <span class="tag-scan-label" id="tag-scan-label">识别到的标签</span>
-          <div class="tag-chips" id="tag-chips" role="group" aria-labelledby="tag-scan-label"></div>
+          <div class="tag-chips-wrap">
+            <div class="tag-chips" id="tag-chips" role="group" aria-labelledby="tag-scan-label"></div>
+          </div>
           <button type="button" class="tag-toggle" id="tag-toggle" aria-controls="tag-chips" aria-expanded="false" hidden>展开</button>
         </div>
         <p class="rule-empty" id="rule-empty">还没有规则，导出原文。</p>
