@@ -5,8 +5,6 @@ export { getAssistant, setAssistant } from '../assistant-management/index.js';
 
 export async function resolveAssistant(kind) {
     const { api, jailbreak, prompt } = getAssistantSelection(kind);
-    // 正则助手只展示破限词，不为这份摘要读取主 API 客户端。
-    if (kind === 'regex') return { jailbreak: jailbreak ? { id: jailbreak.id, name: jailbreak.name } : null };
     const usingMainApi = api.source === 'main';
     let model = api.config?.model;
     if (usingMainApi) {

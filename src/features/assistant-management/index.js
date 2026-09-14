@@ -1,7 +1,7 @@
 import { readSettings, updateSettings } from '../../shared/settings.js';
 
 const kinds = ['regex', 'polish'];
-const fields = { regex: ['jailbreak'], polish: ['profile', 'jailbreak', 'prompt'] };
+const fields = { regex: ['profile', 'jailbreak'], polish: ['profile', 'jailbreak', 'prompt'] };
 const promptDefaults = {
     jailbreak: { target: 'system', anchor: 'start', priority: 100 },
     style: { target: 'user', anchor: 'end', priority: 50 },
@@ -90,8 +90,7 @@ export function getAssistantSelection(kind) {
     assertKind(kind);
     const settings = readSettings();
     const selection = readAssistant(settings, kind);
-    // 正则助手始终跟随使用中的接口，停用的旧 profile 只保留在存储里。
-    const config = resolveRecord(settings.apiProfiles, kind === 'regex' ? 'follow' : selection.profile);
+    const config = resolveRecord(settings.apiProfiles, selection.profile);
     return {
         api: config ? { source: 'secondary', config } : { source: 'main' },
         jailbreak: resolvePrompt(settings, 'jailbreak', selection.jailbreak),
@@ -105,7 +104,6 @@ export function resetAssistantReferences(settings, field, id, kind) {
         throw new Error('这项助手设置不能修改');
     }
     for (const target of field === 'prompt' ? [kind] : kinds) {
-        if (!fields[target].includes(field)) continue;
         const assistant = settings.assistants?.[target];
         if (assistant?.[field] === id) assistant[field] = 'follow';
     }
