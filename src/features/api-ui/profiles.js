@@ -6,7 +6,7 @@ import { createDuplicateName } from '../../shared/validation.js';
 
 function toConfig(draft) {
     if (!draft || typeof draft !== 'object' || Array.isArray(draft)) {
-        throw new Error('副 API 配置必须是对象');
+        throw new Error('配置内容不对，请重新填写');
     }
     return {
         id: draft.id,
@@ -34,9 +34,9 @@ export function listProfiles() {
 }
 
 export function getProfile(id) {
-    if (typeof id !== 'string' || !id) throw new Error('副 API id 必须是非空字符串');
+    if (typeof id !== 'string' || !id) throw new Error('请选择要操作的配置');
     const config = getApiProfiles().items.find(item => item.id === id);
-    if (!config) throw new Error('副 API 配置不存在');
+    if (!config) throw new Error('这份配置已不存在，请重新选择');
     return toProfile(config);
 }
 
@@ -45,7 +45,7 @@ export function getActiveProfileId() {
 }
 
 export function activateProfile(id) {
-    if (id === undefined) throw new Error('请选择副 API 配置，或传入 null 使用主 API');
+    if (id === undefined) throw new Error('请选择要使用的配置');
     selectApiProfile(id);
     return id;
 }

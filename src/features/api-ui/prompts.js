@@ -5,15 +5,15 @@ import { createDuplicateName, validateRecordName } from '../../shared/validation
 
 function categoryFor(kind) {
     if (!['jailbreak', 'constraint', 'style'].includes(kind)) {
-        throw new Error('提示词类别仅支持 jailbreak、constraint 或 style');
+        throw new Error('请选择提示词类型');
     }
     return kind === 'constraint' ? 'regex' : kind;
 }
 
 function findRecord(group, id) {
-    if (typeof id !== 'string' || !id) throw new Error('提示词标识必须是非空字符串');
+    if (typeof id !== 'string' || !id) throw new Error('请重新选择提示词');
     const record = group.items.find(item => item.id === id);
-    if (!record) throw new Error('提示词不存在');
+    if (!record) throw new Error('找不到这条提示词，请刷新后重试');
     return record;
 }
 
@@ -24,17 +24,17 @@ function publicRecord(record) {
 function inspectDraft(kind, draft) {
     const category = categoryFor(kind);
     if (!draft || typeof draft !== 'object' || Array.isArray(draft)) {
-        throw new Error('提示词必须是对象');
+        throw new Error('请重新打开提示词编辑后重试');
     }
     const group = getPromptTemplates(category);
     if (draft.id !== undefined) findRecord(group, draft.id);
     if (category !== 'jailbreak' && draft.target !== undefined && !['system', 'user'].includes(draft.target)) {
-        throw new Error('提示词注入位置仅支持 system 或 user');
+        throw new Error('请重新选择注入位置');
     }
     const errors = {};
-    const names = validateRecordName(draft.name, group.items, draft.id);
+    const names = validateRecordName(draft.name, group.items, draft.id, '已有同名提示词');
     if (names.length) errors.name = names.join('；');
-    if (typeof draft.text !== 'string' || !draft.text.trim()) errors.text = '提示词正文不能为空';
+    if (typeof draft.text !== 'string' || !draft.text.trim()) errors.text = '请填写正文';
     return { category, errors };
 }
 

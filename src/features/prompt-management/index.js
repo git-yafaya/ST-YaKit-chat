@@ -41,7 +41,7 @@ function validateTemplate(template, settings) {
         errors.push('提示词类别仅支持 jailbreak、regex 或 style');
     } else {
         const items = settings.prompts[template.category].items;
-        errors.push(...validateRecordName(template.name, items, template.id));
+        errors.push(...validateRecordName(template.name, items, template.id, '已有同名提示词'));
         if (typeof template.content !== 'string' || !template.content.trim()) {
             errors.push('提示词正文必须是非空字符串');
         }

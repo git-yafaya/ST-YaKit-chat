@@ -18,9 +18,9 @@ export function shouldWarnEmptyKey(config) {
 }
 
 function findRecordIndex(items, id) {
-    if (typeof id !== 'string' || !id) throw new TypeError('副 API id 必须是非空字符串');
+    if (typeof id !== 'string' || !id) throw new TypeError('请选择要操作的配置');
     const index = items.findIndex(item => item.id === id);
-    if (index < 0) throw new Error('副 API 配置不存在');
+    if (index < 0) throw new Error('这份配置已不存在，请重新选择');
     return index;
 }
 
@@ -39,33 +39,35 @@ function validateConfig(config, items) {
         fields.warnings[field] = message;
     }
     if (!config || typeof config !== 'object' || Array.isArray(config)) {
-        return { valid: false, errors: ['副 API 配置必须是对象'], warnings, fields, generalErrors: ['副 API 配置必须是对象'] };
+        return { valid: false, errors: ['配置内容不对，请重新填写'], warnings, fields, generalErrors: ['配置内容不对，请重新填写'] };
     }
     for (const message of validateRecordName(config.name, items, config.id)) addError('name', message);
     if (config.id !== undefined) {
-        if (typeof config.id !== 'string' || !config.id) addError(null, '副 API id 必须是非空字符串');
-        else if (!items.some(item => item.id === config.id)) addError(null, '副 API 配置不存在');
+        if (typeof config.id !== 'string' || !config.id) addError(null, '请选择要操作的配置');
+        else if (!items.some(item => item.id === config.id)) addError(null, '这份配置已不存在，请重新选择');
     }
     const validProvider = config.provider === undefined || config.provider === ''
         || config.provider === 'openai' || config.provider === 'local';
-    if (!validProvider) addError(null, '供应商类型仅支持自动判断、openai 或 local');
+    if (!validProvider) addError(null, '请选择自动判断、openai 或 local');
     let url;
     try {
         if (typeof config.baseUrl !== 'string') throw new TypeError();
         url = new URL(config.baseUrl);
-        if (/[\u0000-\u001f\u007f-\u009f]/u.test(config.baseUrl)) addError('url', '服务地址不能包含控制字符');
-        if (url.username || url.password) addError('url', '服务地址不能包含用户名或密码');
-        if (!['http:', 'https:'].includes(url.protocol)) addError('url', '服务地址只支持 HTTP 或 HTTPS');
-        if (/[?#]/u.test(config.baseUrl)) addError('url', '服务地址不能包含查询参数或锚点');
-        if (url.protocol === 'http:') addWarning('url', '服务地址未使用 HTTPS');
+        if (/[\u0000-\u001f\u007f-\u009f]/u.test(config.baseUrl)) addError('url', '服务地址里有不能用的字符');
+        if (url.username || url.password) addError('url', '服务地址里不要写账号密码');
+        if (!['http:', 'https:'].includes(url.protocol)) addError('url', '服务地址格式不对，要以 http:// 或 https:// 开头');
+        if (/[?#]/u.test(config.baseUrl)) addError('url', '服务地址不能带 ? 或 #');
+        if (url.protocol === 'http:') addWarning('url', '地址不是 https，内容可能被他人看到');
     } catch {
-        addError('url', '服务地址必须是有效 URL');
+        addError('url', '服务地址格式不对，要以 http:// 或 https:// 开头');
     }
-    if (typeof config.model !== 'string' || !config.model.trim() || /[\r\n\u2028\u2029]/u.test(config.model)) {
-        addError('model', '模型必须是非空字符串且不能包含换行');
+    if (typeof config.model !== 'string' || !config.model.trim()) {
+        addError('model', '请填写模型名称');
+    } else if (/[\r\n\u2028\u2029]/u.test(config.model)) {
+        addError('model', '模型名称不能换行');
     }
-    if (typeof config.key !== 'string') addError(null, '密钥必须是字符串，可以留空');
-    else if (/[\u0000-\u001f\u007f-\u009f]/u.test(config.key.trim())) addError(null, '密钥不能包含控制字符');
+    if (typeof config.key !== 'string') addError(null, '密钥内容不对，请重新填写或留空');
+    else if (/[\u0000-\u001f\u007f-\u009f]/u.test(config.key.trim())) addError(null, '密钥里有不能用的字符');
     else if (!config.key.trim() && url && validProvider && shouldWarnEmptyKey(config)) {
         addWarning('key', '可能需要填写密钥');
     }
