@@ -140,7 +140,7 @@ function openPanel() {
                 <button type="button" class="yakit-bottom-tab" role="tab" data-tab="${tab.id}"
                     aria-label="${tab.label}" title="${tab.label}"
                     aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">
-                    <yakit-icon src="${iconUrl(tab.icon)}" size="24" aria-hidden="true"></yakit-icon>
+                    <yakit-icon src="${iconUrl(tab.icon)}" size="20" fit aria-hidden="true"></yakit-icon>
                 </button>
             `).join('')}
         </nav>

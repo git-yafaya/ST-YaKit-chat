@@ -9,6 +9,7 @@
  *   src    SVG 文件地址
  *   size   显示大小，单位像素，默认 24
  *   line   线条粗细，单位像素，默认 1.5
+ *   fit    按图形实际占的范围重新居中、放满方框，一排图标看起来一样大（原图留白不同时用）
  */
 (() => {
   if (customElements.get('yakit-icon')) return;
@@ -47,7 +48,7 @@
   `;
 
   class YaKitIcon extends HTMLElement {
-    static observedAttributes = ['src', 'size', 'line'];
+    static observedAttributes = ['src', 'size', 'line', 'fit'];
 
     constructor() {
       super();
@@ -58,7 +59,7 @@
     attributeChangedCallback(name) {
       if (name === 'size') this.style.setProperty('--icon-size', `${Number(this.getAttribute('size')) || 24}px`);
       if (name === 'line') this.style.setProperty('--icon-line', `${Number(this.getAttribute('line')) || 1.5}px`);
-      if (name === 'src') this.render();
+      if (name === 'src' || name === 'fit') this.render();
     }
 
     async render() {
@@ -68,12 +69,35 @@
       try {
         const svg = await load(url);
         if (this.getAttribute('src') !== src) return; // 加载期间又换了图标
-        this.root.querySelector('.holder').replaceChildren(document.importNode(svg, true));
+        const copy = document.importNode(svg, true);
+        this.root.querySelector('.holder').replaceChildren(copy);
+        if (this.hasAttribute('fit')) this.fitToShape(copy);
       } catch (error) {
         console.warn(error);
       }
     }
   }
+
+  // 用图形的实际范围做成正方形画布，图形居中并放满；四周各留 2 个单位给线条
+  YaKitIcon.prototype.fitToShape = function fitToShape(svg) {
+    const apply = () => {
+      let box;
+      try {
+        box = svg.getBBox();
+      } catch {
+        return;
+      }
+      if (!box.width || !box.height) {
+        if (this.isConnected) requestAnimationFrame(apply);
+        return;
+      }
+      const side = Math.max(box.width, box.height) + 4;
+      const x = box.x + box.width / 2 - side / 2;
+      const y = box.y + box.height / 2 - side / 2;
+      svg.setAttribute('viewBox', `${x} ${y} ${side} ${side}`);
+    };
+    apply();
+  };
 
   customElements.define('yakit-icon', YaKitIcon);
 })();
