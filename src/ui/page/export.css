@@ -42,7 +42,25 @@
 /* 识别到的标签：点一下加对应规则，再点取消 */
 .tag-scan { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
 .tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }
-.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; max-height: 54px; overflow-y: auto; }
+.tag-chips { display: flex; flex: 1; flex-wrap: wrap; gap: 6px; min-width: 0; max-height: 24px; overflow: hidden; }
+/* 展开：显示全部，最多 4 行，再多在框里滚动 */
+.tag-scan.is-expanded .tag-chips { max-height: 114px; overflow-y: auto; }
+.tag-toggle {
+  flex: none;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tag-toggle:hover { background: color-mix(in srgb, var(--text-title) 6%, transparent); color: var(--text-title); }
+.tag-toggle:focus { outline: none; }
+.tag-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
 .tag-chips-empty { font-size: 12px; line-height: 24px; color: var(--text-muted); }
 .tag-chip {
   height: 24px;
@@ -124,6 +142,11 @@
 
 /* 手机：不强求一屏，内容自然往下排 */
 @media (max-width: 600px) {
+  /* 识别到的标签：名字和展开按钮一行，标签占下面一整行 */
+  .tag-scan { flex-wrap: wrap; row-gap: 6px; }
+  .tag-scan-label { flex: 1; }
+  .tag-toggle { order: 1; }
+  .tag-chips { order: 2; flex-basis: 100%; }
   .export-page { height: auto; min-height: 0; }
   .export-page > .preview-card { flex: none; }
   .preview-card::part(body) { max-height: 280px; }

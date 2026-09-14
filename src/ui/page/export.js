@@ -242,6 +242,7 @@
 
     if (!scannedTags.length) {
       chips.innerHTML = '<span class="tag-chips-empty">最近两层没有识别到标签</span>';
+      updateTagToggle();
       return;
     }
     chips.replaceChildren(...scannedTags.map((tag) => {
@@ -254,7 +255,33 @@
       chip.addEventListener('click', () => toggleTagRule(tag.rule));
       return chip;
     }));
+    updateTagToggle();
   }
+
+  // 收起时只显示一行，放不下的数量写在「展开 +N」上；一行放得下时不显示按钮
+  let tagsExpanded = false;
+  function updateTagToggle() {
+    const row = $('tag-scan');
+    const toggle = $('tag-toggle');
+    const items = [...$('tag-chips').querySelectorAll('.tag-chip')];
+    const firstTop = items[0]?.offsetTop ?? 0;
+    const hiddenCount = items.filter((item) => item.offsetTop > firstTop).length;
+    row.classList.toggle('is-expanded', tagsExpanded);
+    toggle.hidden = hiddenCount === 0;
+    toggle.textContent = tagsExpanded ? '收起' : `展开 +${hiddenCount}`;
+    toggle.setAttribute('aria-expanded', String(tagsExpanded));
+    if (hiddenCount === 0 && tagsExpanded) {
+      tagsExpanded = false;
+      row.classList.remove('is-expanded');
+    }
+  }
+
+  $('tag-toggle').addEventListener('click', () => {
+    tagsExpanded = !tagsExpanded;
+    updateTagToggle();
+  });
+  // 宽度变了（窗口缩放、切页签回来）时重新计算藏了几个
+  new ResizeObserver(() => updateTagToggle()).observe($('tag-chips'));
 
   function toggleTagRule(rule) {
     if (state.rules.includes(rule)) state.rules = state.rules.filter((item) => item !== rule);
