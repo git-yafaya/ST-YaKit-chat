@@ -37,7 +37,7 @@ export async function suggestRules(options) {
     const context = getContext();
     if (context.groupId != null) throw new Error('仅支持单人聊天');
     if (context.characterId == null || !Array.isArray(context.chat)) throw new Error('请先在酒馆里打开一个聊天');
-    const floor = context.chat.findLastIndex(message => message && getMessageType(message) === 'ai');
+    const floor = context.chat.findLastIndex(message => message && !message.is_system && getMessageType(message) === 'ai');
     if (floor < 0) throw new Error('当前聊天没有可参考的 AI 回复');
     if (typeof context.chat[floor].mes !== 'string') throw new Error('这条 AI 回复没有可读取的正文');
     // 在等待模型之前固定选择、原文和规则，后续界面改动不影响本次请求。
