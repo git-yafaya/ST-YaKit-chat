@@ -54,7 +54,7 @@
 .preset-tools { display: flex; align-items: center; gap: 4px; flex: none; }
 .preset-state { margin-right: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .preset-state:empty { display: none; }
-.preset-ops { display: flex; align-items: center; gap: 2px; }
+.preset-ops { display: flex; align-items: center; gap: 2px; flex: none; }
 
 .backup-note { margin: 0 0 12px; }
 
@@ -66,12 +66,16 @@
 .export-preset { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 320px; }
 .export-preset dsh-select { flex: 1; min-width: 0; }
 
-/* 手机：按钮换到名字下面一行，左边「使用中 / 已修改」，右边保存、还原和四个图标按钮；导出页的预设单独占一行 */
+/* 手机：四个图标按钮在名字右上角；「使用中」不显示（看小圆点）；有改动时，已修改、保存、还原换到名字下面一行 */
 @media (max-width: 600px) {
-  .preset-item { flex-wrap: wrap; padding-bottom: 6px; }
-  .preset-main { padding-bottom: 2px; }
-  .preset-tools { flex-basis: 100%; justify-content: flex-end; box-sizing: border-box; padding: 0 4px 0 26px; }
-  .preset-tools dsh-button { --btn-height: 34px; --btn-pad: 12px; --btn-font: 13px; --btn-icon: 18px; }
+  .preset-item { flex-wrap: wrap; align-items: flex-start; }
+  .preset-ops { order: 1; gap: 0; padding-top: 8px; }
+  .preset-ops dsh-button { --btn-height: 32px; --btn-icon: 18px; }
+  .preset-tools { display: none; }
+  .preset-item.is-modified { padding-bottom: 8px; }
+  .preset-item.is-modified .preset-main { padding-bottom: 4px; }
+  .preset-item.is-modified .preset-tools { display: flex; order: 2; flex-basis: 100%; box-sizing: border-box; padding: 0 4px 0 26px; }
+  .preset-tools dsh-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
   .preset-state { margin-right: auto; }
 
   .export-preset { max-width: none; }

@@ -145,12 +145,12 @@
           <span class="preset-state"></span>
           <dsh-button class="preset-save" size="sm" hidden>保存</dsh-button>
           <dsh-button class="preset-revert" size="sm" variant="ghost" hidden>还原</dsh-button>
-          <span class="preset-ops">
-            <dsh-button size="sm" variant="ghost" icon="../icons/edit.svg" data-action="rename"></dsh-button>
-            <dsh-button size="sm" variant="ghost" icon="../icons/copy.svg" data-action="duplicate"></dsh-button>
-            <dsh-button size="sm" variant="ghost" icon="../icons/ouput.svg" data-action="export"></dsh-button>
-            <dsh-button size="sm" variant="ghost" icon="../icons/trash.svg" data-action="delete"></dsh-button>
-          </span>
+        </div>
+        <div class="preset-ops">
+          <dsh-button size="sm" variant="ghost" icon="../icons/edit.svg" data-action="rename"></dsh-button>
+          <dsh-button size="sm" variant="ghost" icon="../icons/copy.svg" data-action="duplicate"></dsh-button>
+          <dsh-button size="sm" variant="ghost" icon="../icons/ouput.svg" data-action="export"></dsh-button>
+          <dsh-button size="sm" variant="ghost" icon="../icons/trash.svg" data-action="delete"></dsh-button>
         </div>
       `;
       const main = item.querySelector('.preset-main');
