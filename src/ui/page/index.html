@@ -17,10 +17,13 @@
   <script src="../components/select.js"></script>
   <script src="../components/collapse.js"></script>
   <script src="../components/toast.js"></script>
+  <script src="../components/menu.js"></script>
+  <script src="../components/modal.js"></script>
   <script src="../components/theme-list.js"></script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="export.css">
   <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="preset.css">
   <link rel="stylesheet" href="demo.css">
 </head>
 <body>
@@ -56,6 +59,11 @@
 
       <!-- 底部操作条 -->
       <div class="export-bar">
+        <!-- 预设：不切页签就能换；有未保存的改动时出现「保存」 -->
+        <div class="export-preset" id="export-preset" hidden>
+          <dsh-select id="export-preset-select" size="sm" aria-label="预设"></dsh-select>
+          <dsh-button id="export-preset-save" size="sm" variant="ghost" hidden>保存</dsh-button>
+        </div>
         <dsh-button id="export-settings" variant="ghost" icon="../icons/settings.svg">导出设置</dsh-button>
         <span class="export-summary" id="export-summary"></span>
         <dsh-button id="export-go" variant="primary" icon="../icons/ouput.svg">导出</dsh-button>
@@ -111,8 +119,25 @@
     </div>
 
     <!-- ========== 页签：预设 ========== -->
-    <div data-page="preset" hidden>
-      <dsh-card title="预设">这里是「预设」页签的内容区。</dsh-card>
+    <div data-page="preset" class="preset-page" hidden>
+      <!-- 主要内容：预设列表 -->
+      <dsh-card class="preset-card" title="预设" subtitle="保存导出页的规则、消息类型和格式">
+        <div slot="extra" class="btn-row" id="preset-actions">
+          <dsh-button id="preset-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</dsh-button>
+          <dsh-button id="preset-create" size="sm" variant="primary" icon="../icons/plus.svg">存为新预设</dsh-button>
+        </div>
+        <div class="preset-list" id="preset-list" role="list"></div>
+        <p class="preset-empty" id="preset-empty" hidden></p>
+      </dsh-card>
+
+      <!-- 其他功能：备份 -->
+      <dsh-card class="backup-card" title="备份" subtitle="全部预设和纪实的设置打包成一个文件">
+        <div class="btn-row">
+          <dsh-button id="backup-export" size="sm" icon="../icons/ouput.svg">备份全部</dsh-button>
+          <dsh-button id="backup-restore" size="sm" icon="../icons/input.svg">从备份恢复</dsh-button>
+        </div>
+      </dsh-card>
+      <input type="file" id="preset-file" hidden>
     </div>
 
     <!-- ========== 页签：API 管理 ========== -->
@@ -400,6 +425,7 @@
   <script src="main.js"></script>
   <script src="settings.js"></script>
   <script src="export.js"></script>
+  <script src="preset.js"></script>
   <script src="demo.js"></script>
 </body>
 </html>

@@ -36,6 +36,11 @@
  *      没提供这个函数时，界面不显示「识别到的标签」这一行
  *
  * 接口没提供时，界面显示「文本导出还没接入」，不报错。
+ *
+ * ───────── 给面板里其他页面脚本用（预设页 preset.js）─────────
+ *   window.DshExportPage.getState()        当前导出设置（副本）
+ *   window.DshExportPage.replaceState(s)   换成另一份导出设置并刷新界面（切换预设、从备份恢复后调用）
+ *   window 事件 dsh-export-change          导出设置有任何改动时触发，event.detail 是改动后的设置副本
  */
 (() => {
   const PREVIEW_COUNT = 2;
@@ -69,12 +74,16 @@
   }
 
   const state = loadState();
+  const notifyChange = () => {
+    window.dispatchEvent(new CustomEvent('dsh-export-change', { detail: structuredClone(state) }));
+  };
   const save = () => {
     try {
       service()?.saveSettings?.(structuredClone(state));
     } catch (error) {
       console.warn('[纪实] 保存导出设置失败', error);
     }
+    notifyChange();
   };
 
   const anyType = () => Object.values(state.types).some(Boolean);
@@ -353,7 +362,6 @@
     $('rule-list').scrollTop = $('rule-list').scrollHeight;
   });
 
-  $('rule-mode').value = state.mode;
   $('rule-mode').addEventListener('change', (event) => {
     state.mode = event.detail.value;
     save();
@@ -390,10 +398,23 @@
     schedulePreview();
   }
 
+  // 把 state 写回各个控件（初始化、换成另一份设置时用）
+  function syncControls() {
+    $('rule-mode').value = state.mode;
+    $('opt-all-floors').checked = state.allFloors;
+    $('floor-range').hidden = state.allFloors;
+    $('opt-start').value = state.start;
+    $('opt-end').value = state.end;
+    Object.keys(TYPE_LABELS).forEach((key) => { $(`opt-type-${key}`).checked = state.types[key]; });
+    $('opt-format').value = state.format;
+    $('opt-labels').value = state.labels;
+    $('opt-file-name').value = state.fileName;
+    $('type-warning').hidden = anyType();
+    renderFormatExample();
+  }
+
   function bindSettings() {
     const all = $('opt-all-floors');
-    all.checked = state.allFloors;
-    $('floor-range').hidden = state.allFloors;
     all.addEventListener('change', (event) => {
       state.allFloors = event.detail.checked;
       $('floor-range').hidden = state.allFloors;
@@ -402,7 +423,6 @@
 
     [['opt-start', 'start'], ['opt-end', 'end']].forEach(([id, key]) => {
       const input = $(id);
-      input.value = state[key];
       input.addEventListener('input', () => {
         state[key] = input.value;
         changed();
@@ -411,27 +431,22 @@
 
     Object.keys(TYPE_LABELS).forEach((key) => {
       const toggle = $(`opt-type-${key}`);
-      toggle.checked = state.types[key];
       toggle.addEventListener('change', (event) => {
         state.types[key] = event.detail.checked;
         changed();
       });
     });
 
-    $('opt-format').value = state.format;
     $('opt-format').addEventListener('change', (event) => {
       state.format = event.detail.value;
       changed();
     });
-    $('opt-labels').value = state.labels;
-    renderFormatExample();
     $('opt-labels').addEventListener('change', (event) => {
       state.labels = event.detail.value;
       renderFormatExample();
       changed();
     });
 
-    $('opt-file-name').value = state.fileName;
     $('opt-file-name').addEventListener('input', (event) => {
       state.fileName = event.currentTarget.value;
       save();
@@ -470,10 +485,23 @@
     if (typeof unsubscribe === 'function') window.addEventListener('pagehide', unsubscribe);
   }
 
+  window.DshExportPage = {
+    getState: () => structuredClone(state),
+    replaceState(next = {}) {
+      Object.assign(state, structuredClone(defaults), next, { types: { ...defaults.types, ...next.types } });
+      if (!Array.isArray(state.rules)) state.rules = [];
+      syncControls();
+      renderRules();
+      renderSummary();
+      renderPreview();
+      notifyChange();
+    },
+  };
+
   bindSettings();
+  syncControls();
   renderRules();
   renderSummary();
-  $('type-warning').hidden = anyType();
   renderPreview();
   scanTags();
   watchChat();

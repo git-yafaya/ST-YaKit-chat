@@ -165,6 +165,8 @@
     applySwitchMode();
   });
   pcQuery.addEventListener('change', applySwitchMode);
+  // 从备份恢复了主题切换方式（preset.js 触发）
+  window.addEventListener('dsh-theme-switch-change', applySwitchMode);
   window.addEventListener('pagehide', () => pcQuery.removeEventListener('change', applySwitchMode));
   applySwitchMode();
 
