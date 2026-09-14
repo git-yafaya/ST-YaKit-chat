@@ -29,6 +29,13 @@
   let checking = false;
   let updating = false;
 
+  // 检查或更新失败时，在按钮下方的提示框里显示业务给出的中文原因；传空则隐藏
+  function showUpdateError(message = '') {
+    const box = $('update-error');
+    box.hidden = !message;
+    box.querySelector('span').textContent = message;
+  }
+
   function setUpdateState(text, { canClick = false, primary = false } = {}) {
     updateRow.setAttribute('summary', [version, text].filter(Boolean).join(' · '));
     updateButton.toggleAttribute('disabled', !canClick);
@@ -44,6 +51,7 @@
     checking = true;
     lastCheck = Date.now();
     setUpdateState('检查中…');
+    showUpdateError();
     updateButton.setAttribute('loading', '');
     try {
       const { isUpToDate, canUpdate } = await service.checkUpdate();
@@ -53,6 +61,7 @@
     } catch (error) {
       console.warn('[纪实] 检查更新失败', error);
       setUpdateState('检查失败');
+      showUpdateError(error?.message || '检查更新失败');
       lastCheck = 0;
     } finally {
       checking = false;
@@ -66,6 +75,7 @@
     updating = true;
     updateButton.setAttribute('loading', '');
     setUpdateState('更新中…');
+    showUpdateError();
     try {
       const { updated } = await service.update();
       if (updated) {
@@ -78,6 +88,7 @@
       DshToast.show('已经是最新版本', 'success');
     } catch (error) {
       setUpdateState('更新失败', { canClick: true });
+      showUpdateError(error?.message || '更新失败');
       DshToast.show(error?.message || '更新失败', 'danger');
     } finally {
       updating = false;
