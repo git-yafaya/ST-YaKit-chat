@@ -39,7 +39,87 @@ main { max-width: 760px; margin: 0 auto; }
   border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
 }
 .notice svg { flex: none; margin-top: 2px; color: var(--danger); }
+/* 成功提示框：成功色 + 图标 + 文字 */
+.notice.is-success {
+  background: color-mix(in srgb, var(--success) 9%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+}
+.notice.is-success svg { color: var(--success); }
 
 @media (max-width: 600px) {
   body { padding: 12px; }
+}
+
+/* ---------- 选择列表（预设、API 配置、提示词）：一行一项，点左边切换，行尾是文字按钮和图标按钮 ---------- */
+.choice-list { margin: -4px -8px; }
+.choice-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 0;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+.choice-item + .choice-item { margin-top: 2px; }
+.choice-item:hover { background: color-mix(in srgb, var(--text-title) 4%, transparent); }
+.choice-item.is-active { background: color-mix(in srgb, var(--text-title) 5%, transparent); }
+
+.choice-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.choice-item.is-active .choice-main { cursor: default; }
+.choice-main:focus { outline: none; }
+.choice-main:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+/* 正在使用的一项：点睛色小圆点；其他只留一圈淡边 */
+.choice-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--divider);
+}
+.choice-item.is-active .choice-dot { background: var(--accent); box-shadow: none; }
+
+.choice-text { display: flex; flex-direction: column; min-width: 0; }
+.choice-name,
+.choice-summary { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.choice-name { font-size: 14px; font-weight: 500; line-height: 1.5; color: var(--text-title); }
+.choice-item.is-active .choice-name { font-weight: 600; }
+.choice-summary { font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+
+.choice-tools { display: flex; align-items: center; gap: 4px; flex: none; }
+.choice-tools:empty { display: none; }
+.choice-state { margin-right: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.choice-state:empty { display: none; }
+.choice-ops { display: flex; align-items: center; gap: 2px; flex: none; }
+
+.list-empty { margin: 4px 0; font-size: 13px; line-height: 1.7; color: var(--text-muted); }
+
+@media (prefers-reduced-motion: reduce) { .choice-item { transition: none; } }
+
+/* 手机：图标按钮在名字右上角；「使用中」不显示（看小圆点）；有改动时，行尾文字按钮换到名字下面一行 */
+@media (max-width: 600px) {
+  .choice-item { flex-wrap: wrap; align-items: flex-start; }
+  .choice-ops { order: 1; gap: 0; padding-top: 6px; }
+  .choice-ops yakit-button { --btn-height: 32px; --btn-icon: 18px; }
+  .choice-tools { display: none; }
+  .choice-item.is-modified { padding-bottom: 8px; }
+  .choice-item.is-modified .choice-main { padding-bottom: 4px; }
+  .choice-item.is-modified .choice-tools { display: flex; order: 2; flex-basis: 100%; box-sizing: border-box; padding: 0 4px 0 26px; }
+  .choice-tools yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
+  .choice-state { margin-right: auto; }
 }

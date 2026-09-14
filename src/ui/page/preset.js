@@ -35,6 +35,7 @@
   const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB' };
   const NAME_MAX = 30;
   const ACTION_LABELS = { rename: '重命名', duplicate: '复制', export: '导出', delete: '删除' };
+  const ACTION_ICONS = { rename: '../icons/edit.svg', duplicate: '../icons/copy.svg', export: '../icons/ouput.svg', delete: '../icons/trash.svg' };
 
   let presets = [];
   let activeId = null;
@@ -129,54 +130,27 @@
 
     list.replaceChildren(...presets.map((preset) => {
       const isActive = preset.id === activeId;
-      const item = document.createElement('div');
-      item.className = 'preset-item';
-      item.setAttribute('role', 'listitem');
-      item.classList.toggle('is-active', isActive);
-      item.innerHTML = `
-        <button type="button" class="preset-main">
-          <span class="preset-dot" aria-hidden="true"></span>
-          <span class="preset-text">
-            <span class="preset-name"></span>
-            <span class="preset-summary"></span>
-          </span>
-        </button>
-        <div class="preset-tools">
-          <span class="preset-state"></span>
-          <yakit-button class="preset-save" size="sm" hidden>保存</yakit-button>
-          <yakit-button class="preset-revert" size="sm" variant="ghost" hidden>还原</yakit-button>
-        </div>
-        <div class="preset-ops">
-          <yakit-button size="sm" variant="ghost" icon="../icons/edit.svg" data-action="rename"></yakit-button>
-          <yakit-button size="sm" variant="ghost" icon="../icons/copy.svg" data-action="duplicate"></yakit-button>
-          <yakit-button size="sm" variant="ghost" icon="../icons/ouput.svg" data-action="export"></yakit-button>
-          <yakit-button size="sm" variant="ghost" icon="../icons/trash.svg" data-action="delete"></yakit-button>
-        </div>
-      `;
-      const main = item.querySelector('.preset-main');
-      item.querySelector('.preset-name').textContent = preset.name;
-      item.querySelector('.preset-summary').textContent = summarize(preset.content);
-      main.setAttribute('aria-current', String(isActive));
-      main.setAttribute('aria-label', `${preset.name}${isActive ? '，正在使用' : '，点击切换'}`);
-      main.addEventListener('click', () => {
-        if (!isActive) switchTo(preset.id);
+      const item = YaKitChoice.row({
+        name: preset.name,
+        summary: summarize(preset.content),
+        active: isActive,
+        onPick: () => switchTo(preset.id),
+        actions: Object.entries(ACTION_LABELS).map(([action, label]) => ({ action, label, icon: ACTION_ICONS[action] })),
+        onAction: (action) => onAction(preset, action),
       });
 
       const showModified = isActive && modified;
-      item.querySelector('.preset-state').textContent = isActive ? (modified ? '已修改' : '使用中') : '';
+      item.classList.toggle('is-modified', showModified);
+      item.tools.innerHTML = `
+        <span class="choice-state"></span>
+        <yakit-button class="preset-save" size="sm" hidden>保存</yakit-button>
+        <yakit-button class="preset-revert" size="sm" variant="ghost" hidden>还原</yakit-button>
+      `;
+      item.querySelector('.choice-state').textContent = isActive ? (modified ? '已修改' : '使用中') : '';
       item.querySelector('.preset-save').hidden = !showModified;
       item.querySelector('.preset-revert').hidden = !showModified;
-      item.classList.toggle('is-modified', showModified);
       item.querySelector('.preset-save').addEventListener('click', (event) => saveActive(event.currentTarget));
       item.querySelector('.preset-revert').addEventListener('click', (event) => revert(event.currentTarget));
-
-      item.querySelectorAll('.preset-ops yakit-button').forEach((button) => {
-        const { action } = button.dataset;
-        button.setAttribute('aria-label', `${ACTION_LABELS[action]}「${preset.name}」`);
-        // 鼠标或手指点击时不抢焦点，避免出现焦点框；键盘操作不受影响
-        button.addEventListener('mousedown', (event) => event.preventDefault());
-        button.addEventListener('click', () => onAction(preset, action));
-      });
       return item;
     }));
   }

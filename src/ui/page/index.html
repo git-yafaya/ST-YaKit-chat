@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="export.css">
   <link rel="stylesheet" href="settings.css">
   <link rel="stylesheet" href="preset.css">
+  <link rel="stylesheet" href="api.css">
   <link rel="stylesheet" href="demo.css">
 </head>
 <body>
@@ -127,8 +128,8 @@
           <yakit-button id="preset-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
           <yakit-button id="preset-create" size="sm" variant="primary" icon="../icons/plus.svg">存为新预设</yakit-button>
         </div>
-        <div class="preset-list" id="preset-list" role="list"></div>
-        <p class="preset-empty" id="preset-empty" hidden></p>
+        <div class="choice-list" id="preset-list" role="list"></div>
+        <p class="list-empty" id="preset-empty" hidden></p>
       </yakit-card>
 
       <!-- 其他功能：备份 -->
@@ -143,8 +144,29 @@
     </div>
 
     <!-- ========== 页签：API 管理 ========== -->
-    <div data-page="api" hidden>
-      <yakit-card title="API 管理">这里是「API 管理」页签的内容区。</yakit-card>
+    <div data-page="api" class="api-page" hidden>
+      <!-- 主要内容：API 配置列表 -->
+      <yakit-card class="api-card" title="API 配置" subtitle="纪实的 AI 功能用哪个接口">
+        <div slot="extra" class="btn-row" id="api-actions">
+          <yakit-button id="api-create" size="sm" variant="primary" icon="../icons/plus.svg">新建配置</yakit-button>
+        </div>
+        <div class="choice-list" id="api-list" role="list"></div>
+        <p class="list-empty" id="api-unavailable" hidden>API 管理还没接入</p>
+      </yakit-card>
+
+      <!-- 提示词：三类各自一份列表 -->
+      <yakit-card class="prompt-card" id="prompt-card" title="提示词">
+        <yakit-segmented slot="extra" id="prompt-kind" size="sm" aria-label="提示词类别" value="jailbreak">
+          <option value="jailbreak">破限词</option>
+          <option value="constraint">正则提示词</option>
+          <option value="style">文风提示词</option>
+        </yakit-segmented>
+        <p class="field-note prompt-kind-note" id="prompt-kind-note"></p>
+        <div class="choice-list" id="prompt-list" role="list"></div>
+        <div class="btn-row list-add">
+          <yakit-button id="prompt-create" size="sm" icon="../icons/plus.svg">新建提示词</yakit-button>
+        </div>
+      </yakit-card>
     </div>
   </main>
 
@@ -198,6 +220,77 @@
     </section>
 
     <yakit-button slot="footer" id="export-drawer-done" variant="primary">完成</yakit-button>
+  </yakit-drawer>
+
+  <!-- API 管理：新建 / 编辑副 API 配置 -->
+  <yakit-drawer id="api-drawer" title="新建配置">
+    <section class="drawer-section drawer-stack">
+      <yakit-input id="api-name" label="名称" required maxlength="64" placeholder="例如 DeepSeek"></yakit-input>
+      <yakit-input id="api-url" label="服务地址" required type="url" placeholder="https://api.example.com/v1" autocomplete="off"></yakit-input>
+      <yakit-input id="api-key" label="密钥" type="password" revealable placeholder="本地模型可以不填" autocomplete="off"></yakit-input>
+      <div class="api-model-row">
+        <yakit-input id="api-model" label="模型名称" required placeholder="例如 deepseek-chat" autocomplete="off"></yakit-input>
+        <yakit-button id="api-fetch-models" size="sm" icon="../icons/search.svg">获取模型</yakit-button>
+      </div>
+      <yakit-select id="api-model-select" searchable size="sm" aria-label="获取到的模型" placeholder="从获取到的模型里选" hidden></yakit-select>
+    </section>
+
+    <section class="drawer-section">
+      <div class="setting-field">
+        <span class="setting-label">供应商类型</span>
+        <yakit-segmented id="api-provider" size="sm" aria-label="供应商类型" value="auto">
+          <option value="auto">自动判断</option>
+          <option value="openai">openai</option>
+          <option value="local">local</option>
+        </yakit-segmented>
+      </div>
+      <p class="field-note">决定按哪种接口连接。<br>建议选自动判断：本机和内网地址算 local，其余算 openai。</p>
+    </section>
+
+    <section class="drawer-section">
+      <div class="setting-field">
+        <span class="setting-label">测试连接</span>
+        <yakit-button id="api-test" size="sm">测试连接</yakit-button>
+      </div>
+      <p class="field-note">用上面填写的内容试连一次，没保存也可以测。</p>
+      <div class="notice" id="api-test-error" role="alert" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+        <span></span>
+      </div>
+      <div class="notice is-success" id="api-test-ok" role="status" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7.5 12.5 3 3 6-6.5"/><circle cx="12" cy="12" r="9"/></svg>
+        <span></span>
+      </div>
+    </section>
+
+    <div slot="footer" class="btn-row">
+      <yakit-button id="api-drawer-cancel" variant="ghost">取消</yakit-button>
+      <yakit-button id="api-drawer-save" variant="primary">保存</yakit-button>
+    </div>
+  </yakit-drawer>
+
+  <!-- API 管理：新建 / 编辑提示词 -->
+  <yakit-drawer id="prompt-drawer" title="新建提示词">
+    <section class="drawer-section drawer-stack">
+      <yakit-input id="prompt-name" label="名称" required maxlength="64" placeholder="给提示词起个名字"></yakit-input>
+    </section>
+    <section class="drawer-section" id="prompt-target-section">
+      <div class="setting-field">
+        <span class="setting-label">注入位置</span>
+        <yakit-segmented id="prompt-target" size="sm" aria-label="注入位置" value="user">
+          <option value="system">system</option>
+          <option value="user">user</option>
+        </yakit-segmented>
+      </div>
+      <p class="field-note" id="prompt-target-note"></p>
+    </section>
+    <section class="drawer-section">
+      <yakit-input id="prompt-text" label="正文" required multiline rows="8" placeholder="写下提示词内容"></yakit-input>
+    </section>
+    <div slot="footer" class="btn-row">
+      <yakit-button id="prompt-drawer-cancel" variant="ghost">取消</yakit-button>
+      <yakit-button id="prompt-drawer-save" variant="primary">保存</yakit-button>
+    </div>
   </yakit-drawer>
 
   <!-- 组件示例：收在设置里的宽抽屉 -->
@@ -427,7 +520,9 @@
   <script src="main.js"></script>
   <script src="settings.js"></script>
   <script src="export.js"></script>
+  <script src="choice.js"></script>
   <script src="preset.js"></script>
+  <script src="api.js"></script>
   <script src="demo.js"></script>
 </body>
 </html>

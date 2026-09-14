@@ -13,6 +13,8 @@
  *   type         text（默认）/ password / number / search / url / email
  *   hint         下方的说明小字
  *   error        出错时的提示文字（带图标，写上就显示，删掉就消失）
+ *   warning      提醒文字（提醒色 + 图标，不算出错；有 error 时只显示 error）
+ *   revealable   type="password" 时右边出现眼睛按钮，点一下显示或隐藏内容
  *   icon         左边的图标地址
  *   clearable    有内容时右边出现 × ，点一下清空
  *   maxlength    最多几个字，同时在右下角显示 “已输入/上限”
@@ -32,6 +34,9 @@
 
   // 和 icons/close.svg 同一个图形
   const CLEAR_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+  const WARNING_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4M12 17h.01"/></svg>';
+  const EYE_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.6A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.8M6.2 6.9C3.9 8.5 2.5 12 2.5 12S6 18.5 12 18.5a9 9 0 0 0 4.3-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   const ALERT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>';
 
   const styles = `
@@ -119,6 +124,26 @@
     .clear:focus-visible { outline: 2px solid var(--primary, #46618A); outline-offset: 1px; }
     .clear[hidden] { display: none; }
 
+    /* 显示 / 隐藏密码 */
+    .reveal {
+      display: grid;
+      place-items: center;
+      flex: none;
+      width: 26px;
+      height: 26px;
+      margin-right: -4px;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted, #6E737A);
+      cursor: pointer;
+    }
+    .reveal:hover { color: var(--text-title, #14171A); background: color-mix(in srgb, var(--text-title, #14171A) 8%, transparent); }
+    .reveal:focus { outline: none; }
+    .reveal:focus-visible { outline: 2px solid var(--primary, #46618A); outline-offset: 1px; }
+    .reveal[hidden] { display: none; }
+
     /* 禁用、只读 */
     :host([disabled]) .box { opacity: 0.5; cursor: not-allowed; }
     :host([disabled]) input, :host([disabled]) textarea { cursor: not-allowed; }
@@ -149,7 +174,17 @@
       font-weight: 500;
     }
     .error svg { flex: none; margin-top: 2px; }
-    .error[hidden], .hint[hidden] { display: none; }
+    /* 提醒：提醒色 + 图标 + 文字，不算出错 */
+    .warning {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      gap: 4px;
+      color: var(--warning, #A8731A);
+      font-weight: 500;
+    }
+    .warning svg { flex: none; margin-top: 2px; }
+    .error[hidden], .warning[hidden], .hint[hidden] { display: none; }
 
     @media (prefers-reduced-motion: reduce) {
       .box { transition: none; }
@@ -158,7 +193,7 @@
 
   class YaKitInput extends HTMLElement {
     static observedAttributes = [
-      'label', 'placeholder', 'value', 'type', 'hint', 'error', 'icon', 'clearable',
+      'label', 'placeholder', 'value', 'type', 'hint', 'error', 'warning', 'icon', 'clearable', 'revealable',
       'maxlength', 'multiline', 'rows', 'required', 'disabled', 'readonly', 'name', 'autocomplete',
     ];
 
@@ -210,9 +245,11 @@
           <yakit-icon hidden aria-hidden="true"></yakit-icon>
           <${tag} id="field" part="field"></${tag}>
           <button class="clear" type="button" aria-label="清空" hidden>${CLEAR_ICON}</button>
+          <button class="reveal" type="button" aria-label="显示内容" aria-pressed="false" hidden>${EYE_ICON}</button>
         </div>
         <div class="footer">
           <div class="error" id="error" role="alert" hidden>${ALERT_ICON}<span></span></div>
+          <div class="warning" id="warning" hidden>${WARNING_ICON}<span></span></div>
           <div class="hint" id="hint" hidden></div>
           <div class="count" aria-live="polite" hidden></div>
         </div>
@@ -235,6 +272,12 @@
         this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
         this.dispatchEvent(new Event('change', { bubbles: true }));
       });
+      this.revealed = false;
+      this.$('.reveal').addEventListener('mousedown', (event) => event.preventDefault());
+      this.$('.reveal').addEventListener('click', () => {
+        this.revealed = !this.revealed;
+        this.render();
+      });
     }
 
     render() {
@@ -250,8 +293,15 @@
       }
 
       const field = this.field;
-      if (!multiline) field.type = attr('type') || 'text';
-      else field.rows = Number(attr('rows')) || 3;
+      const type = attr('type') || 'text';
+      const canReveal = !multiline && type === 'password' && this.hasAttribute('revealable');
+      if (!multiline) field.type = canReveal && this.revealed ? 'text' : type;
+      const reveal = this.$('.reveal');
+      reveal.hidden = !canReveal;
+      reveal.innerHTML = this.revealed ? EYE_OFF_ICON : EYE_ICON;
+      reveal.setAttribute('aria-label', this.revealed ? '隐藏内容' : '显示内容');
+      reveal.setAttribute('aria-pressed', String(Boolean(this.revealed)));
+      if (multiline) field.rows = Number(attr('rows')) || 3;
       field.placeholder = attr('placeholder') || '';
       field.disabled = this.hasAttribute('disabled');
       field.readOnly = this.hasAttribute('readonly');
@@ -269,13 +319,16 @@
       if (icon) iconEl.setAttribute('src', new URL(icon, document.baseURI).href);
 
       const error = attr('error');
+      const warning = error ? '' : attr('warning');
       const hint = attr('hint');
       this.$('.error').hidden = !error;
       this.$('.error span').textContent = error || '';
-      this.$('.hint').hidden = Boolean(error) || !hint;
+      this.$('.warning').hidden = !warning;
+      this.$('.warning span').textContent = warning || '';
+      this.$('.hint').hidden = Boolean(error || warning) || !hint;
       this.$('.hint').textContent = hint || '';
       field.setAttribute('aria-invalid', String(Boolean(error)));
-      const describedBy = error ? 'error' : (hint ? 'hint' : '');
+      const describedBy = error ? 'error' : (warning ? 'warning' : (hint ? 'hint' : ''));
       if (describedBy) field.setAttribute('aria-describedby', describedBy);
       else field.removeAttribute('aria-describedby');
 
@@ -296,7 +349,7 @@
       if (max) count.textContent = `${length}/${max}`;
 
       const footer = this.$('.footer');
-      footer.hidden = this.$('.error').hidden && this.$('.hint').hidden && count.hidden;
+      footer.hidden = this.$('.error').hidden && this.$('.warning').hidden && this.$('.hint').hidden && count.hidden;
 
       if (this.hasAttribute('multiline')) {
         field.style.height = 'auto';

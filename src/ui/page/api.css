@@ -1,0 +1,17 @@
+/* API 管理页 */
+.api-page { display: flex; flex-direction: column; gap: 12px; }
+
+.prompt-kind-note { margin: 0 0 8px; }
+.list-add { margin-top: 10px; }
+#prompt-target-section .setting-field[hidden] + .field-note { margin-top: 0; }
+
+/* 抽屉里：模型名称输入框右边放「获取模型」按钮，按钮和输入框底边对齐 */
+.api-model-row { display: flex; align-items: flex-end; gap: 8px; }
+.api-model-row yakit-input { flex: 1; min-width: 0; }
+.api-model-row yakit-button { margin-bottom: 4px; }
+
+@media (max-width: 600px) {
+  /* 提示词类别选择器放不下时换到标题下面 */
+  .prompt-card::part(header) { flex-wrap: wrap; row-gap: 8px; }
+  .api-model-row yakit-button { --btn-height: 34px; --btn-font: 13px; margin-bottom: 1px; }
+}

@@ -1,83 +1,13 @@
 /* 预设页 */
 .preset-page { display: flex; flex-direction: column; gap: 12px; }
 
-/* 预设列表：一行一套，点左边切换，右边是保存 / 还原和重命名、复制、导出、删除四个图标按钮 */
-.preset-list { margin: -4px -8px; }
-.preset-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 4px 0 0;
-  border-radius: 8px;
-  transition: background-color 0.15s ease;
-}
-.preset-item + .preset-item { margin-top: 2px; }
-.preset-item:hover { background: color-mix(in srgb, var(--text-title) 4%, transparent); }
-.preset-item.is-active { background: color-mix(in srgb, var(--text-title) 5%, transparent); }
-
-.preset-main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-  padding: 10px 8px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.preset-item.is-active .preset-main { cursor: default; }
-.preset-main:focus { outline: none; }
-.preset-main:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-
-/* 正在用的预设：点睛色小圆点；其他预设只留一圈淡边 */
-.preset-dot {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1.5px var(--divider);
-}
-.preset-item.is-active .preset-dot { background: var(--accent); box-shadow: none; }
-
-.preset-text { display: flex; flex-direction: column; min-width: 0; }
-.preset-name,
-.preset-summary { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.preset-name { font-size: 14px; font-weight: 500; line-height: 1.5; color: var(--text-title); }
-.preset-item.is-active .preset-name { font-weight: 600; }
-.preset-summary { font-size: 12px; line-height: 1.5; color: var(--text-muted); }
-
-.preset-tools { display: flex; align-items: center; gap: 4px; flex: none; }
-.preset-state { margin-right: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
-.preset-state:empty { display: none; }
-.preset-ops { display: flex; align-items: center; gap: 2px; flex: none; }
-
 .backup-note { margin: 0 0 12px; }
-
-.preset-empty { margin: 4px 0; font-size: 13px; line-height: 1.7; color: var(--text-muted); }
-
-@media (prefers-reduced-motion: reduce) { .preset-item { transition: none; } }
 
 /* 导出页底部的预设下拉框 */
 .export-preset { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 320px; }
 .export-preset yakit-select { flex: 1; min-width: 0; }
 
-/* 手机：四个图标按钮在名字右上角；「使用中」不显示（看小圆点）；有改动时，已修改、保存、还原换到名字下面一行 */
 @media (max-width: 600px) {
-  .preset-item { flex-wrap: wrap; align-items: flex-start; }
-  .preset-ops { order: 1; gap: 0; padding-top: 8px; }
-  .preset-ops yakit-button { --btn-height: 32px; --btn-icon: 18px; }
-  .preset-tools { display: none; }
-  .preset-item.is-modified { padding-bottom: 8px; }
-  .preset-item.is-modified .preset-main { padding-bottom: 4px; }
-  .preset-item.is-modified .preset-tools { display: flex; order: 2; flex-basis: 100%; box-sizing: border-box; padding: 0 4px 0 26px; }
-  .preset-tools yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
-  .preset-state { margin-right: auto; }
-
   .export-preset { max-width: none; }
   /* 手机上下拉框和保存按钮加高，方便手指点 */
   .export-preset yakit-select { --select-height: 34px; --select-font: 14px; }
