@@ -30,6 +30,11 @@
       border: var(--card-border, 1px solid #DFE2E5);
       border-radius: 12px;
       background: var(--card-bg, #FFFFFF);
+      /* 主题可以在卡片左右两边加装饰竖条（如咩咩），没设置时不显示 */
+      background-image: var(--card-edges, none);
+      background-position: left top, right top;
+      background-size: 3px 100%;
+      background-repeat: no-repeat;
       box-shadow: var(--card-shadow, none);
       color: var(--text-body, #24262A);
       font-size: 14px;

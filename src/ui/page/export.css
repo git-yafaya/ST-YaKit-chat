@@ -108,6 +108,10 @@
   border-radius: 12px;
   border: var(--card-border);
   background: var(--card-bg);
+  background-image: var(--card-edges, none);
+  background-position: left top, right top;
+  background-size: 3px 100%;
+  background-repeat: no-repeat;
   box-shadow: var(--card-shadow);
 }
 .preview-extra { display: flex; align-items: center; gap: 4px; min-width: 0; }

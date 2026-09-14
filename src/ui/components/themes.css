@@ -189,6 +189,8 @@
 
   --card-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.55), 0 0 22px rgba(136, 68, 255, 0.08);
   --card-border: 1px solid var(--divider);
+  /* 卡片左右两边的青紫渐变竖条（咩咩的特色描边） */
+  --card-edges: linear-gradient(180deg, #26D2BD, #8844FF), linear-gradient(180deg, #8844FF, #26D2BD);
 
   color-scheme: dark;
 }

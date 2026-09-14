@@ -5,6 +5,10 @@
   border-radius: 12px;
   border: var(--card-border);
   background: var(--card-bg);
+  background-image: var(--card-edges, none);
+  background-position: left top, right top;
+  background-size: 3px 100%;
+  background-repeat: no-repeat;
   box-shadow: var(--card-shadow);
 }
 /* 隐藏的行不算，避免列表顶部多出一条分隔线 */
