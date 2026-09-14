@@ -6,192 +6,7 @@
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat.exportUI` 调用业务。
-- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；文本导出页接口 `exportUI.{getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags}`；预设 `presets.{list, getActiveId, activate, create, update, rename, duplicate, remove, exportPreset, importPreset, exportBackup, restoreBackup, suggestName}`；插件更新 `updater.{checkUpdate, update}`；既有函数 `presets` 的参数与返回（全部返回 Promise，包括 `suggestName`；顶层用 `globalThis.YaKitChat.presets`，iframe 用 `parent.YaKitChat.presets`；失败 reject 中文 `Error`）：
-
-| 调用 | Promise 成功值 |
-| --- | --- |
-| `list()` | `Array<{id,name,content}>`，按创建顺序 |
-| `getActiveId()` | `string\|null` |
-| `activate(id\|null)` | 完整导出 settings |
-| `create(name, content)` | 新预设 `{id,name,content}` |
-| `update(id, content)` | 覆盖后的预设 |
-| `rename(id, name)` | 改名后的预设 |
-| `duplicate(id)` | 新复制的预设 |
-| `remove(id)` | `true` |
-| `exportPreset(id)` | `{filename}`，并触发下载 |
-| `importPreset(text)` | 新导入的预设 |
-| `exportBackup(uiPrefs)` | `{filename}`，并触发下载 |
-| `restoreBackup(text)` | `{presetCount, uiPrefs}` |
-| `suggestName()` | 建议名称或空字符串 |
-
-| 情况 | Error.message |
-| --- | --- |
-| 名称类型不对或去空白后为空 | `预设名称必须是字符串`／`预设名称不能为空` |
-| 重命名撞名 | `已有同名预设` |
-| 普通操作找不到 ID | `找不到指定预设` |
-| 单套导出找不到 ID | `预设不存在` |
-| 内容缺项 | `预设内容不完整` |
-| 内容字段类型或枚举不对 | 沿用 `导出设置 … 类型不正确`／`不受支持` 等中文校验信息 |
-| 库结构、ID 或当前引用不合法 | `预设库格式不正确`／`预设标识格式不正确`／`预设标识重复`／`当前预设不存在` |
-| 新 ID 碰撞 | `生成的预设标识重复，请重试` |
-| 单套导入格式不合法 | `这不是纪实的预设文件` |
-| 备份恢复格式不合法 | `这不是纪实的备份文件` |
-| 导出备份的界面偏好不合法 | `界面偏好必须是可保存为 JSON 的对象` |
-| 存储或宿主异常 | 已有中文原因保留；其他底层异常统一为 `预设操作失败，请稍后重试` |
-
-单套预设文件（UTF-8 JSON，MIME `application/json;charset=utf-8`，扩展名 `.yakit-preset.json`，不保存 ID 或当前选择）：
-
-```json
-{
-  "type": "ST-YaKit-chat/preset",
-  "schemaVersion": 1,
-  "name": "示例预设",
-  "content": {
-    "types": { "ai": true, "user": true, "system": true },
-    "format": "txt",
-    "labels": "with",
-    "mode": "delete",
-    "rules": []
-  }
-}
-```
-
-备份文件（UTF-8 JSON，MIME 相同，扩展名 `.yakit-backup.json`）：
-
-```json
-{
-  "type": "ST-YaKit-chat/backup",
-  "schemaVersion": 1,
-  "presets": { "items": [], "activeId": null },
-  "exportSettings": {
-    "allFloors": true,
-    "start": "",
-    "end": "",
-    "types": { "ai": true, "user": true, "system": true },
-    "format": "txt",
-    "labels": "with",
-    "fileName": "",
-    "mode": "delete",
-    "rules": []
-  },
-  "uiPrefs": {}
-}
-```
-
-只读查看预设列表、当前预设和建议名称：
-
-```js
-(async () => {
-    const api = globalThis.YaKitChat.presets;
-    console.table(await api.list());
-    console.log('当前预设', await api.getActiveId());
-    console.log('建议名称', (await api.suggestName()) || '新预设');
-})();
-```
-
-把当前导出设置存为新预设并启用，楼层范围和文件名保持当前值：
-
-```js
-(async () => {
-    const { presets, exportUI } = globalThis.YaKitChat;
-    const settings = exportUI.loadSettings() ?? {
-        types: { ai: true, user: true, system: true },
-        format: 'txt', labels: 'with', mode: 'delete', rules: [],
-    };
-    const content = Object.fromEntries(
-        ['types', 'format', 'labels', 'mode', 'rules'].map(key => [key, settings[key]]),
-    );
-    const preset = await presets.create((await presets.suggestName()) || '新预设', content);
-    const appliedSettings = await presets.activate(preset.id);
-    console.log(preset, appliedSettings);
-})();
-```
-
-把当前设置保存回正在使用的预设：
-
-```js
-(async () => {
-    const { presets, exportUI } = globalThis.YaKitChat;
-    const id = await presets.getActiveId();
-    if (id === null) return;
-    const settings = exportUI.loadSettings();
-    if (!settings) return;
-    const content = Object.fromEntries(
-        ['types', 'format', 'labels', 'mode', 'rules'].map(key => [key, settings[key]]),
-    );
-    console.log(await presets.update(id, content));
-})();
-```
-
-文件操作调用（`file` 是文件选择器返回的 File，`uiPrefs` 由 UI 读取真实界面偏好后传入；恢复的确认与返回偏好的应用由 UI 负责）：
-
-```js
-const yakitPresetFileApi = (globalThis.YaKitChat ?? globalThis.parent.YaKitChat).presets;
-
-async function exportOnePreset(id) {
-    return yakitPresetFileApi.exportPreset(id);
-}
-
-async function importOnePreset(file) {
-    return yakitPresetFileApi.importPreset(await file.text());
-}
-
-async function backupPresets(uiPrefs) {
-    return yakitPresetFileApi.exportBackup(uiPrefs);
-}
-
-async function restorePresets(file) {
-    return yakitPresetFileApi.restoreBackup(await file.text());
-}
-```
-
-`updater` 的参数、返回与错误（两个函数都无参数，失败 reject 中文 `Error`）：
-
-| 接口 | 返回 |
-| --- | --- |
-| `checkUpdate()` | `Promise<{isUpToDate, canUpdate}>` |
-| `update()` | `Promise<{updated}>` |
-
-| 情况 | 提示或返回 |
-| --- | --- |
-| 无法识别安装路径或目录名不能原样传给后端 | “无法识别本插件的安装目录”／“本插件安装目录名不支持在线更新” |
-| 安装类型、权限模块或请求头未就绪 | “无法读取酒馆扩展安装信息”／“无法确定本插件是个人安装还是全局安装”／“无法读取当前用户的更新权限”／“无法读取酒馆请求头，请在酒馆中调用” |
-| update 已知无权限 | “当前账号无权在线更新本插件” |
-| HTTP 401，或 update 流程的 403 | “无法操作本插件，请检查登录状态和账号权限” |
-| HTTP 404 | “找不到本插件目录，或酒馆未启用扩展功能” |
-| HTTP 500 | 按失败阶段提示“检查插件更新失败（HTTP 500），请查看酒馆服务端日志”或“更新插件失败（HTTP 500），请查看酒馆服务端日志” |
-| 其他非 200 状态 | 同上，替换 HTTP 状态数字 |
-| 网络异常 | “无法连接酒馆，请检查网络后重试” |
-| JSON 或必要字段错误 | “酒馆返回的插件更新信息格式不正确” |
-| update 预检分支或提交为空 | “本插件缺少可更新的 Git 分支或提交，无法在线更新” |
-| update 预检远端为空 | “本插件未配置远端仓库，无法在线更新” |
-
-检查状态：
-
-```js
-(async () => {
-    try {
-        console.log(await globalThis.YaKitChat.updater.checkUpdate());
-    } catch (error) {
-        console.error(error.message);
-    }
-})();
-```
-
-以下代码会尝试实际更新本插件；业务返回结果后不刷新页面：
-
-```js
-(async () => {
-    try {
-        const { updated } = await globalThis.YaKitChat.updater.update();
-        console.log(updated ? '纪实已更新' : '已经是最新版本');
-    } catch (error) {
-        console.error(error.message);
-    }
-})();
-```
-
-`readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences`；副 API 配置与提示词管理函数（见第 6 节）。
+- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；文本导出页接口 `exportUI.{getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags}`；预设 `presets.{list, getActiveId, activate, create, update, rename, duplicate, remove, exportPreset, importPreset, exportBackup, restoreBackup, suggestName}`；插件更新 `updater.{checkUpdate, update}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences`；副 API 配置与提示词管理函数（见第 6 节）。
 - **当前还没做什么**：润色、API 管理两个页签只有占位卡片；预设只管纪实自己的导出设置，不操作酒馆的生成预设；副 API 配置、提示词管理、EPUB 分章偏好没有界面；提示词注入组装未实现；不发起任何 AI 请求；不支持群聊。
 
 ## 仓库结构
@@ -515,6 +330,191 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 ```
 
 例如原文 `<thinking>内容</thinking><br/>` 返回两个条目，`label` 依次为 `<thinking>`、`<br/>`。
+
+`presets` 的参数与返回（全部返回 Promise，包括 `suggestName`；顶层用 `globalThis.YaKitChat.presets`，iframe 用 `parent.YaKitChat.presets`；失败 reject 中文 `Error`）：
+
+| 调用 | Promise 成功值 |
+| --- | --- |
+| `list()` | `Array<{id,name,content}>`，按创建顺序 |
+| `getActiveId()` | `string\|null` |
+| `activate(id\|null)` | 完整导出 settings |
+| `create(name, content)` | 新预设 `{id,name,content}` |
+| `update(id, content)` | 覆盖后的预设 |
+| `rename(id, name)` | 改名后的预设 |
+| `duplicate(id)` | 新复制的预设 |
+| `remove(id)` | `true` |
+| `exportPreset(id)` | `{filename}`，并触发下载 |
+| `importPreset(text)` | 新导入的预设 |
+| `exportBackup(uiPrefs)` | `{filename}`，并触发下载 |
+| `restoreBackup(text)` | `{presetCount, uiPrefs}` |
+| `suggestName()` | 建议名称或空字符串 |
+
+| 情况 | Error.message |
+| --- | --- |
+| 名称类型不对或去空白后为空 | `预设名称必须是字符串`／`预设名称不能为空` |
+| 重命名撞名 | `已有同名预设` |
+| 普通操作找不到 ID | `找不到指定预设` |
+| 单套导出找不到 ID | `预设不存在` |
+| 内容缺项 | `预设内容不完整` |
+| 内容字段类型或枚举不对 | 沿用 `导出设置 … 类型不正确`／`不受支持` 等中文校验信息 |
+| 库结构、ID 或当前引用不合法 | `预设库格式不正确`／`预设标识格式不正确`／`预设标识重复`／`当前预设不存在` |
+| 新 ID 碰撞 | `生成的预设标识重复，请重试` |
+| 单套导入格式不合法 | `这不是纪实的预设文件` |
+| 备份恢复格式不合法 | `这不是纪实的备份文件` |
+| 导出备份的界面偏好不合法 | `界面偏好必须是可保存为 JSON 的对象` |
+| 存储或宿主异常 | 已有中文原因保留；其他底层异常统一为 `预设操作失败，请稍后重试` |
+
+单套预设文件（UTF-8 JSON，MIME `application/json;charset=utf-8`，扩展名 `.yakit-preset.json`，不保存 ID 或当前选择）：
+
+```json
+{
+  "type": "ST-YaKit-chat/preset",
+  "schemaVersion": 1,
+  "name": "示例预设",
+  "content": {
+    "types": { "ai": true, "user": true, "system": true },
+    "format": "txt",
+    "labels": "with",
+    "mode": "delete",
+    "rules": []
+  }
+}
+```
+
+备份文件（UTF-8 JSON，MIME 相同，扩展名 `.yakit-backup.json`）：
+
+```json
+{
+  "type": "ST-YaKit-chat/backup",
+  "schemaVersion": 1,
+  "presets": { "items": [], "activeId": null },
+  "exportSettings": {
+    "allFloors": true,
+    "start": "",
+    "end": "",
+    "types": { "ai": true, "user": true, "system": true },
+    "format": "txt",
+    "labels": "with",
+    "fileName": "",
+    "mode": "delete",
+    "rules": []
+  },
+  "uiPrefs": {}
+}
+```
+
+只读查看预设列表、当前预设和建议名称：
+
+```js
+(async () => {
+    const api = globalThis.YaKitChat.presets;
+    console.table(await api.list());
+    console.log('当前预设', await api.getActiveId());
+    console.log('建议名称', (await api.suggestName()) || '新预设');
+})();
+```
+
+把当前导出设置存为新预设并启用，楼层范围和文件名保持当前值：
+
+```js
+(async () => {
+    const { presets, exportUI } = globalThis.YaKitChat;
+    const settings = exportUI.loadSettings() ?? {
+        types: { ai: true, user: true, system: true },
+        format: 'txt', labels: 'with', mode: 'delete', rules: [],
+    };
+    const content = Object.fromEntries(
+        ['types', 'format', 'labels', 'mode', 'rules'].map(key => [key, settings[key]]),
+    );
+    const preset = await presets.create((await presets.suggestName()) || '新预设', content);
+    const appliedSettings = await presets.activate(preset.id);
+    console.log(preset, appliedSettings);
+})();
+```
+
+把当前设置保存回正在使用的预设：
+
+```js
+(async () => {
+    const { presets, exportUI } = globalThis.YaKitChat;
+    const id = await presets.getActiveId();
+    if (id === null) return;
+    const settings = exportUI.loadSettings();
+    if (!settings) return;
+    const content = Object.fromEntries(
+        ['types', 'format', 'labels', 'mode', 'rules'].map(key => [key, settings[key]]),
+    );
+    console.log(await presets.update(id, content));
+})();
+```
+
+文件操作调用（`file` 是文件选择器返回的 File，`uiPrefs` 由 UI 读取真实界面偏好后传入；恢复的确认与返回偏好的应用由 UI 负责）：
+
+```js
+const yakitPresetFileApi = (globalThis.YaKitChat ?? globalThis.parent.YaKitChat).presets;
+
+async function exportOnePreset(id) {
+    return yakitPresetFileApi.exportPreset(id);
+}
+
+async function importOnePreset(file) {
+    return yakitPresetFileApi.importPreset(await file.text());
+}
+
+async function backupPresets(uiPrefs) {
+    return yakitPresetFileApi.exportBackup(uiPrefs);
+}
+
+async function restorePresets(file) {
+    return yakitPresetFileApi.restoreBackup(await file.text());
+}
+```
+
+`updater` 的参数、返回与错误（两个函数都无参数，失败 reject 中文 `Error`）：
+
+| 接口 | 返回 |
+| --- | --- |
+| `checkUpdate()` | `Promise<{isUpToDate, canUpdate}>` |
+| `update()` | `Promise<{updated}>` |
+
+| 情况 | 提示或返回 |
+| --- | --- |
+| 无法识别安装路径或目录名不能原样传给后端 | “无法识别本插件的安装目录”／“本插件安装目录名不支持在线更新” |
+| 安装类型、权限模块或请求头未就绪 | “无法读取酒馆扩展安装信息”／“无法确定本插件是个人安装还是全局安装”／“无法读取当前用户的更新权限”／“无法读取酒馆请求头，请在酒馆中调用” |
+| update 已知无权限 | “当前账号无权在线更新本插件” |
+| HTTP 401，或 update 流程的 403 | “无法操作本插件，请检查登录状态和账号权限” |
+| HTTP 404 | “找不到本插件目录，或酒馆未启用扩展功能” |
+| HTTP 500 | 按失败阶段提示“检查插件更新失败（HTTP 500），请查看酒馆服务端日志”或“更新插件失败（HTTP 500），请查看酒馆服务端日志” |
+| 其他非 200 状态 | 同上，替换 HTTP 状态数字 |
+| 网络异常 | “无法连接酒馆，请检查网络后重试” |
+| JSON 或必要字段错误 | “酒馆返回的插件更新信息格式不正确” |
+| update 预检分支或提交为空 | “本插件缺少可更新的 Git 分支或提交，无法在线更新” |
+| update 预检远端为空 | “本插件未配置远端仓库，无法在线更新” |
+
+检查状态：
+
+```js
+(async () => {
+    try {
+        console.log(await globalThis.YaKitChat.updater.checkUpdate());
+    } catch (error) {
+        console.error(error.message);
+    }
+})();
+```
+
+以下代码会尝试实际更新本插件；业务返回结果后不刷新页面：
+
+```js
+(async () => {
+    try {
+        const { updated } = await globalThis.YaKitChat.updater.update();
+        console.log(updated ? '纪实已更新' : '已经是最新版本');
+    } catch (error) {
+        console.error(error.message);
+    }
+})();
+```
 
 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及第 6 节列出的管理函数本次交接未更新契约，调用前以源码为准。
 
