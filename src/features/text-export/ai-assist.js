@@ -53,7 +53,7 @@ export async function suggestRules(options) {
     if (floor < 0) throw new Error('当前聊天没有可参考的 AI 回复');
     if (typeof context.chat[floor].mes !== 'string') throw new Error('这条 AI 回复没有可读取的正文');
     // 在等待模型之前固定选择、原文和规则，后续界面改动不影响本次请求。
-    const { api, jailbreak } = getAssistantSelection('regex');
+    const { api, jailbreak, sampling } = getAssistantSelection('regex');
     const rules = [...options.rules];
     const sample = { floor, text: context.chat[floor].mes };
     const messages = buildRuleMessages({ request: options.request.trim(), mode: options.mode, rules, sample, jailbreak, promptText: listCorePrompts().find(item => item.id === 'regex').text });
@@ -70,8 +70,8 @@ export async function suggestRules(options) {
             let text;
             try {
                 text = await withRequestTimeout(async signal => {
-                    if (api.source === 'secondary') return generateSecondary(api.config, messages, signal);
-                    client ??= await getMainClient(context);
+                    if (api.source === 'secondary') return generateSecondary(api.config, messages, signal, { sampling });
+                    client ??= await getMainClient(context, { sampling });
                     signal.throwIfAborted();
                     return client.generate(messages, signal);
                 }, timeoutSeconds, timeoutMessage, run.signal);

@@ -1,3 +1,4 @@
+import { normalizeSampling } from '../../shared/assistant-sampling.js';
 import { readSettings, updateSettings } from '../../shared/settings.js';
 
 const kinds = ['regex', 'polish'];
@@ -33,9 +34,9 @@ function readAssistant(settings, kind) {
     const saved = settings.assistants?.[kind];
     if (saved !== undefined && !isObject(saved)) throw new Error('助手配置内容不对，请重新设置');
     // 删除后的旧引用只在返回值中回到跟随，读取不保存。
-    return Object.fromEntries(fields[kind].map(field => [field,
+    return { sampling: normalizeSampling(saved?.sampling), ...Object.fromEntries(fields[kind].map(field => [field,
         validChoice(settings, field, saved?.[field]) ? saved[field] : 'follow',
-    ]));
+    ])) };
 }
 
 export function getAssistant(kind) {
@@ -47,12 +48,18 @@ export function setAssistant(kind, patch) {
     assertKind(kind);
     if (!isObject(patch)) throw new Error('助手配置内容不对，请重新选择');
     const keys = Reflect.ownKeys(patch);
-    if (keys.some(field => !fields[kind].includes(field))) throw new Error('这项助手设置不能修改');
+    if (keys.some(field => !['profile', 'sampling'].includes(field))) throw new Error('这项助手设置不能修改');
     if (!keys.length) return getAssistant(kind);
     return updateSettings(settings => {
         const next = readAssistant(settings, kind);
         for (const field of keys) {
             const value = patch[field];
+            if (field === 'sampling') {
+                if (!isObject(value)) throw new Error('采样参数内容不正确');
+                normalizeSampling(value);
+                next.sampling = { ...next.sampling, ...value };
+                continue;
+            }
             if (!validChoice(settings, field, value)) {
                 throw new Error(field === 'profile' ? '所选接口已不存在或不能使用，请重新选择' : '所选提示词已不存在或不能使用，请重新选择');
             }
@@ -92,6 +99,7 @@ export function getAssistantSelection(kind) {
     const selection = readAssistant(settings, kind);
     const config = resolveRecord(settings.apiProfiles, selection.profile);
     return {
+        sampling: selection.sampling,
         api: config ? { source: 'secondary', config } : { source: 'main' },
         jailbreak: resolvePrompt(settings, 'jailbreak', 'builtin-jailbreak-universal'),
         ...(kind === 'polish' ? { prompt: resolvePrompt(settings, 'prompt', 'follow') } : {}),

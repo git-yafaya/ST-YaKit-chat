@@ -1,3 +1,4 @@
+import { applySampling } from '../../shared/assistant-sampling.js';
 const cancelled = () => new Error('生成已取消或超时，请重试');
 
 export function rateLimitError(response, data) {
@@ -123,7 +124,7 @@ async function generateHorde(context, settings, params, prompt, signal, detailed
     }
 }
 
-export async function getLegacyClient(context, { maxTokens = 2048, detailed = false } = {}) {
+export async function getLegacyClient(context, { maxTokens = 2048, detailed = false, sampling } = {}) {
     const api = context?.mainApi;
     if (!['kobold', 'novel', 'koboldhorde'].includes(api)) throw new Error('当前主 API 暂不支持生成规则，请选择可用的 API');
     try {
@@ -154,6 +155,7 @@ export async function getLegacyClient(context, { maxTokens = 2048, detailed = fa
                             ? (prompt.slice(-1500).includes('}') ? 'special_instruct' : settings.prefix) : 'vanilla',
                         order: settings.order, phrase_rep_pen: settings.phrase_rep_pen,
                     });
+                    applySampling(body, sampling, { temperature: 'temperature', topP: 'top_p', topK: 'top_k', frequencyPenalty: 'repetition_penalty_frequency', presencePenalty: 'repetition_penalty_presence' });
                     const data = await post(context, '/api/novelai/generate', body, signal, detailed);
                     return reply(data.output, signal, detailed, data);
                 },
@@ -172,6 +174,7 @@ export async function getLegacyClient(context, { maxTokens = 2048, detailed = fa
                 if (!model) throw new Error('请先在主 API 中选择模型并连接');
                 const prompt = promptText(messages);
                 const params = koboldParams(settings, flags, maxContext, Boolean(horde), requestedMaxTokens);
+                applySampling(params, sampling, undefined, ['frequencyPenalty', 'presencePenalty']);
                 if (horde) return generateHorde(context, horde, params, prompt, signal, detailed);
                 const data = await post(context, '/api/backends/kobold/generate', {
                     ...params, prompt, api_server: settings.api_server, streaming: false,

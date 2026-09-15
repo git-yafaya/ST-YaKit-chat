@@ -72,7 +72,7 @@ async function waitForLimit(seconds, signal, onWait) {
 
 export function createGenerator(context) {
     // 接口和请求参数固定；文风与固定提示词在每次请求前读取。
-    const { api } = structuredClone(getAssistantSelection('polish'));
+    const { api, sampling } = structuredClone(getAssistantSelection('polish'));
     const { timeoutSeconds, retries } = getRequestSettings();
     const host = { ...context };
     let clientPromise;
@@ -112,9 +112,9 @@ export function createGenerator(context) {
             let response;
             try {
                 response = await withRequestTimeout(async requestSignal => {
-                    if (api.source === 'secondary') return generateSecondary(api.config, messages, requestSignal, { maxTokens, detailed: true });
+                    if (api.source === 'secondary') return generateSecondary(api.config, messages, requestSignal, { maxTokens, detailed: true, sampling });
                     // 首次准备也计入超时，迟到的准备不能再发请求。
-                    clientPromise ??= getMainClient(host, { detailed: true });
+                    clientPromise ??= getMainClient(host, { detailed: true, sampling });
                     const client = await clientPromise;
                     requestSignal.throwIfAborted();
                     return client.generate(messages, requestSignal, maxTokens);

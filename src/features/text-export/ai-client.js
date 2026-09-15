@@ -1,3 +1,4 @@
+import { applySampling, omitUnsetSampling, openaiUnsupported } from '../../shared/assistant-sampling.js';
 import * as legacyClient from './ai-legacy-client.js';
 import { getServiceUrlCharacterError } from '../../shared/service-url.js';
 
@@ -63,7 +64,7 @@ function requireModel(model) {
     return model.trim();
 }
 
-export async function generateSecondary(config, messages, signal, { maxTokens = 2048, detailed = false } = {}) {
+export async function generateSecondary(config, messages, signal, { maxTokens = 2048, detailed = false, sampling } = {}) {
     const model = requireModel(config?.model);
     const urlCharacterError = getServiceUrlCharacterError(config.baseUrl);
     if (urlCharacterError) throw new Error(urlCharacterError);
@@ -85,15 +86,17 @@ export async function generateSecondary(config, messages, signal, { maxTokens = 
         proxy_password: config.key.trim(), model, messages, stream: false,
         [/^(o1|o3|o4)/.test(model) || /gpt-5/.test(model) ? 'max_completion_tokens' : 'max_tokens']: maxTokens,
     };
+    applySampling(body, sampling, undefined, config.provider === 'local' ? [] : openaiUnsupported(model));
     return request(globalThis.SillyTavern?.getContext?.(), '/api/backends/chat-completions/generate', body, signal, false, detailed);
 }
 
-export async function getMainClient(context, { maxTokens = 2048, detailed = false } = {}) {
-    if (!['openai', 'textgenerationwebui'].includes(context?.mainApi)) return legacyClient.getLegacyClient(context, { maxTokens, detailed });
+export async function getMainClient(context, { maxTokens = 2048, detailed = false, sampling } = {}) {
+    if (!['openai', 'textgenerationwebui'].includes(context?.mainApi)) return legacyClient.getLegacyClient(context, { maxTokens, detailed, sampling });
     try {
         if (context.mainApi === 'openai') {
             const { oai_settings, getChatCompletionModel, createGenerationParameters } = await import('/scripts/openai.js');
             const settings = structuredClone(oai_settings);
+            applySampling(settings, sampling, { temperature: 'temp_openai', topP: 'top_p_openai', topK: 'top_k_openai', frequencyPenalty: 'freq_pen_openai', presencePenalty: 'pres_pen_openai' });
             const model = getChatCompletionModel(settings) || '';
             const proxy = { reverse_proxy: settings.reverse_proxy, proxy_password: settings.proxy_password };
             // 只改变本次副本，避开代理确认、工具调用和全局偏置缓存。
@@ -114,6 +117,7 @@ export async function getMainClient(context, { maxTokens = 2048, detailed = fals
                     } catch {
                         throw new Error('无法准备主 API 请求，请检查酒馆中的模型设置');
                     }
+                    omitUnsetSampling(body, sampling, ['claude', 'makersuite', 'vertexai', 'ai21', 'minimax'].includes(settings.chat_completion_source) ? ['frequencyPenalty', 'presencePenalty'] : []);
                     if (proxy.reverse_proxy) Object.assign(body, proxy);
                     // 不带角色姓名、聊天停止词或工具数据，只发送本次辅助消息。
                     for (const key of ['user_name', 'char_name', 'group_names', 'stop', 'tools', 'tool_choice',
@@ -126,6 +130,8 @@ export async function getMainClient(context, { maxTokens = 2048, detailed = fals
         const { textgenerationwebui_settings, getTextGenModel, getTextGenServer, createTextGenGenerationData }
             = await import('/scripts/textgen-settings.js');
         const settings = structuredClone(textgenerationwebui_settings);
+        applySampling(settings, sampling, { temperature: 'temp', topP: 'top_p', topK: 'top_k', frequencyPenalty: 'freq_pen', presencePenalty: 'presence_pen' });
+        if (sampling !== undefined) settings.dynatemp = false;
         const requestModel = settings.type === 'ollama' && !settings.ollama_model ? '' : getTextGenModel(settings) || '';
         const model = requestModel || (typeof context.onlineStatus === 'string' && context.onlineStatus !== 'no_connection'
             ? context.onlineStatus : '');
@@ -148,6 +154,7 @@ export async function getMainClient(context, { maxTokens = 2048, detailed = fals
                 try {
                     const prompt = messages.map(message => `${message.role}:\n${message.content}`).join('\n\n');
                     body = createTextGenGenerationData(structuredClone(settings), requestModel, prompt, requestedMaxTokens, false, false, null, 'quiet');
+                    omitUnsetSampling(body, sampling, settings.type === 'generic' ? ['topK'] : []);
                     body.api_type = settings.type;
                     body.api_server = server;
                     body.stream = false;
