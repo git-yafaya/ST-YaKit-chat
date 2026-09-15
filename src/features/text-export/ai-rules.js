@@ -31,7 +31,7 @@ export function parseRuleSuggestions(text, existingRules = []) {
     // 只读取完整相邻组，捕获的正则原样保留，不解析或转义标签内容。
     const groups = typeof text === 'string' ? [...text.matchAll(/<rule>((?:(?!<\/rule>)[\s\S])*)<\/rule>\s*<explanation>((?:(?!<\/explanation>)[\s\S])*)<\/explanation>/g)] : [];
     if (!groups.length) {
-        throw Object.assign(new Error('没有拿到规则，可能被模型拒绝了，换个破限词或说法再试'), { code: 'AI_RULE_FORMAT' });
+        throw Object.assign(new Error('没有读到完整的正则规则，请检查提示词或模型回复后重试'), { code: 'AI_RULE_FORMAT' });
     }
     const candidates = groups.map(([, rule, explanation]) => {
         if (!rule.trim() || !explanation.trim() || !/[\p{Script=Han}]/u.test(explanation)) {

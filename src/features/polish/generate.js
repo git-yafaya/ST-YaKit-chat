@@ -120,7 +120,7 @@ export function createGenerator(context) {
                     return client.generate(messages, requestSignal, maxTokens);
                 }, timeoutSeconds, `等了 ${timeoutSeconds} 秒还没完成润色，请检查当前 API 后重试`, signal);
             } catch (error) {
-                if (error?.code === 'AI_TIMEOUT' || error?.code === 'AI_CANCELLED') throw error;
+                if (['AI_TIMEOUT', 'AI_CANCELLED', 'AI_OUTPUT_TRUNCATED'].includes(error?.code)) throw error;
                 if (error?.code === 'AI_RATE_LIMIT') {
                     const seconds = Number.isFinite(error.retryAfterSeconds) ? Math.max(1, Math.ceil(error.retryAfterSeconds)) : 30;
                     if (seconds > 300) throw new Error('接口要求等待超过 5 分钟，请稍后继续润色');

@@ -17,8 +17,13 @@ export function rateLimitError(response, data) {
 export function detailedReply(text, data) {
     const reason = data?.choices?.[0]?.finish_reason ?? data?.finish_reason ?? data?.stop_reason
         ?? data?.candidates?.[0]?.finishReason ?? (data?.stopped_limit ? 'length' : null);
-    return { text, finishReason: ['length', 'max_tokens', 'MAX_TOKENS'].includes(reason) ? 'length'
-        : typeof reason === 'string' ? reason : null };
+    const finishReason = ['length', 'max_tokens', 'MAX_TOKENS'].includes(reason) ? 'length'
+        : typeof reason === 'string' ? reason : null;
+    // 思考也可能消耗输出额度；有明确截断标记时不能归为格式错误。
+    if (!text.trim() && finishReason === 'length') {
+        throw Object.assign(new Error('模型在生成正文前用完了输出额度，回复已被截断，请调整模型的思考设置或更换模型后重试'), { code: 'AI_OUTPUT_TRUNCATED' });
+    }
+    return { text, finishReason };
 }
 
 async function post(context, path, body, signal, detailed = false) {

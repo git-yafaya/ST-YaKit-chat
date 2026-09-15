@@ -6,6 +6,8 @@ import { getMessageType } from './filter-messages.js';
 import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
 
 let activeRun = null;
+// 给模型思考和规则正文共用的输出额度留出空间。
+const MAX_RULE_TOKENS = 16384;
 
 function getContext() {
     const context = globalThis.SillyTavern?.getContext?.();
@@ -67,23 +69,26 @@ export async function suggestRules(options) {
     try {
         for (let attempt = 0; attempt <= retries; attempt++) {
             run.signal.throwIfAborted();
-            let text;
+            let response;
             try {
-                text = await withRequestTimeout(async signal => {
-                    if (api.source === 'secondary') return generateSecondary(api.config, messages, signal, { sampling });
-                    client ??= await getMainClient(context, { sampling });
+                response = await withRequestTimeout(async signal => {
+                    if (api.source === 'secondary') return generateSecondary(api.config, messages, signal, { sampling, maxTokens: MAX_RULE_TOKENS, detailed: true });
+                    client ??= await getMainClient(context, { sampling, maxTokens: MAX_RULE_TOKENS, detailed: true });
                     signal.throwIfAborted();
                     return client.generate(messages, signal);
                 }, timeoutSeconds, timeoutMessage, run.signal);
             } catch (error) {
-                if (error?.code === 'AI_TIMEOUT' || error?.code === 'AI_CANCELLED') throw error;
-                if (error?.code === 'AI_RULE_FORMAT') text = '';
+                if (['AI_TIMEOUT', 'AI_CANCELLED', 'AI_OUTPUT_TRUNCATED'].includes(error?.code)) throw error;
+                if (error?.code === 'AI_RULE_FORMAT') response = { text: '', finishReason: null };
                 else throw new Error('AI 请求失败，请检查当前 API 的连接和额度后重试');
             }
             run.signal.throwIfAborted();
             try {
-                return parseRuleSuggestions(text, rules);
+                return parseRuleSuggestions(response.text, rules);
             } catch (error) {
+                if (error?.code === 'AI_RULE_FORMAT' && response.finishReason === 'length') {
+                    throw Object.assign(new Error('模型回复达到输出上限，正则规则被截断，请调整模型的思考设置或更换模型后重试'), { code: 'AI_OUTPUT_TRUNCATED' });
+                }
                 // 只重试回复格式问题，沿用同一份消息和接口快照。
                 if (error?.code !== 'AI_RULE_FORMAT' || attempt === retries) throw error;
             }
