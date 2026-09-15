@@ -349,6 +349,15 @@
     </div>
 
     <section class="drawer-section">
+      <div class="setting-field">
+        <span class="setting-label">预设</span>
+        <yakit-select id="polish-preset" size="sm" aria-label="用哪套预设" data-lock></yakit-select>
+      </div>
+      <p class="field-note polish-preset-summary" id="polish-preset-summary"></p>
+      <p class="field-note">消息类型、正则规则和导出格式都用这套预设。<br>润色导出只包含正文，不加类别标注。</p>
+    </section>
+
+    <section class="drawer-section">
       <h3>楼层范围</h3>
       <yakit-switch id="polish-all-floors" label="润色全部楼层" data-lock></yakit-switch>
       <div id="polish-floor-range">
@@ -358,32 +367,6 @@
         </div>
       </div>
       <p class="field-note" id="polish-floor-hint"></p>
-    </section>
-
-    <section class="drawer-section">
-      <h3>消息类型</h3>
-      <div class="drawer-rows">
-        <yakit-switch id="polish-type-ai" label="AI 回复" description="角色说的话" data-lock></yakit-switch>
-        <yakit-switch id="polish-type-user" label="用户台词" description="你发的消息" data-lock></yakit-switch>
-        <yakit-switch id="polish-type-system" label="系统提示" description="系统消息和旁白（/sys）" data-lock></yakit-switch>
-        <yakit-switch id="polish-include-hidden" label="包含隐藏的楼层" description="关掉后，在酒馆里隐藏过的楼层都不润色" data-lock></yakit-switch>
-      </div>
-      <div class="notice" id="polish-type-warning" role="alert" hidden>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
-        <span>请至少选择一种消息类型</span>
-      </div>
-    </section>
-
-    <section class="drawer-section">
-      <h3>清洗</h3>
-      <div class="drawer-rows">
-        <yakit-switch id="polish-clean" label="先按正则规则清洗" description="去掉状态栏、思维链这类内容，再交给润色助手" data-lock></yakit-switch>
-      </div>
-      <div class="setting-field polish-clean-source" id="polish-clean-row">
-        <span class="setting-label">用哪套规则</span>
-        <yakit-select id="polish-clean-source" size="sm" aria-label="用哪套规则" data-lock></yakit-select>
-      </div>
-      <p class="field-note" id="polish-clean-note">只用预设里的正则规则和匹配方式。<br>建议选导出时常用的那套，润色前后去掉的内容一致。</p>
     </section>
 
     <section class="drawer-section">
@@ -406,15 +389,6 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
         <span></span>
       </div>
-    </section>
-
-    <section class="drawer-section drawer-stack">
-      <h3>导出格式</h3>
-      <yakit-segmented id="polish-format" block aria-label="文件格式" value="txt">
-        <option value="txt">TXT</option>
-        <option value="md">Markdown</option>
-        <option value="epub">EPUB</option>
-      </yakit-segmented>
     </section>
 
     <section class="drawer-section">

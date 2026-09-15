@@ -103,11 +103,13 @@
   background: color-mix(in srgb, var(--text-title) 3%, var(--card-bg));
 }
 .polish-lock .field-note { margin: 0; }
-.polish-clean-source { margin-top: 8px; }
 .polish-chunk-custom { margin-top: 10px; }
 /* 分段选择器没有禁用属性：锁住时整块不可操作并变淡 */
 [data-lock-inert][inert] { opacity: 0.45; }
-.polish-clean-source yakit-select { width: 200px; max-width: 60%; }
+#polish-preset { width: 200px; max-width: 60%; }
+/* 预设内容摘要紧跟下拉框，下面再接说明小字 */
+.setting-field + .polish-preset-summary { margin: 4px 0 0; text-align: right; color: var(--text-body); }
+.polish-preset-summary + .field-note { margin-top: 8px; }
 
 @media (prefers-reduced-motion: reduce) {
   .polish-spinner { animation: none; }
@@ -131,5 +133,6 @@
   .polish-floor-editor yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
   .polish-new { flex-wrap: wrap; }
   .polish-new yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
-  .polish-clean-source yakit-select { width: auto; flex: 1; max-width: none; --select-height: 34px; --select-font: 13px; }
+  #polish-preset { width: auto; flex: 1; max-width: none; --select-height: 34px; --select-font: 13px; }
+  .setting-field + .polish-preset-summary { text-align: left; }
 }

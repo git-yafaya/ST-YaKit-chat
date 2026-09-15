@@ -11,13 +11,11 @@
  *   {
  *     allFloors: boolean,            润色全部楼层
  *     start: string, end: string,    起止楼层（allFloors 为 false 时有效，可能为空字符串）
- *     types: { ai, user, system },   三种消息类型的开关（隐藏的楼层按它原来的类型算）
- *     includeHidden: boolean,        包含在酒馆里隐藏过的楼层
- *     clean: boolean,                先按正则规则清洗
- *     cleanSource: 'export' | 预设 id，'export' = 导出页当前的规则和匹配方式；预设只取其中的规则和匹配方式
+ *     presetId: 'export' | 预设 id,  用哪套设置：'export' = 文本导出页当前设置；预设 id = 这套预设
+ *                                    消息类型、匹配方式、正则规则、导出格式都取自它；「带类别标注 / 仅正文」不生效，润色导出只含正文
+ *                                    包含隐藏的楼层始终跟随文本导出页当前设置（预设里不存这一项）
  *     chunkMode: 'fewer' | 'balanced' | 'quality' | 'custom',  每次发送：省次数 / 均衡 / 重质量 / 自定义
  *     chunkSize: number,             自定义时每次发送的字数（其他档位的字数由业务决定）
- *     format: 'txt' | 'md' | 'epub', 导出文件格式
  *     fileName: string,              文件名，空字符串表示用默认名
  *   }
  *
@@ -65,7 +63,7 @@
  * 15. polishUI.redoFloors(floors) → job            只重新润色选中的楼层：连着的楼层一组，每组带前后楼衔接，
  *       尽量合成一次请求，超过每次发送字数才拆开；覆盖手动修改；任务不在进行时
  * 16. polishUI.appendNew() → job                   润色聊天里新增的楼层，接在已有结果后面（不先试第 1 段）
- * 12. polishUI.exportFile({ format, fileName }) → { count }   按段落顺序导出润色后的文字（含手动修改）；还有没完成的段时 reject
+ * 12. polishUI.exportFile({ fileName }) → { count }  导出格式取自所选预设（导出时的最新值）；   按段落顺序导出润色后的文字（含手动修改）；还有没完成的段时 reject
  *
  * 函数失败时 reject Error，message 是给用户看的中文原因，界面直接显示。
  * 清洗规则下拉框的预设列表用 presets.list()；导出页当前规则用 window.YaKitExportPage.getState()。
@@ -89,20 +87,16 @@
     allFloors: true,
     start: '',
     end: '',
-    types: { ai: true, user: true, system: true },
-    includeHidden: true,
-    clean: true,
-    cleanSource: 'export',
+    presetId: 'export',
     chunkMode: 'balanced',
     chunkSize: 8000,
-    format: 'txt',
     fileName: '',
   };
 
   function loadState() {
     try {
       const saved = service()?.loadSettings?.() || {};
-      return { ...structuredClone(defaults), ...saved, types: { ...defaults.types, ...saved.types } };
+      return { ...structuredClone(defaults), ...saved };
     } catch {
       return structuredClone(defaults);
     }
@@ -116,7 +110,18 @@
   let view = 'polished';
   let presetList = [];
 
-  const anyType = () => Object.values(state.types).some(Boolean);
+  const TYPE_KEYS = ['ai', 'user', 'system'];
+  // 所选预设的内容；'export' 时取文本导出页当前设置
+  const presetContent = () => (state.presetId === 'export'
+    ? exportPage()?.getState()
+    : presetList.find((preset) => preset.id === state.presetId)?.content) || null;
+  const presetName = () => (state.presetId === 'export'
+    ? '导出页当前设置'
+    : presetList.find((preset) => preset.id === state.presetId)?.name || '导出页当前设置');
+  const anyType = () => {
+    const types = presetContent()?.types;
+    return !types || TYPE_KEYS.some((key) => types[key]);
+  };
   const hasJob = () => Boolean(job);
   const running = () => job?.status === 'running';
   const formatNumber = (value) => Number(value || 0).toLocaleString('zh-CN');
@@ -428,7 +433,7 @@
     if (!job) {
       let empty = '';
       if (info.status !== 'ok') empty = '先在酒馆里打开一个聊天';
-      else if (!anyType()) empty = '请至少选择一种消息类型';
+      else if (!anyType()) empty = '所选预设没有勾选消息类型';
       else if (planError) empty = planError;
       else if (planLoading && !plan.length) empty = '正在分段…';
       else if (!plan.length) empty = '（没有可润色的内容）';
@@ -570,22 +575,20 @@
     const { floorCount } = chatInfo();
     const last = Math.max((floorCount || 0) - 1, 0);
     const range = state.allFloors ? '全部楼层' : `第 ${state.start || 0}–${state.end || last} 楼`;
-    const types = anyType()
-      ? Object.keys(TYPE_LABELS).filter((key) => state.types[key]).map((key) => TYPE_LABELS[key]).join('/')
-      : '未选择消息类型';
-    const clean = state.clean ? `清洗：${cleanSourceName()}` : '不清洗';
-    $('polish-summary').textContent = `${range} · ${types}${state.includeHidden === false ? '（不含隐藏）' : ''} · ${clean} · ${state.chunkMode === 'custom' ? `每次 ${state.chunkSize || '—'} 字` : (CHUNK_LABELS[state.chunkMode] || CHUNK_LABELS.balanced)} · ${FORMAT_LABELS[state.format]}`;
+    const chunk = state.chunkMode === 'custom' ? `每次 ${state.chunkSize || '—'} 字` : (CHUNK_LABELS[state.chunkMode] || CHUNK_LABELS.balanced);
+    const format = FORMAT_LABELS[presetContent()?.format] || '';
+    $('polish-summary').textContent = [presetName(), range, chunk, format].filter(Boolean).join(' · ');
     $('polish-floor-hint').textContent = floorCount ? `当前聊天共 ${floorCount} 条，楼层 0–${last}` : '当前聊天没有消息';
   }
 
-  const ruleSummary = (content) => {
-    const count = (content?.rules || []).filter(Boolean).length;
-    return count ? `${count} 条规则 · ${MODE_LABELS[content.mode] || MODE_LABELS.delete}` : '没有规则';
-  };
-
-  function cleanSourceName() {
-    if (state.cleanSource === 'export') return '导出页当前规则';
-    return presetList.find((preset) => preset.id === state.cleanSource)?.name || '导出页当前规则';
+  // 预设内容摘要：消息类型 · 规则 · 格式（· 不含隐藏）
+  function contentSummary(content) {
+    if (!content) return '';
+    const types = TYPE_KEYS.filter((key) => content.types?.[key]).map((key) => TYPE_LABELS[key]).join('/') || '没有勾选消息类型';
+    const count = (content.rules || []).filter(Boolean).length;
+    const rules = count ? `${count} 条规则 · ${MODE_LABELS[content.mode] || MODE_LABELS.delete}` : '没有规则';
+    const hidden = exportPage()?.getState()?.includeHidden === false ? ' · 不含隐藏' : '';
+    return `${types} · ${rules} · ${FORMAT_LABELS[content.format] || 'TXT'}${hidden}`;
   }
 
   async function loadPresets() {
@@ -595,24 +598,23 @@
       presetList = [];
       YaKitErrorLog.warn('读取预设列表失败', error);
     }
-    renderCleanSource();
+    renderPresetSelect();
     renderSummary();
   }
 
-  function renderCleanSource() {
-    const select = $('polish-clean-source');
-    const options = [new Option('导出页当前规则', 'export')];
-    options[0].setAttribute('description', ruleSummary(exportPage()?.getState()));
+  function renderPresetSelect() {
+    const select = $('polish-preset');
+    const options = [new Option('导出页当前设置', 'export')];
+    options[0].setAttribute('description', contentSummary(exportPage()?.getState()));
     presetList.forEach((preset) => {
       const option = new Option(preset.name, preset.id);
-      option.setAttribute('description', ruleSummary(preset.content));
+      option.setAttribute('description', contentSummary(preset.content));
       options.push(option);
     });
     select.replaceChildren(...options);
-    // 选过的预设被删掉时显示为导出页当前规则
-    select.value = presetList.some((preset) => preset.id === state.cleanSource) ? state.cleanSource : 'export';
-    $('polish-clean-row').hidden = !state.clean;
-    $('polish-clean-note').hidden = !state.clean;
+    // 选过的预设被删掉时显示为导出页当前设置
+    select.value = presetList.some((preset) => preset.id === state.presetId) ? state.presetId : 'export';
+    $('polish-preset-summary').textContent = contentSummary(presetContent());
   }
 
   // 有结果时锁住会改变分段的几项；格式和文件名随时能改
@@ -622,8 +624,8 @@
     document.querySelectorAll('#polish-drawer [data-lock-inert]').forEach((control) => control.toggleAttribute('inert', locked));
     $('polish-lock').hidden = !locked;
     $('polish-lock-note').innerHTML = running()
-      ? '正在润色，只能改导出格式和文件名。<br>停止后才能清空结果。'
-      : '已有润色结果，只能改导出格式和文件名。<br>要按新设置润色，先清空结果。';
+      ? '正在润色，只能改文件名。<br>停止后才能清空结果。'
+      : '已有润色结果，只能改文件名。<br>要按新设置润色，先清空结果。';
     $('polish-clear').toggleAttribute('disabled', running());
   }
 
@@ -632,20 +634,14 @@
     $('polish-floor-range').hidden = state.allFloors;
     $('polish-start').value = state.start;
     $('polish-end').value = state.end;
-    Object.keys(TYPE_LABELS).forEach((key) => { $(`polish-type-${key}`).checked = state.types[key]; });
-    $('polish-include-hidden').checked = state.includeHidden !== false;
-    $('polish-clean').checked = state.clean;
     $('polish-chunk-mode').value = state.chunkMode;
     $('polish-chunk-row').hidden = state.chunkMode !== 'custom';
     $('polish-chunk').value = String(state.chunkSize ?? '');
-    $('polish-format').value = state.format;
     $('polish-file-name').value = state.fileName;
-    $('polish-type-warning').hidden = anyType();
-    renderCleanSource();
+    renderPresetSelect();
   }
 
   function changed() {
-    $('polish-type-warning').hidden = anyType();
     save();
     renderSummary();
     schedulePlan();
@@ -683,25 +679,9 @@
       $(id).addEventListener('change', tidyRange);
     });
 
-    Object.keys(TYPE_LABELS).forEach((key) => {
-      $(`polish-type-${key}`).addEventListener('change', (event) => {
-        state.types[key] = event.detail.checked;
-        changed();
-      });
-    });
-    $('polish-include-hidden').addEventListener('change', (event) => {
-      state.includeHidden = event.detail.checked;
-      changed();
-    });
-
-    $('polish-clean').addEventListener('change', (event) => {
-      state.clean = event.detail.checked;
-      $('polish-clean-row').hidden = !state.clean;
-      $('polish-clean-note').hidden = !state.clean;
-      changed();
-    });
-    $('polish-clean-source').addEventListener('change', (event) => {
-      state.cleanSource = event.detail.value;
+    $('polish-preset').addEventListener('change', (event) => {
+      state.presetId = event.detail.value;
+      $('polish-preset-summary').textContent = contentSummary(presetContent());
       changed();
     });
 
@@ -719,18 +699,13 @@
       changed();
     });
 
-    $('polish-format').addEventListener('change', (event) => {
-      state.format = event.detail.value;
-      save();
-      renderSummary();
-    });
     $('polish-file-name').addEventListener('input', (event) => {
       state.fileName = event.currentTarget.value;
       save();
     });
 
     $('polish-settings').addEventListener('click', () => {
-      renderCleanSource();
+      renderPresetSelect();
       renderLock();
       $('polish-drawer').show();
     });
@@ -889,7 +864,7 @@
     if (!ready() || button.hasAttribute('disabled')) return;
     button.setAttribute('loading', '');
     try {
-      const result = await service().exportFile({ format: state.format, fileName: state.fileName });
+      const result = await service().exportFile({ fileName: state.fileName });
       YaKitToast.show(Number.isFinite(result?.count) ? `已导出 ${result.count} 段润色结果` : '已导出', 'success');
     } catch (error) {
       YaKitToast.show(error?.message || '导出失败', 'danger');
@@ -940,10 +915,11 @@
     if (event.detail?.tab !== 'polish') return;
     renderContext();
     loadPresets();
-    if (!job && state.clean && state.cleanSource === 'export') schedulePlan(0);
+    if (!job) schedulePlan(0);
   });
   window.addEventListener('yakit-export-change', () => {
-    if (!job && state.clean && state.cleanSource === 'export') schedulePlan(400);
+    renderSummary();
+    if (!job && state.presetId === 'export') schedulePlan(400);
   });
 
   try {
