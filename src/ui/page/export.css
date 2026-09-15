@@ -44,6 +44,7 @@
 .tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }
 /* 收起时只显示一行；展开时在原位变成多行，把下面的规则列表往下推 */
 .tag-chips-wrap { flex: 1; min-width: 0; }
+#tag-scan-all { flex: none; }
 .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 24px; overflow: hidden; }
 .tag-scan.is-expanded .tag-chips { max-height: none; }
 

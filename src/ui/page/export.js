@@ -37,6 +37,9 @@
  * 7. exportUI.scanRecentTags() → [{ label: string, rule: string }]，可以是 Promise
  *      扫描最近两层楼原文里的标签；label 是按钮上显示的文字，rule 是点击后加入规则列表的正则
  *      没提供这个函数时，界面不显示「识别到的标签」这一行
+ *    exportUI.scanAllTags() → [{ label, rule, floors }]（Promise）
+ *      扫描全部楼层（含隐藏）的标签，floors 是出现在多少层；按钮文字写「<标签> N 层」
+ *      没提供这个函数时，不显示「扫描全部楼层」按钮
  *
  * 接口没提供时，界面显示「文本导出还没接入」，不报错。
  *
@@ -309,6 +312,8 @@
   /* ---------- 识别到的标签：点一下加对应规则，再点取消 ---------- */
 
   let scannedTags = [];
+  let scanAll = false; // true = 显示全部楼层的扫描结果
+  const canScanAll = () => typeof service()?.scanAllTags === 'function';
 
   function renderTagChips() {
     const row = $('tag-scan');
@@ -317,8 +322,10 @@
     row.hidden = !canScan;
     if (!canScan) return;
 
+    $('tag-scan-all').hidden = !canScanAll();
+    $('tag-scan-all').textContent = scanAll ? '只看最近两层' : '扫描全部楼层';
     if (!scannedTags.length) {
-      chips.innerHTML = '<span class="tag-chips-empty">最近两层没有识别到标签</span>';
+      chips.innerHTML = `<span class="tag-chips-empty">${scanAll ? '全部楼层' : '最近两层'}没有识别到标签</span>`;
       updateTagToggle();
       return;
     }
@@ -326,7 +333,7 @@
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'tag-chip';
-      chip.textContent = tag.label;
+      chip.textContent = scanAll && tag.floors ? `${tag.label} ${tag.floors} 层` : tag.label;
       chip.title = tag.rule;
       chip.setAttribute('aria-pressed', String(state.rules.includes(tag.rule)));
       chip.addEventListener('click', () => toggleTagRule(tag.rule));
@@ -409,17 +416,27 @@
       return;
     }
     const token = ++scanToken;
+    const button = $('tag-scan-all');
+    if (scanAll) button.setAttribute('loading', '');
     try {
-      const result = await service().scanRecentTags();
+      const result = await (scanAll && canScanAll() ? service().scanAllTags() : service().scanRecentTags());
       if (token !== scanToken) return;
       scannedTags = Array.isArray(result) ? result.filter((tag) => tag?.label && tag?.rule) : [];
     } catch (error) {
       if (token !== scanToken) return;
       YaKitErrorLog.warn('扫描标签失败', error);
       scannedTags = [];
+    } finally {
+      if (token === scanToken) button.removeAttribute('loading');
     }
     renderTagChips();
   }
+
+  $('tag-scan-all').addEventListener('click', () => {
+    scanAll = !scanAll;
+    setTagsExpanded(false);
+    scanTags();
+  });
 
   $('rule-add').addEventListener('click', () => {
     state.rules.push('');

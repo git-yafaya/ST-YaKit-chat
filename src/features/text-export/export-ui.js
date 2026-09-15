@@ -25,6 +25,25 @@ function scanRecentTags() {
     return scanTags(context.chat.slice(-2).map(message => message?.mes));
 }
 
+// 扫描全部楼层（含隐藏）：按标签第一次出现的楼层排序，并统计出现在多少层。
+async function scanAllTags() {
+    const context = globalThis.SillyTavern?.getContext?.();
+    if (chatInfo(context).status !== 'ok') return [];
+    const found = new Map();
+    for (const [index, message] of context.chat.entries()) {
+        for (const tag of scanTags([message?.mes])) {
+            const item = found.get(tag.rule);
+            if (item) item.floors++;
+            else found.set(tag.rule, { ...tag, floors: 1, first: index });
+            // 同一标签在某层有成对写法时，按钮文字用成对写法。
+            if (item && !tag.label.endsWith('/>')) item.label = tag.label;
+        }
+        // 楼层很多时分批让出主线程，界面不卡住。
+        if (index % 200 === 199) await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    return [...found.values()].sort((a, b) => a.first - b.first).map(({ label, rule, floors }) => ({ label, rule, floors }));
+}
+
 // 插画小说只对 EPUB 生效：清洗前把生图标签换成占位符，refs 记录每张图的来源。
 function readMessages(context, settings, refs = null) {
     if (!context.chat.length || !Object.values(settings.types).some(Boolean)) return [];
@@ -114,6 +133,6 @@ function onChatChanged(callback) {
 }
 
 export const exportUI = Object.freeze({
-    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags,
+    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags, scanAllTags,
     getAiContext, suggestRules, cancelSuggestRules,
 });
