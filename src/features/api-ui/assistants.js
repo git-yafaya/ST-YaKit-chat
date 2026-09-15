@@ -1,7 +1,7 @@
 import { getAssistantSelection } from '../assistant-management/index.js';
 import { getMainClient } from '../text-export/ai-client.js';
 
-export { getAssistant, setAssistant } from '../assistant-management/index.js';
+export { getAssistant, setAssistant, resetAssistant } from '../assistant-management/index.js';
 
 export async function resolveAssistant(kind) {
     const { api, jailbreak, prompt } = getAssistantSelection(kind);

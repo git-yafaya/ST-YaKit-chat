@@ -36,6 +36,7 @@
  *
  * 18. apiUI.getAssistant(kind) → { profile, sampling }
  * 19. apiUI.setAssistant(kind, patch) → 保存后的完整对象   patch 为 { profile } 或 { sampling: { 某一项: 数字 | null } }
+ *     apiUI.resetAssistant(kind) → 保存后的完整对象     回到默认：跟随使用中，正则助手温度 0.8、润色助手 0.95，其他不设置
  *      数值不合法时 reject，message 是中文原因，界面显示在对应输入框下方
  *      两个函数都提供时才显示助手卡片；「跟随使用中（…）」的名字由界面用 listProfiles / getActiveProfileId 自己算
  *
@@ -593,6 +594,23 @@
       }
       loadAssistants();
     });
+  });
+
+  // 重置：两个助手一起回到默认设置
+  $('assistant-reset').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    if (typeof service()?.resetAssistant !== 'function') return;
+    button.setAttribute('loading', '');
+    try {
+      await Promise.all(Object.keys(ASSISTANT_NAMES).map((kind) => service().resetAssistant(kind)));
+      document.querySelectorAll('#assistant-card .sampling-grid yakit-input').forEach((input) => input.removeAttribute('error'));
+      YaKitToast.show('助手已恢复默认设置', 'success');
+    } catch (error) {
+      showError(error, '重置助手失败');
+    } finally {
+      button.removeAttribute('loading');
+    }
+    loadAssistants();
   });
 
   /* ---------- 参数：超时时间、自动重试次数 ---------- */

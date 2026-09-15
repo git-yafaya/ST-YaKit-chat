@@ -76,6 +76,17 @@ export function setAssistant(kind, patch) {
     });
 }
 
+// 一键回到默认：接口跟随使用中，温度用助手默认值，其他采样不设置。
+export function resetAssistant(kind) {
+    assertKind(kind);
+    return updateSettings(settings => {
+        const next = { profile: 'follow', sampling: normalizeSampling({ temperature: DEFAULT_TEMPERATURE[kind] ?? null }) };
+        settings.assistants ??= {};
+        settings.assistants[kind] = { ...settings.assistants[kind], ...next };
+        return readAssistant(settings, kind);
+    });
+}
+
 function resolveRecord(group, selection) {
     if (selection === 'main' || selection === 'none') return null;
     const id = selection === 'follow' ? group.activeId : selection;
