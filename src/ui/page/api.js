@@ -1,5 +1,5 @@
 /**
- * 「API 管理」页：副 API 配置 + 三类提示词（只管界面，数据、校验和连接都交给业务层）
+ * 「API 管理」页：副 API 配置 + 助手接口 + 请求参数 + 固定提示词（只管界面，数据、校验和连接都交给业务层）
  *
  * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat 上提供，界面通过 parent.YaKitChat 调用）─────────
  *
@@ -18,24 +18,22 @@
  *  9. apiUI.testConnection(draft) → { message }        用抽屉里填写的内容试连，失败 reject 中文原因
  * 10. apiUI.fetchModels(draft) → string[]
  *
- * prompt 的形状：{ id, name, target: 'system' | 'user', text, builtin }；kind 为 'jailbreak'（破限词，固定 system）| 'style'（文风提示词，固定 user）
- *   builtin 为 true 的是内置的「通用破限词」：不能删除，正文可以为空（空的不加入请求）
+ * 固定提示词（三条，顺序固定，不能新建、删除）
+ *   corePrompt 的形状：{ id: 'jailbreak' | 'regex' | 'polish', name, target: 'system' | 'user', text, modified: boolean }
+ *   jailbreak = 通用破限词（单独一条 system，正文为空时不发送）；
+ *   regex / polish = 正则提示词 / 润色提示词（user 消息开头的规则和要求，后面由程序接上本次任务材料和输出格式）
+ *   modified = 正文和默认内容不同
  *
- * 11. apiUI.listPrompts(kind) → [prompt]
- * 12. apiUI.getActivePromptId(kind) → id | null         null 表示这一类不使用
- * 13. apiUI.activatePrompt(kind, id | null)
- * 14. apiUI.checkPrompt(kind, draft) → { errors: { name?, text? } }
- * 15. apiUI.savePrompt(kind, draft) → 保存后的 prompt  破限词 target 固定 system
- * 16. apiUI.duplicatePrompt(kind, id) → 新 prompt
- * 17. apiUI.removePrompt(kind, id)                      删掉正在用的提示词时这一类变为不使用
+ * 11. apiUI.listCorePrompts() → [corePrompt]，按 通用破限词 / 正则提示词 / 润色提示词 排列
+ * 12. apiUI.saveCorePrompt(id, text) → 保存后的 corePrompt   正则、润色提示词正文为空时 reject
+ * 13. apiUI.resetCorePrompt(id) → 恢复默认后的 corePrompt
+ *      三个函数都提供时才显示提示词卡片
  *
- * 助手（kind 为 'regex' 正则助手 | 'polish' 润色助手；每项取值 'follow' 跟随使用中 / 'main' 主 API / 'none' 不使用 / 具体 id）
+ * 助手（kind 为 'regex' 正则助手 | 'polish' 润色助手）：只选接口，profile 取值 'follow' 跟随使用中 / 'main' 主 API / 具体配置 id
  *
- * 18. apiUI.getAssistant(kind) → { profile, jailbreak, prompt }
- * 19. apiUI.setAssistant(kind, patch) → 保存后的完整对象   patch 只含要改的项
- * 20. apiUI.resolveAssistant(kind) → 实际生效项（界面用列表里的「使用中」自己算「跟随使用中（…）」的文字）
- *      正则助手选接口和破限词（定位和输出格式由程序内置）；润色助手选接口、破限词和 prompt 即文风提示词；
- *      三个函数都提供时才显示助手卡片
+ * 18. apiUI.getAssistant(kind) → { profile }
+ * 19. apiUI.setAssistant(kind, { profile }) → 保存后的完整对象
+ *      两个函数都提供时才显示助手卡片；「跟随使用中（…）」的名字由界面用 listProfiles / getActiveProfileId 自己算
  *
  * 参数（所有 AI 请求共用）
  *
@@ -54,16 +52,16 @@
     { action: 'duplicate', label: '复制', icon: '../icons/copy.svg' },
     { action: 'delete', label: '删除', icon: '../icons/trash.svg' },
   ];
-  const KINDS = {
-    jailbreak: { label: '破限词', note: '单独作为 system 消息发送，固定不可改。' },
-    style: { label: '文风提示词', note: '写你对文字风格的要求，固定合进 user 消息里。' },
+  // 固定提示词在编辑抽屉里的说明
+  const PROMPT_NOTES = {
+    jailbreak: '固定单独作为 system 消息发送；正文空着时不发送。',
+    regex: '固定放在 user 消息开头，后面由程序接上本次任务材料和输出格式。<br>这里只写规则和要求。',
+    polish: '固定放在 user 消息开头，后面由程序接上本次任务材料、文风和输出格式。<br>这里只写规则和要求。',
   };
 
   let profiles = [];
   let activeProfileId = null;
-  let promptKind = 'jailbreak';
   let prompts = [];
-  let activePromptId = null;
   let busy = false;
 
   const showError = (error, fallback) => YaKitToast.show(error?.message || fallback, 'danger');
@@ -107,7 +105,7 @@
     const available = Boolean(service());
     $('api-actions').hidden = !available;
     $('api-unavailable').hidden = available;
-    $('prompt-card').hidden = !available;
+    $('prompt-card').hidden = !available || !hasCorePrompts();
     if (!available) {
       $('api-list').replaceChildren();
       return;
@@ -357,218 +355,103 @@
 
   $('api-create').addEventListener('click', () => openProfileDrawer());
 
-  /* ---------- 提示词 ---------- */
+  /* ---------- 固定提示词：通用破限词 / 正则提示词 / 润色提示词 ---------- */
 
+  const hasCorePrompts = () => ['listCorePrompts', 'saveCorePrompt', 'resetCorePrompt'].every((name) => typeof service()?.[name] === 'function');
   const promptSummary = (prompt) => {
     const text = String(prompt.text || '').replace(/\s+/g, ' ').trim();
-    if (prompt.builtin && !text) return '内置 · 待填写';
-    return `${prompt.builtin ? '内置 · ' : ''}注入 ${prompt.target} · ${text}`;
+    return `${prompt.target} · ${text || '空着，不发送'}`;
   };
 
   async function loadPrompts() {
-    const api = service();
-    if (!api) return;
-    const kind = promptKind;
+    $('prompt-card').hidden = !hasCorePrompts();
+    if ($('prompt-card').hidden) return;
     try {
-      const [list, id] = await Promise.all([api.listPrompts(kind), api.getActivePromptId(kind)]);
-      if (kind !== promptKind) return;
+      const list = await service().listCorePrompts();
       prompts = Array.isArray(list) ? list : [];
-      activePromptId = prompts.some((prompt) => prompt.id === id) ? id : null;
     } catch (error) {
       YaKitErrorLog.warn('读取提示词失败', error);
       prompts = [];
-      activePromptId = null;
     }
     renderPrompts();
-    loadAssistants();
   }
 
   function renderPrompts() {
-    $('prompt-kind-note').textContent = KINDS[promptKind].note;
-    // 破限词已经内置，不需要「不使用」这一行；文风提示词可以不使用
-    const noneRow = promptKind === 'jailbreak' ? null : YaKitChoice.row({
-      name: '不使用',
-      summary: `不加入${KINDS[promptKind].label}`,
-      active: activePromptId === null,
-      onPick: () => activatePrompt(null),
-    });
-    const rows = prompts.map((prompt) => YaKitChoice.row({
-      name: prompt.name,
-      summary: promptSummary(prompt),
-      active: prompt.id === activePromptId,
-      onPick: () => activatePrompt(prompt.id),
-      // 内置破限词不能删除
-      actions: prompt.builtin ? ROW_ACTIONS.filter((item) => item.action !== 'delete') : ROW_ACTIONS,
-      onAction: (action) => onPromptAction(prompt, action),
+    $('prompt-list').replaceChildren(...prompts.map((prompt) => {
+      const row = YaKitChoice.row({
+        name: prompt.name,
+        summary: promptSummary(prompt),
+        onPick: () => openPromptDrawer(prompt),
+        actions: [{ action: 'edit', label: '编辑', icon: '../icons/edit.svg' }],
+        onAction: () => openPromptDrawer(prompt),
+      });
+      if (prompt.modified) row.tools.innerHTML = '<span class="choice-state">已修改</span>';
+      return row;
     }));
-    const allRows = noneRow ? [noneRow, ...rows] : rows;
-    allRows.forEach((row) => {
-      if (row.classList.contains('is-active')) row.tools.innerHTML = '<span class="choice-state">使用中</span>';
-    });
-    $('prompt-list').replaceChildren(...allRows);
   }
-
-  async function activatePrompt(id) {
-    const kind = promptKind;
-    await run(null, async () => {
-      try {
-        await service().activatePrompt(kind, id);
-        const prompt = prompts.find((item) => item.id === id);
-        YaKitToast.show(prompt ? `已切换到「${prompt.name}」` : `${KINDS[kind].label}已设为不使用`, 'success');
-      } catch (error) {
-        showError(error, '切换提示词失败');
-      }
-    });
-    await loadPrompts();
-  }
-
-  async function onPromptAction(prompt, action) {
-    if (busy) return;
-    const kind = promptKind;
-    if (action === 'edit') {
-      openPromptDrawer(prompt);
-      return;
-    }
-    if (action === 'duplicate') {
-      await run(null, async () => {
-        try {
-          const copy = await service().duplicatePrompt(kind, prompt.id);
-          YaKitToast.show(`已复制为「${copy?.name || `${prompt.name} 副本`}」`, 'success');
-        } catch (error) {
-          showError(error, '复制提示词失败');
-        }
-      });
-    }
-    if (action === 'delete') {
-      const ok = await YaKitModal.confirm({
-        title: '删除提示词？',
-        message: prompt.id === activePromptId
-          ? `「${prompt.name}」正在使用，删除后${KINDS[kind].label}变为不使用。删除后不能找回。`
-          : `删除「${prompt.name}」后不能找回。`,
-        confirmText: '删除',
-      });
-      if (!ok) return;
-      await run(null, async () => {
-        try {
-          await service().removePrompt(kind, prompt.id);
-          YaKitToast.show(`已删除「${prompt.name}」`, 'success');
-        } catch (error) {
-          showError(error, '删除提示词失败');
-        }
-      });
-    }
-    await loadPrompts();
-  }
-
-  $('prompt-kind').addEventListener('change', (event) => {
-    promptKind = event.detail.value;
-    prompts = [];
-    activePromptId = null;
-    renderPrompts();
-    loadPrompts();
-  });
 
   /* ---------- 提示词抽屉 ---------- */
 
-  const PROMPT_FIELDS = { name: 'prompt-name', text: 'prompt-text' };
-  let editingPromptId = null;
-  let promptTouched = new Set();
-  let promptSubmitted = false;
+  let editingPrompt = null;
 
-  function promptDraft() {
-    const draft = {
-      name: $('prompt-name').value,
-      text: $('prompt-text').value,
-      target: promptKind === 'jailbreak' ? 'system' : 'user',
-    };
-    if (editingPromptId) draft.id = editingPromptId;
-    return draft;
-  }
-
-  function openPromptDrawer(prompt = null) {
-    editingPromptId = prompt?.id ?? null;
-    promptTouched = new Set();
-    promptSubmitted = false;
-    const { label } = KINDS[promptKind];
-    $('prompt-drawer').setAttribute('title', `${prompt ? '编辑' : '新建'}${label}`);
-    $('prompt-name').value = prompt?.name ?? '';
-    $('prompt-text').value = prompt?.text ?? '';
-    Object.values(PROMPT_FIELDS).forEach((id) => $(id).removeAttribute('error'));
-    // 内置破限词：正文可以先空着
-    $('prompt-text').toggleAttribute('required', !prompt?.builtin);
-    if (prompt?.builtin) $('prompt-text').setAttribute('hint', '内置破限词，可以先空着；空着时不会加入请求。');
-    else $('prompt-text').removeAttribute('hint');
-    // 发送位置固定：破限词单独作为 system，文风提示词合进 user
-    $('prompt-target-note').textContent = promptKind === 'jailbreak'
-      ? '破限词固定单独作为 system 消息发送。'
-      : '文风提示词固定合进 user 消息里，和本次任务一起发送。';
+  function openPromptDrawer(prompt) {
+    if (busy) return;
+    editingPrompt = prompt;
+    $('prompt-drawer').setAttribute('title', `编辑${prompt.name}`);
+    $('prompt-target-note').innerHTML = PROMPT_NOTES[prompt.id] || '';
+    $('prompt-text').value = prompt.text ?? '';
+    $('prompt-text').removeAttribute('error');
+    $('prompt-drawer-reset').toggleAttribute('disabled', !prompt.modified);
     $('prompt-drawer').show();
   }
 
-  let promptCheckToken = 0;
-  async function checkPromptDraft() {
-    const token = ++promptCheckToken;
-    let result;
-    try {
-      result = await service().checkPrompt(promptKind, promptDraft());
-    } catch (error) {
-      YaKitErrorLog.warn('校验提示词失败', error);
-      return { errors: {} };
-    }
-    if (token !== promptCheckToken) return null;
-    const errors = result?.errors || {};
-    Object.entries(PROMPT_FIELDS).forEach(([key, id]) => {
-      if ((promptSubmitted || promptTouched.has(key)) && errors[key]) $(id).setAttribute('error', errors[key]);
-      else $(id).removeAttribute('error');
-    });
-    return { errors };
-  }
-
-  let promptCheckTimer = null;
-  Object.entries(PROMPT_FIELDS).forEach(([key, id]) => {
-    $(id).addEventListener('input', () => {
-      promptTouched.add(key);
-      clearTimeout(promptCheckTimer);
-      promptCheckTimer = setTimeout(checkPromptDraft, 200);
-    });
-  });
-
+  $('prompt-text').addEventListener('input', () => $('prompt-text').removeAttribute('error'));
   $('prompt-drawer-cancel').addEventListener('click', () => $('prompt-drawer').close());
+
   $('prompt-drawer-save').addEventListener('click', async (event) => {
-    const button = event.currentTarget;
-    promptSubmitted = true;
-    const result = await checkPromptDraft();
-    const firstError = Object.keys(PROMPT_FIELDS).find((key) => result?.errors?.[key]);
-    if (firstError) {
-      $(PROMPT_FIELDS[firstError]).focus();
-      return;
-    }
-    const kind = promptKind;
-    await run(button, async () => {
+    const prompt = editingPrompt;
+    if (!prompt) return;
+    await run(event.currentTarget, async () => {
       try {
-        const saved = await service().savePrompt(kind, promptDraft());
+        await service().saveCorePrompt(prompt.id, $('prompt-text').value);
         $('prompt-drawer').close();
-        YaKitToast.show(`已保存「${saved?.name || $('prompt-name').value.trim()}」`, 'success');
+        YaKitToast.show(`已保存${prompt.name}`, 'success');
       } catch (error) {
-        showError(error, '保存提示词失败');
+        // 正文不合格时提示在输入框下面
+        $('prompt-text').setAttribute('error', error?.message || '保存提示词失败');
       }
     });
     await loadPrompts();
   });
 
-  $('prompt-create').addEventListener('click', () => openPromptDrawer());
+  $('prompt-drawer-reset').addEventListener('click', async (event) => {
+    const prompt = editingPrompt;
+    if (!prompt) return;
+    const ok = await YaKitModal.confirm({
+      title: `恢复默认${prompt.name}？`,
+      message: '改过的正文会换回默认内容，不能找回。',
+      confirmText: '恢复默认',
+    });
+    if (!ok) return;
+    await run(event.currentTarget, async () => {
+      try {
+        const saved = await service().resetCorePrompt(prompt.id);
+        editingPrompt = saved || prompt;
+        $('prompt-text').value = saved?.text ?? '';
+        $('prompt-text').removeAttribute('error');
+        $('prompt-drawer-reset').setAttribute('disabled', '');
+        YaKitToast.show(`已恢复默认${prompt.name}`, 'success');
+      } catch (error) {
+        showError(error, '恢复默认失败');
+      }
+    });
+    await loadPrompts();
+  });
 
-  /* ---------- 助手：各个 AI 功能用哪个接口和提示词 ---------- */
+  /* ---------- 助手：各个 AI 功能用哪个接口 ---------- */
 
-  const ASSISTANTS = {
-    // 正则助手只选破限词（接口跟随 API 配置里的使用中）；润色助手选接口、破限词、文风提示词
-    regex: { name: '正则助手', use: '导出页「AI 辅助」生成规则时用。', fields: ['profile', 'jailbreak'], promptKind: null, promptLabel: '' },
-    polish: { name: '润色助手', use: '润色页改写文字时用。', fields: ['profile', 'jailbreak', 'prompt'], promptKind: 'style', promptLabel: '文风提示词' },
-  };
-  const hasAssistants = () => ['getAssistant', 'setAssistant', 'resolveAssistant'].every((name) => typeof service()?.[name] === 'function');
-
-  let assistantData = null;
-  let drawerKind = 'regex';
+  const ASSISTANT_NAMES = { regex: '正则助手', polish: '润色助手' };
+  const hasAssistants = () => ['getAssistant', 'setAssistant'].every((name) => typeof service()?.[name] === 'function');
   let assistantToken = 0;
 
   async function loadAssistants() {
@@ -577,114 +460,46 @@
     if (card.hidden) return;
     const api = service();
     const token = ++assistantToken;
+    let data;
     try {
-      const kinds = ['jailbreak', 'style'];
-      const [profileList, activeProfile, promptLists, activePrompts, regex, polish] = await Promise.all([
+      const [profileList, activeProfile, regex, polish] = await Promise.all([
         api.listProfiles(),
         api.getActiveProfileId(),
-        Promise.all(kinds.map((kind) => api.listPrompts(kind))),
-        Promise.all(kinds.map((kind) => api.getActivePromptId(kind))),
         api.getAssistant('regex'),
         api.getAssistant('polish'),
       ]);
-      if (token !== assistantToken) return;
-      assistantData = {
-        profiles: Array.isArray(profileList) ? profileList : [],
-        activeProfile,
-        prompts: Object.fromEntries(kinds.map((kind, i) => [kind, Array.isArray(promptLists[i]) ? promptLists[i] : []])),
-        activePrompts: Object.fromEntries(kinds.map((kind, i) => [kind, activePrompts[i]])),
-        assistants: { regex: regex || {}, polish: polish || {} },
-      };
+      data = { profileList: Array.isArray(profileList) ? profileList : [], activeProfile, current: { regex, polish } };
     } catch (error) {
       YaKitErrorLog.warn('读取助手配置失败', error);
       return;
     }
-    renderAssistantEntries();
-    if ($('assistant-drawer').open) renderAssistantDrawer();
-  }
-
-  // 某个助手每一项的选项，以及当前实际用的是哪一项的名字
-  function assistantOptions(kind) {
-    const { profiles: profileList, activeProfile, prompts: promptLists, activePrompts } = assistantData;
-    const nameOf = (list, id) => list.find((item) => item.id === id)?.name;
-    const promptKind = ASSISTANTS[kind].promptKind;
-    const followProfile = nameOf(profileList, activeProfile) || '主 API';
-    const followJailbreak = nameOf(promptLists.jailbreak, activePrompts.jailbreak) || '不使用';
-    const followPrompt = promptKind ? (nameOf(promptLists[promptKind], activePrompts[promptKind]) || '不使用') : '';
-    return {
-      profile: [
-        { value: 'follow', label: `跟随使用中（${followProfile}）`, actual: followProfile },
-        { value: 'main', label: '主 API（跟随ST）', actual: '主 API' },
-        ...profileList.map((item) => ({ value: item.id, label: item.name, actual: item.name })),
-      ],
-      jailbreak: [
-        { value: 'follow', label: `跟随使用中（${followJailbreak}）`, actual: followJailbreak },
-        { value: 'none', label: '不使用', actual: '不使用' },
-        ...promptLists.jailbreak.map((item) => ({ value: item.id, label: item.name, actual: item.name })),
-      ],
-      prompt: promptKind ? [
-        { value: 'follow', label: `跟随使用中（${followPrompt}）`, actual: followPrompt },
-        { value: 'none', label: '不使用', actual: '不使用' },
-        ...promptLists[promptKind].map((item) => ({ value: item.id, label: item.name, actual: item.name })),
-      ] : [],
-    };
-  }
-
-  // 找不到的 id（比如刚被删掉）按跟随使用中显示
-  const pickOption = (options, value) => options.find((option) => option.value === value) || options[0];
-
-  function renderAssistantEntries() {
-    document.querySelectorAll('#assistant-card .assistant-entry').forEach((entry) => {
-      const kind = entry.dataset.kind;
-      const options = assistantOptions(kind);
-      const current = assistantData.assistants[kind];
-      const profile = pickOption(options.profile, current.profile).actual;
-      entry.setAttribute('summary', ASSISTANTS[kind].promptKind
-        ? `${profile} · ${ASSISTANTS[kind].promptLabel}：${pickOption(options.prompt, current.prompt).actual}`
-        : `${profile} · 破限词：${pickOption(options.jailbreak, current.jailbreak).actual}`);
+    if (token !== assistantToken) return;
+    const follow = data.profileList.find((item) => item.id === data.activeProfile)?.name || '主 API';
+    const options = [
+      ['follow', `跟随使用中（${follow}）`],
+      ['main', '主 API（跟随ST）'],
+      ...data.profileList.map((item) => [item.id, item.name]),
+    ];
+    document.querySelectorAll('#assistant-card yakit-select').forEach((select) => {
+      const value = data.current[select.dataset.kind]?.profile;
+      select.replaceChildren(...options.map(([optionValue, label]) => new Option(label, optionValue)));
+      // 找不到的 id（比如刚被删掉）按跟随使用中显示
+      select.value = options.some(([optionValue]) => optionValue === value) ? value : 'follow';
     });
   }
 
-  function renderAssistantDrawer() {
-    const kind = drawerKind;
-    const options = assistantOptions(kind);
-    const current = assistantData.assistants[kind];
-    $('assistant-drawer').setAttribute('title', ASSISTANTS[kind].name);
-    $('assistant-use').textContent = ASSISTANTS[kind].use;
-    $('assistant-prompt-label').textContent = ASSISTANTS[kind].promptLabel;
-    document.querySelectorAll('#assistant-drawer yakit-select').forEach((select) => {
-      const field = select.dataset.field;
-      // 只显示这个助手能选的项
-      select.closest('.setting-field').hidden = !ASSISTANTS[kind].fields.includes(field);
-      if (!ASSISTANTS[kind].fields.includes(field) || !options[field].length) return;
-      select.setAttribute('aria-label', field === 'prompt' ? ASSISTANTS[kind].promptLabel : select.previousElementSibling.textContent);
-      select.replaceChildren(...options[field].map((option) => new Option(option.label, option.value)));
-      select.value = pickOption(options[field], current[field]).value;
-    });
-  }
-
-  document.querySelectorAll('#assistant-card .assistant-entry').forEach((entry) => {
-    entry.addEventListener('activate', () => {
-      if (!assistantData) return;
-      drawerKind = entry.dataset.kind;
-      renderAssistantDrawer();
-      $('assistant-drawer').show();
-    });
-  });
-
-  document.querySelectorAll('#assistant-drawer yakit-select').forEach((select) => {
+  document.querySelectorAll('#assistant-card yakit-select').forEach((select) => {
     select.addEventListener('change', async (event) => {
-      const kind = drawerKind;
+      const kind = select.dataset.kind;
       try {
-        await service().setAssistant(kind, { [select.dataset.field]: event.detail.value });
-        YaKitToast.show(`已保存${ASSISTANTS[kind].name}`, 'success');
+        await service().setAssistant(kind, { profile: event.detail.value });
+        YaKitToast.show(`已保存${ASSISTANT_NAMES[kind]}`, 'success');
       } catch (error) {
         showError(error, '保存助手失败');
       }
       loadAssistants();
     });
   });
-  $('assistant-drawer-done').addEventListener('click', () => $('assistant-drawer').close());
 
   /* ---------- 参数：超时时间、自动重试次数 ---------- */
 

@@ -70,7 +70,7 @@
       <div class="export-bar">
         <!-- 预设：不切页签就能换；改了规则或设置后点「更新预设」存回当前预设 -->
         <div class="export-preset" id="export-preset" hidden>
-          <yakit-select id="export-preset-select" size="sm" aria-label="预设"></yakit-select>
+          <yakit-select id="export-preset-select" size="sm" aria-label="导出预设"></yakit-select>
           <yakit-button id="export-preset-save" size="sm" disabled>更新预设</yakit-button>
         </div>
         <yakit-button id="export-go" variant="primary" icon="../icons/ouput.svg">导出</yakit-button>
@@ -176,13 +176,29 @@
     <!-- ========== 页签：预设 ========== -->
     <div data-page="preset" class="preset-page" hidden>
       <!-- 主要内容：预设列表 -->
-      <yakit-card class="preset-card" title="预设" subtitle="保存导出页的规则、消息类型和格式">
-        <div slot="extra" class="btn-row" id="preset-actions">
-          <yakit-button id="preset-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
-          <yakit-button id="preset-create" size="sm" variant="primary" icon="../icons/plus.svg">存为新预设</yakit-button>
+      <yakit-card class="preset-card" id="preset-card" title="预设" subtitle="保存导出页的规则、消息类型和格式">
+        <yakit-segmented slot="extra" id="preset-kind" size="sm" aria-label="预设类别" value="export">
+          <option value="export">导出预设</option>
+          <option value="style">文风预设</option>
+        </yakit-segmented>
+        <!-- 导出预设 -->
+        <div id="preset-export-section">
+          <div class="choice-list" id="preset-list" role="list"></div>
+          <p class="list-empty" id="preset-empty" hidden></p>
+          <div class="btn-row list-add" id="preset-actions">
+            <yakit-button id="preset-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
+            <yakit-button id="preset-create" size="sm" variant="primary" icon="../icons/plus.svg">存为新预设</yakit-button>
+          </div>
         </div>
-        <div class="choice-list" id="preset-list" role="list"></div>
-        <p class="list-empty" id="preset-empty" hidden></p>
+        <!-- 文风预设 -->
+        <div id="preset-style-section" hidden>
+          <div class="choice-list" id="style-list" role="list"></div>
+          <p class="list-empty" id="style-empty" hidden></p>
+          <div class="btn-row list-add" id="style-actions">
+            <yakit-button id="style-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
+            <yakit-button id="style-create" size="sm" variant="primary" icon="../icons/plus.svg">新建文风</yakit-button>
+          </div>
+        </div>
       </yakit-card>
 
       <!-- 其他功能：备份 -->
@@ -194,6 +210,7 @@
         </div>
       </yakit-card>
       <input type="file" id="preset-file" hidden>
+      <input type="file" id="style-file" hidden>
     </div>
 
     <!-- ========== 页签：API 管理 ========== -->
@@ -207,12 +224,18 @@
         <p class="list-empty" id="api-unavailable" hidden>API 管理还没接入</p>
       </yakit-card>
 
-      <!-- 助手：各个 AI 功能分别用哪个接口和提示词；每个助手一行入口，点开抽屉修改 -->
-      <yakit-card class="assistant-card" id="assistant-card" title="助手" subtitle="各个 AI 功能用哪个接口和提示词" hidden>
-        <div class="assistant-list">
-          <yakit-collapse class="assistant-entry" data-kind="regex" title="正则助手" icon="../icons/sparkle.svg" link></yakit-collapse>
-          <yakit-collapse class="assistant-entry" data-kind="polish" title="润色助手" icon="../icons/edit.svg" link></yakit-collapse>
+      <!-- 助手：各个 AI 功能分别用哪个接口；名字在左、小号下拉在右，改了立即保存 -->
+      <yakit-card class="assistant-card" id="assistant-card" title="助手" subtitle="各个 AI 功能用哪个接口" hidden>
+        <div class="setting-field">
+          <span class="setting-label">正则助手</span>
+          <yakit-select size="sm" data-kind="regex" aria-label="正则助手用的接口"></yakit-select>
         </div>
+        <p class="field-note">文本导出页「AI 辅助」生成规则时用。</p>
+        <div class="setting-field request-gap">
+          <span class="setting-label">润色助手</span>
+          <yakit-select size="sm" data-kind="polish" aria-label="润色助手用的接口"></yakit-select>
+        </div>
+        <p class="field-note">润色页改写文字时用。<br>选「跟随使用中」时，跟着上面列表里正在用的配置走。</p>
       </yakit-card>
 
       <!-- 参数：所有 AI 请求共用的等待时间和自动重试 -->
@@ -237,17 +260,9 @@
         <p class="field-note">回复里读不到结果时自动再请求，超时和连不上不重试。<br>建议 1 次，每次重试都会再消耗额度。</p>
       </yakit-card>
 
-      <!-- 提示词：三类各自一份列表 -->
-      <yakit-card class="prompt-card" id="prompt-card" title="提示词">
-        <yakit-segmented slot="extra" id="prompt-kind" size="sm" aria-label="提示词类别" value="jailbreak">
-          <option value="jailbreak">破限词</option>
-          <option value="style">文风提示词</option>
-        </yakit-segmented>
-        <p class="field-note prompt-kind-note" id="prompt-kind-note"></p>
-        <div class="choice-list" id="prompt-list" role="list"></div>
-        <div class="btn-row list-add">
-          <yakit-button id="prompt-create" size="sm" icon="../icons/plus.svg">新建提示词</yakit-button>
-        </div>
+      <!-- 提示词：固定三条，点一行编辑，可以恢复默认 -->
+      <yakit-card class="prompt-card" id="prompt-card" title="提示词" subtitle="发给 AI 的固定提示词">
+        <div class="choice-list prompt-fixed" id="prompt-list" role="list"></div>
       </yakit-card>
     </div>
   </main>
@@ -350,11 +365,16 @@
 
     <section class="drawer-section">
       <div class="setting-field">
-        <span class="setting-label">预设</span>
-        <yakit-select id="polish-preset" size="sm" aria-label="用哪套预设" data-lock></yakit-select>
+        <span class="setting-label">导出预设</span>
+        <yakit-select id="polish-preset" size="sm" aria-label="用哪套导出预设" data-lock></yakit-select>
       </div>
       <p class="field-note polish-preset-summary" id="polish-preset-summary"></p>
       <p class="field-note">消息类型、正则规则和导出格式都用这套预设。<br>润色导出只包含正文，不加类别标注。</p>
+      <div class="setting-field polish-style-row">
+        <span class="setting-label">文风</span>
+        <yakit-select id="polish-style" size="sm" aria-label="用哪套文风"></yakit-select>
+      </div>
+      <p class="field-note">文风预设在预设页管理。<br>换文风不影响已有结果，之后的润色按新文风。</p>
     </section>
 
     <section class="drawer-section">
@@ -446,39 +466,27 @@
     </div>
   </yakit-drawer>
 
-  <!-- API 管理：助手用哪个接口和提示词 -->
-  <yakit-drawer id="assistant-drawer" title="正则助手">
-    <p class="assistant-use" id="assistant-use"></p>
-    <section class="drawer-section assistant-fields">
-      <div class="setting-field">
-        <span class="setting-label">接口</span>
-        <yakit-select size="sm" data-field="profile" aria-label="接口"></yakit-select>
-      </div>
-      <div class="setting-field">
-        <span class="setting-label">破限词</span>
-        <yakit-select size="sm" data-field="jailbreak" aria-label="破限词"></yakit-select>
-      </div>
-      <div class="setting-field">
-        <span class="setting-label" id="assistant-prompt-label">正则提示词</span>
-        <yakit-select size="sm" data-field="prompt" aria-label="提示词"></yakit-select>
-      </div>
-      <p class="field-note">选「跟随使用中」时，跟着上面列表里正在用的那一项走。<br>想让这个助手固定用某一项，直接选它。</p>
+  <!-- 预设：新建 / 编辑文风预设 -->
+  <yakit-drawer id="style-drawer" title="新建文风">
+    <section class="drawer-section drawer-stack">
+      <yakit-input id="style-name" label="名称" required maxlength="30" placeholder="例如 轻小说"></yakit-input>
+      <yakit-input id="style-text" label="文风要求" required multiline rows="10" placeholder="写你对文字风格的要求，例如：句子短一些，多写动作和神态"></yakit-input>
     </section>
-    <yakit-button slot="footer" id="assistant-drawer-done" variant="primary">完成</yakit-button>
+    <p class="field-note">润色时合进 user 消息里，和本次任务一起发送。<br>在润色设置里选用哪一套文风。</p>
+    <div slot="footer" class="btn-row">
+      <yakit-button id="style-drawer-cancel" variant="ghost">取消</yakit-button>
+      <yakit-button id="style-drawer-save" variant="primary">保存</yakit-button>
+    </div>
   </yakit-drawer>
 
-  <!-- API 管理：新建 / 编辑提示词 -->
-  <yakit-drawer id="prompt-drawer" title="新建提示词">
-    <section class="drawer-section drawer-stack">
-      <yakit-input id="prompt-name" label="名称" required maxlength="64" placeholder="给提示词起个名字"></yakit-input>
-    </section>
-    <section class="drawer-section" id="prompt-target-section">
-      <p class="field-note" id="prompt-target-note"></p>
-    </section>
+  <!-- API 管理：编辑固定提示词 -->
+  <yakit-drawer id="prompt-drawer" title="编辑提示词">
+    <p class="field-note" id="prompt-target-note"></p>
     <section class="drawer-section">
-      <yakit-input id="prompt-text" label="正文" required multiline rows="8" placeholder="写下提示词内容"></yakit-input>
+      <yakit-input id="prompt-text" label="正文" multiline rows="12" placeholder="写下提示词内容"></yakit-input>
     </section>
-    <div slot="footer" class="btn-row">
+    <div slot="footer" class="btn-row prompt-drawer-footer">
+      <yakit-button id="prompt-drawer-reset" variant="ghost">恢复默认</yakit-button>
       <yakit-button id="prompt-drawer-cancel" variant="ghost">取消</yakit-button>
       <yakit-button id="prompt-drawer-save" variant="primary">保存</yakit-button>
     </div>
@@ -722,6 +730,7 @@
   <script src="polish.js"></script>
   <script src="choice.js"></script>
   <script src="preset.js"></script>
+  <script src="style-preset.js"></script>
   <script src="api.js"></script>
   <script src="demo.js"></script>
 </body>

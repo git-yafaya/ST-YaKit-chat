@@ -66,7 +66,8 @@
  * 12. polishUI.exportFile({ fileName }) → { count }  导出格式取自所选预设（导出时的最新值）；   按段落顺序导出润色后的文字（含手动修改）；还有没完成的段时 reject
  *
  * 函数失败时 reject Error，message 是给用户看的中文原因，界面直接显示。
- * 清洗规则下拉框的预设列表用 presets.list()；导出页当前规则用 window.YaKitExportPage.getState()。
+ * 导出预设下拉框用 presets.list()，导出页当前设置用 window.YaKitExportPage.getState()；
+ * 文风下拉框用 styles.list() / getActiveId() / activate()（和预设页的文风预设是同一个选择，不锁定，只影响之后的请求）。
  * 接口没提供时，界面显示「润色还没接入」，不报错。
  */
 (() => {
@@ -602,6 +603,49 @@
     renderSummary();
   }
 
+  /* ---------- 文风：和预设页的文风预设共用「正在用的文风」 ---------- */
+
+  const styleService = () => parent.YaKitChat?.styles;
+  let styleList = [];
+  let activeStyleId = null;
+
+  async function loadStyles() {
+    const api = styleService();
+    $('polish-style').closest('.setting-field').hidden = !api;
+    $('polish-style').closest('.setting-field').nextElementSibling.hidden = !api;
+    if (!api) return;
+    try {
+      const [list, id] = await Promise.all([api.list(), api.getActiveId()]);
+      styleList = Array.isArray(list) ? list : [];
+      activeStyleId = styleList.some((style) => style.id === id) ? id : null;
+    } catch (error) {
+      YaKitErrorLog.warn('读取文风预设失败', error);
+      styleList = [];
+      activeStyleId = null;
+    }
+    const select = $('polish-style');
+    select.replaceChildren(new Option('不使用文风', ''), ...styleList.map((style) => new Option(style.name, style.id)));
+    select.value = activeStyleId ?? '';
+  }
+
+  $('polish-style').addEventListener('change', async (event) => {
+    const id = event.detail.value || null;
+    try {
+      await styleService().activate(id);
+      const style = styleList.find((item) => item.id === id);
+      YaKitToast.show(style ? `润色文风已切换到「${style.name}」` : '润色已设为不使用文风', 'success');
+    } catch (error) {
+      YaKitToast.show(error?.message || '切换文风失败', 'danger');
+    }
+    await loadStyles();
+    renderContext();
+    window.dispatchEvent(new CustomEvent('yakit-style-change'));
+  });
+  window.addEventListener('yakit-style-change', () => {
+    loadStyles();
+    renderContext();
+  });
+
   function renderPresetSelect() {
     const select = $('polish-preset');
     const options = [new Option('导出页当前设置', 'export')];
@@ -706,6 +750,7 @@
 
     $('polish-settings').addEventListener('click', () => {
       renderPresetSelect();
+      loadStyles();
       renderLock();
       $('polish-drawer').show();
     });
@@ -915,6 +960,7 @@
     if (event.detail?.tab !== 'polish') return;
     renderContext();
     loadPresets();
+    loadStyles();
     if (!job) schedulePlan(0);
   });
   window.addEventListener('yakit-export-change', () => {
@@ -933,6 +979,7 @@
   renderAll();
   renderContext();
   loadPresets();
+  loadStyles();
   loadPlan();
   watch();
 })();

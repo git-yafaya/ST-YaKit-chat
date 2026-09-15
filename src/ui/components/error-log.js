@@ -99,6 +99,8 @@
 
   function install(win, { source, filter = () => true } = {}) {
     win.addEventListener('error', (event) => {
+      // 浏览器的布局提示（尺寸变化回调没在同一帧处理完），不影响使用，不记
+      if (/^ResizeObserver loop/.test(event.message || '')) return;
       const info = `${event.filename || ''}\n${event.error?.stack || ''}`;
       if (!filter(info)) return;
       add({ message: event.message || '脚本出错', detail: event.error || info, source });
