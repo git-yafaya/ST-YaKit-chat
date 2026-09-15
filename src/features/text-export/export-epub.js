@@ -15,13 +15,13 @@ function escapeXml(value, location) {
 function xhtml(title, content) {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="zh" lang="zh">
-<head><title>${title}</title><style>p { white-space: pre-wrap; }</style></head>
+<head><title>${title}</title><style>p { white-space: pre-wrap; } img.illustration { display: block; max-width: 100%; height: auto; margin: 1em auto; }</style></head>
 <body>${content}</body>
 </html>`;
 }
 
 export async function buildEpub(chapters, {
-    labelMode = 'speaker', characterName, now = new Date(), identifier, JSZip,
+    labelMode = 'speaker', characterName, now = new Date(), identifier, JSZip, illustrations = null,
 } = {}) {
     if (!Array.isArray(chapters) || chapters.length === 0) {
         throw new TypeError('chapters 必须是非空章节数组');
@@ -42,6 +42,15 @@ export async function buildEpub(chapters, {
 
     const title = escapeXml(characterName, '角色卡名称');
     const modified = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
+    // 插画占位符换成图片；没有读到的图片直接略过。
+    const usedImages = new Map();
+    const placeImages = body => body.replace(/\uE000(\d+)\uE001/g, (_, id) => {
+        const image = illustrations?.get(Number(id));
+        if (!image) return '';
+        const href = `images/${id}.${image.extension}`;
+        usedImages.set(Number(id), { ...image, href, itemId: `image-${id}` });
+        return `<img class="illustration" src="../${href}" alt="插图"/>`;
+    });
     const pages = chapters.map((chapter, index) => {
         if (!chapter || typeof chapter.name !== 'string' || !chapter.name.trim()) {
             throw new TypeError(`第 ${index + 1} 章名称必须是非空字符串`);
@@ -52,7 +61,7 @@ export async function buildEpub(chapters, {
         }
         const name = escapeXml(chapter.name, `第 ${index + 1} 章名称`);
         const content = chapter.messages.map((message, messageIndex) => {
-            const body = escapeXml(message.mes, `第 ${index + 1} 章第 ${messageIndex + 1} 条消息正文`);
+            const body = placeImages(escapeXml(message.mes, `第 ${index + 1} 章第 ${messageIndex + 1} 条消息正文`));
             const label = labelMode === 'speaker' ? `<strong>${escapeXml(getMessageLabel(message), '类别标注')}</strong>` : '';
             return `<p>${label}${body}</p>`;
         }).join('\n');
@@ -76,10 +85,17 @@ export async function buildEpub(chapters, {
 </metadata>
 <manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
 ${pages.map(page => `<item id="${page.id}" href="${page.href}" media-type="application/xhtml+xml"/>`).join('\n')}
+${[...usedImages.values()].map(image => `<item id="${image.itemId}" href="${image.href}" media-type="${image.mediaType}"/>`).join('\n')}
 </manifest>
 <spine>${pages.map(page => `<itemref idref="${page.id}"/>`).join('')}</spine>
 </package>`);
     add('EPUB/nav.xhtml', xhtml(title, `<nav epub:type="toc" id="toc"><ol>${pages.map(page => `<li><a href="${page.href}">${page.name}</a></li>`).join('')}</ol></nav>`));
     for (const page of pages) add(`EPUB/${page.href}`, page.content);
+    for (const image of usedImages.values()) {
+        // 转成 base64 写入，图片数据来自其他窗口时 JSZip 也能识别。
+        let binary = '';
+        for (let i = 0; i < image.data.length; i += 32768) binary += String.fromCharCode(...image.data.subarray(i, i + 32768));
+        zip.file(`EPUB/${image.href}`, btoa(binary), { base64: true, compression: 'STORE', createFolders: false });
+    }
     return zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip', streamFiles: false });
 }

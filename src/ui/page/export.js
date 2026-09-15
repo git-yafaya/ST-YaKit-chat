@@ -16,7 +16,7 @@
  *     format: 'txt' | 'md' | 'epub', 文件格式
  *     labels: 'with' | 'plain',      带类别标注 / 仅正文
  *     illustrated: boolean,          插画小说：导出 EPUB 时带上柏宝绘、智绘姬生成的图片（只对 EPUB 生效，存进导出预设）
- *                                    loadSettings 返回的设置里没有这一项时，界面认为还没接入：开关不能点，说明写「还没接入」
+ *                                    loadSettings 返回的设置里没有这一项（且不是 null）时，界面认为还没接入：开关不能点，说明写「还没接入」
  *     fileName: string,              文件名，空字符串表示用默认名
  *     mode: 'delete' | 'keep',       删除匹配 / 只保留匹配
  *     rules: string[],               正则规则，每条是用户原样输入的文字
@@ -469,7 +469,9 @@
   // 插画小说：只在 EPUB 时显示；业务还没接上这一项时不能点
   const illustratedReady = (() => {
     try {
-      return Object.hasOwn(service()?.loadSettings?.() || {}, 'illustrated');
+      if (typeof service()?.loadSettings !== 'function') return false;
+      const saved = service().loadSettings();
+      return saved === null || Object.hasOwn(saved, 'illustrated');
     } catch {
       return false;
     }

@@ -50,7 +50,33 @@ function cleanText(text, regexes, mode) {
         cursor = end;
     }
     if (mode === 'remove') parts.push(text.slice(cursor));
-    return parts.join('');
+    if (!text.includes('\uE000')) return parts.join('');
+
+    // 插画占位符不受清洗影响：被删掉或没被保留的占位符按原位置补回。
+    const pieces = [];
+    cursor = 0;
+    for (const [start, end] of merged) {
+        if (mode === 'keep') pieces.push({ at: start, text: text.slice(start, end) });
+        else pieces.push({ at: cursor, text: text.slice(cursor, start) });
+        cursor = end;
+    }
+    if (mode === 'remove') pieces.push({ at: cursor, text: text.slice(cursor) });
+    const kept = mode === 'keep' ? merged : (() => {
+        const outside = [];
+        let from = 0;
+        for (const [start, end] of merged) { outside.push([from, start]); from = end; }
+        outside.push([from, text.length]);
+        return outside;
+    })();
+    for (const match of text.matchAll(/\uE000\d+\uE001/g)) {
+        const at = match.index;
+        const inside = kept.some(([start, end]) => at >= start && at + match[0].length <= end);
+        if (!inside) pieces.push({ at, text: match[0] });
+    }
+    pieces.sort((x, y) => x.at - y.at);
+    return pieces.map(piece => piece.text).join('')
+        // 区间切分时可能把占位符截断，残留的半个符号去掉。
+        .replace(/\uE000(?!\d+\uE001)\d*|(?<!\uE000\d+)\uE001/g, '');
 }
 
 // 返回消息浅拷贝，仅清洗正文，保留其他字段及嵌套引用。

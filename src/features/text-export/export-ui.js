@@ -5,6 +5,7 @@ import { saveExport } from './save-export.js';
 import { scanTags } from './scan-recent-tags.js';
 import { getAiContext, suggestRules, cancelSuggestRules } from './ai-assist.js';
 import { normalizeSettings, parseRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
+import { replaceImageTags, loadIllustrations, TOKEN_PATTERN } from './illustrations.js';
 
 function chatInfo(context) {
     if (context?.characterId == null || !Array.isArray(context.chat)) {
@@ -24,7 +25,8 @@ function scanRecentTags() {
     return scanTags(context.chat.slice(-2).map(message => message?.mes));
 }
 
-function readMessages(context, settings) {
+// 插画小说只对 EPUB 生效：清洗前把生图标签换成占位符，refs 记录每张图的来源。
+function readMessages(context, settings, refs = null) {
     if (!context.chat.length || !Object.values(settings.types).some(Boolean)) return [];
 
     let range = 'all';
@@ -43,7 +45,8 @@ function readMessages(context, settings) {
     }
     // 隐藏状态独立筛选，保留原楼层号后再按消息类别过滤。
     const included = readChat(context, range).filter(message => settings.includeHidden || !message.is_system);
-    const messages = filterMessages(included, settings.types);
+    let messages = filterMessages(included, settings.types);
+    if (refs) messages = messages.map(message => ({ ...message, mes: replaceImageTags(message.mes, context.chat[message.floor - 1], message.floor - 1, context, refs) }));
     const rules = settings.rules.map(parseRule).filter(rule => rule !== null);
     return cleanMessages(messages, rules, settings.mode === 'delete' ? 'remove' : 'keep');
 }
@@ -55,11 +58,12 @@ function previewMessages(settings = {}, count = 2) {
     const normalized = normalizeSettings(settings);
     const context = globalThis.SillyTavern?.getContext?.();
     if (chatInfo(context).status !== 'ok' || count === 0) return [];
-    return readMessages(context, normalized).slice(-count).map(message => ({
+    const illustrated = normalized.illustrated && normalized.format === 'epub';
+    return readMessages(context, normalized, illustrated ? [] : null).slice(-count).map(message => ({
         floor: message.floor - 1,
         type: getMessageType(message),
         name: typeof message.name === 'string' ? message.name : '',
-        text: message.mes,
+        text: illustrated ? message.mes.replace(TOKEN_PATTERN, '〔插图〕') : message.mes,
     }));
 }
 
@@ -68,14 +72,18 @@ async function exportFile(settings = {}) {
     const context = globalThis.SillyTavern?.getContext?.();
     const { status } = chatInfo(context);
     if (status === 'none') throw new Error('请先在酒馆里打开一个聊天');
-    const messages = readMessages(context, normalized).filter(message => message.mes.trim());
+    const refs = normalized.illustrated && normalized.format === 'epub' ? [] : null;
+    const messages = readMessages(context, normalized, refs).filter(message => message.mes.trim());
     if (!messages.length) throw new Error('无内容');
+    const ids = refs ? messages.flatMap(message => [...message.mes.matchAll(TOKEN_PATTERN)].map(match => Number(match[1]))) : [];
+    const illustrations = refs ? await loadIllustrations(refs, context, { ids }) : null;
     await saveExport(messages, {
         fileType: normalized.format,
         labelMode: normalized.labels === 'with' ? 'speaker' : 'plain',
         fileName: normalized.fileName,
+        illustrations,
     });
-    return { count: messages.length };
+    return refs ? { count: messages.length, images: illustrations.size, missingImages: new Set(ids).size - illustrations.size } : { count: messages.length };
 }
 
 function onChatChanged(callback) {

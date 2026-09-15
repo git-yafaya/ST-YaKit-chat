@@ -1,6 +1,8 @@
 import { normalizeSettings } from '../text-export/export-ui-settings.js';
 
 const CONTENT_KEYS = ['types', 'format', 'labels', 'mode', 'rules'];
+// 插画小说开关后加入，旧预设缺省按关闭。
+const OPTIONAL_KEYS = ['illustrated'];
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export function normalizeName(value) {
@@ -16,8 +18,9 @@ export function normalizeContent(value) {
         || !isObject(value.types) || ['ai', 'user', 'system'].some(key => !Object.hasOwn(value.types, key))) {
         throw new Error('预设内容不完整');
     }
-    const settings = normalizeSettings(Object.fromEntries(CONTENT_KEYS.map(key => [key, value[key]])));
-    return Object.fromEntries(CONTENT_KEYS.map(key => [key, settings[key]]));
+    const keys = [...CONTENT_KEYS, ...OPTIONAL_KEYS.filter(key => Object.hasOwn(value, key))];
+    const settings = normalizeSettings(Object.fromEntries(keys.map(key => [key, value[key]])));
+    return Object.fromEntries([...CONTENT_KEYS, ...OPTIONAL_KEYS].map(key => [key, settings[key]]));
 }
 
 export function normalizeCollection(value) {

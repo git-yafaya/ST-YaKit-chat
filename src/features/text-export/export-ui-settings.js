@@ -15,11 +15,12 @@ export function normalizeSettings(value = {}) {
         types: { ai: true, user: true, system: true },
         format: 'txt',
         labels: 'with',
+        illustrated: false,
         fileName: '',
         mode: 'delete',
         rules: [],
     };
-    for (const key of ['allFloors', 'includeHidden', 'start', 'end', 'fileName']) {
+    for (const key of ['allFloors', 'includeHidden', 'illustrated', 'start', 'end', 'fileName']) {
         if (!Object.hasOwn(value, key)) continue;
         if (typeof value[key] !== typeof settings[key]) {
             throw new TypeError(`导出设置 ${key} 类型不正确`);

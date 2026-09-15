@@ -13,7 +13,7 @@ export async function saveExport(messages, options = {}) {
     if (!options || typeof options !== 'object' || Array.isArray(options)) {
         throw new TypeError('导出选项必须是对象');
     }
-    const { fileType = 'txt', labelMode = 'speaker', epub, fileName = '' } = options;
+    const { fileType = 'txt', labelMode = 'speaker', epub, fileName = '', illustrations = null } = options;
     if (!['txt', 'md', 'epub'].includes(fileType)) {
         throw new TypeError('fileType 仅支持 txt、md 或 epub');
     }
@@ -41,7 +41,7 @@ export async function saveExport(messages, options = {}) {
     // 宿主现成的 ZIP 文件通过副作用提供 JSZip。
     if (typeof globalThis.JSZip !== 'function') await import('/lib/jszip.min.js');
     if (typeof globalThis.JSZip !== 'function') throw new Error('宿主 JSZip 加载失败');
-    const blob = await buildEpub(chapters, { labelMode, characterName, now, identifier: uuidv4(), JSZip: globalThis.JSZip });
+    const blob = await buildEpub(chapters, { labelMode, characterName, now, identifier: uuidv4(), JSZip: globalThis.JSZip, illustrations });
     download(blob, filename, 'application/epub+zip');
     return { filename, blob };
 }
