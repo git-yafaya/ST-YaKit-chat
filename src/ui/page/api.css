@@ -1,6 +1,6 @@
 /* API 管理页 */
 .api-page { display: flex; flex-direction: column; gap: 12px; }
-/* 各抽屉顶部一句说明这一块管什么 */
+/* 各折叠项展开后顶部一句说明这一块管什么 */
 .api-section-note { margin: 0 0 14px; }
 
 .list-add { margin-top: 10px; }

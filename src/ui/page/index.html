@@ -213,92 +213,80 @@
     </div>
 
     <!-- ========== 页签：API 管理 ========== -->
-    <!-- 入口行：点一行打开对应的抽屉，行尾灰字写当前状态 -->
+    <!-- 折叠项：点一行在原地展开编辑，行尾灰字写当前状态；同一时间只展开一项 -->
     <div data-page="api" class="api-page" hidden>
       <div class="settings-list">
-        <yakit-collapse id="api-entry-profiles" title="API 配置" icon="../icons/link.svg" link></yakit-collapse>
-        <yakit-collapse id="api-entry-prompts" title="提示词" icon="../icons/edit.svg" link></yakit-collapse>
-        <yakit-collapse id="api-entry-assistants" title="助手" icon="../icons/sparkle.svg" link hidden></yakit-collapse>
-        <yakit-collapse id="api-entry-request" title="参数" icon="../icons/settings.svg" link hidden></yakit-collapse>
+        <yakit-collapse id="api-entry-profiles" title="API 配置" icon="../icons/link.svg">
+          <p class="field-note api-section-note">纪实的 AI 功能用哪个接口</p>
+          <div class="choice-list" id="api-list" role="list"></div>
+          <p class="list-empty" id="api-unavailable" hidden>API 管理还没接入</p>
+          <div class="btn-row list-add" id="api-actions">
+            <yakit-button id="api-create" size="sm" variant="primary" icon="../icons/plus.svg">新建配置</yakit-button>
+          </div>
+        </yakit-collapse>
+        <yakit-collapse id="api-entry-prompts" title="提示词" icon="../icons/edit.svg">
+          <p class="field-note api-section-note">发给 AI 的固定提示词</p>
+          <div class="prompt-card" id="prompt-card">
+              <div class="choice-list prompt-fixed" id="prompt-list" role="list"></div>
+          </div>
+        </yakit-collapse>
+        <yakit-collapse id="api-entry-assistants" title="助手" icon="../icons/sparkle.svg" hidden>
+          <p class="field-note api-section-note">各个 AI 功能用哪个接口</p>
+          <div class="assistant-card" id="assistant-card" hidden>
+              <div class="setting-field">
+                <span class="setting-label">正则助手</span>
+                <yakit-select size="sm" data-kind="regex" aria-label="正则助手用的接口"></yakit-select>
+              </div>
+              <div class="sampling-grid" data-kind="regex">
+                <label class="sampling-cell"><span class="setting-label">温度</span><yakit-input type="number" size="sm" data-param="temperature" placeholder="不设置" aria-label="正则助手温度"></yakit-input></label>
+                <label class="sampling-cell"><span class="setting-label">Top P</span><yakit-input type="number" size="sm" data-param="topP" placeholder="不设置" aria-label="正则助手Top P"></yakit-input></label>
+                <label class="sampling-cell"><span class="setting-label">Top K</span><yakit-input type="number" size="sm" data-param="topK" placeholder="不设置" aria-label="正则助手Top K"></yakit-input></label>
+                <label class="sampling-cell"><span class="setting-label">频率惩罚</span><yakit-input type="number" size="sm" data-param="frequencyPenalty" placeholder="不设置" aria-label="正则助手频率惩罚"></yakit-input></label>
+                <label class="sampling-cell"><span class="setting-label">存在惩罚</span><yakit-input type="number" size="sm" data-param="presencePenalty" placeholder="不设置" aria-label="正则助手存在惩罚"></yakit-input></label>
+              </div>
+              <p class="field-note">文本导出页「AI 辅助」生成规则时用。</p>
+              <div class="btn-row assistant-reset"><yakit-button data-reset="regex" size="sm" variant="ghost">重置</yakit-button></div>
+              <div class="setting-field request-gap">
+                <span class="setting-label">润色助手</span>
+                <yakit-select size="sm" data-kind="polish" aria-label="润色助手用的接口"></yakit-select>
+              </div>
+              <div class="sampling-grid" data-kind="polish">
+                <label class="sampling-cell"><span class="setting-label">温度</span><yakit-input type="number" size="sm" data-param="temperature" placeholder="不设置" aria-label="润色助手温度"></yakit-input></label>
+                <label class="sampling-cell"><span class="setting-label">Top P</span><yakit-input type="number" size="sm" data-param="topP" placeholder="不设置" aria-label="润色助手Top P"></yakit-input></label>
+                <label class="sampling-cell"><span class="setting-label">Top K</span><yakit-input type="number" size="sm" data-param="topK" placeholder="不设置" aria-label="润色助手Top K"></yakit-input></label>
+                <label class="sampling-cell"><span class="setting-label">频率惩罚</span><yakit-input type="number" size="sm" data-param="frequencyPenalty" placeholder="不设置" aria-label="润色助手频率惩罚"></yakit-input></label>
+                <label class="sampling-cell"><span class="setting-label">存在惩罚</span><yakit-input type="number" size="sm" data-param="presencePenalty" placeholder="不设置" aria-label="润色助手存在惩罚"></yakit-input></label>
+              </div>
+              <p class="field-note">润色页改写文字时用。<br>选「跟随使用中」时，跟着上面列表里正在用的配置走。</p>
+              <div class="btn-row assistant-reset"><yakit-button data-reset="polish" size="sm" variant="ghost">重置</yakit-button></div>
+          </div>
+        </yakit-collapse>
+        <yakit-collapse id="api-entry-request" title="参数" icon="../icons/settings.svg" hidden>
+          <p class="field-note api-section-note">所有 AI 请求共用</p>
+          <div class="request-card" id="request-card" hidden>
+              <div class="setting-field">
+                <span class="setting-label">超时时间</span>
+                <div class="request-timeout">
+                  <yakit-input id="request-timeout" type="number" size="sm" aria-label="超时时间（秒）" placeholder="360"></yakit-input>
+                  <span class="request-unit">秒</span>
+                </div>
+              </div>
+              <p class="field-note">等这么久还没回复就结束这次请求。<br>建议 360 秒，模型慢或文字很长时再调大。</p>
+              <div class="setting-field request-gap">
+                <span class="setting-label">自动重试</span>
+                <yakit-segmented id="request-retries" size="sm" aria-label="自动重试次数" value="1">
+                  <option value="0">不重试</option>
+                  <option value="1">1 次</option>
+                  <option value="2">2 次</option>
+                  <option value="3">3 次</option>
+                </yakit-segmented>
+              </div>
+              <p class="field-note">回复里读不到结果时自动再请求，超时和连不上不重试。<br>建议 1 次，每次重试都会再消耗额度。</p>
+          </div>
+        </yakit-collapse>
       </div>
     </div>
   </main>
-
-  <!-- API 管理：API 配置 -->
-  <yakit-drawer id="api-section-profiles" title="API 配置">
-    <p class="field-note api-section-note">纪实的 AI 功能用哪个接口</p>
-    <div class="choice-list" id="api-list" role="list"></div>
-    <p class="list-empty" id="api-unavailable" hidden>API 管理还没接入</p>
-    <div class="btn-row list-add" id="api-actions">
-      <yakit-button id="api-create" size="sm" variant="primary" icon="../icons/plus.svg">新建配置</yakit-button>
-    </div>
-  </yakit-drawer>
-
-  <!-- API 管理：提示词 -->
-  <yakit-drawer id="api-section-prompts" title="提示词">
-    <p class="field-note api-section-note">发给 AI 的固定提示词</p>
-    <div class="prompt-card" id="prompt-card">
-        <div class="choice-list prompt-fixed" id="prompt-list" role="list"></div>
-    </div>
-  </yakit-drawer>
-
-  <!-- API 管理：助手 -->
-  <yakit-drawer id="api-section-assistants" title="助手">
-    <p class="field-note api-section-note">各个 AI 功能用哪个接口</p>
-    <div class="assistant-card" id="assistant-card" hidden>
-        <div class="setting-field">
-          <span class="setting-label">正则助手</span>
-          <yakit-select size="sm" data-kind="regex" aria-label="正则助手用的接口"></yakit-select>
-        </div>
-        <div class="sampling-grid" data-kind="regex">
-          <label class="sampling-cell"><span class="setting-label">温度</span><yakit-input type="number" size="sm" data-param="temperature" placeholder="不设置" aria-label="正则助手温度"></yakit-input></label>
-          <label class="sampling-cell"><span class="setting-label">Top P</span><yakit-input type="number" size="sm" data-param="topP" placeholder="不设置" aria-label="正则助手Top P"></yakit-input></label>
-          <label class="sampling-cell"><span class="setting-label">Top K</span><yakit-input type="number" size="sm" data-param="topK" placeholder="不设置" aria-label="正则助手Top K"></yakit-input></label>
-          <label class="sampling-cell"><span class="setting-label">频率惩罚</span><yakit-input type="number" size="sm" data-param="frequencyPenalty" placeholder="不设置" aria-label="正则助手频率惩罚"></yakit-input></label>
-          <label class="sampling-cell"><span class="setting-label">存在惩罚</span><yakit-input type="number" size="sm" data-param="presencePenalty" placeholder="不设置" aria-label="正则助手存在惩罚"></yakit-input></label>
-        </div>
-        <p class="field-note">文本导出页「AI 辅助」生成规则时用。</p>
-        <div class="btn-row assistant-reset"><yakit-button data-reset="regex" size="sm" variant="ghost">重置</yakit-button></div>
-        <div class="setting-field request-gap">
-          <span class="setting-label">润色助手</span>
-          <yakit-select size="sm" data-kind="polish" aria-label="润色助手用的接口"></yakit-select>
-        </div>
-        <div class="sampling-grid" data-kind="polish">
-          <label class="sampling-cell"><span class="setting-label">温度</span><yakit-input type="number" size="sm" data-param="temperature" placeholder="不设置" aria-label="润色助手温度"></yakit-input></label>
-          <label class="sampling-cell"><span class="setting-label">Top P</span><yakit-input type="number" size="sm" data-param="topP" placeholder="不设置" aria-label="润色助手Top P"></yakit-input></label>
-          <label class="sampling-cell"><span class="setting-label">Top K</span><yakit-input type="number" size="sm" data-param="topK" placeholder="不设置" aria-label="润色助手Top K"></yakit-input></label>
-          <label class="sampling-cell"><span class="setting-label">频率惩罚</span><yakit-input type="number" size="sm" data-param="frequencyPenalty" placeholder="不设置" aria-label="润色助手频率惩罚"></yakit-input></label>
-          <label class="sampling-cell"><span class="setting-label">存在惩罚</span><yakit-input type="number" size="sm" data-param="presencePenalty" placeholder="不设置" aria-label="润色助手存在惩罚"></yakit-input></label>
-        </div>
-        <p class="field-note">润色页改写文字时用。<br>选「跟随使用中」时，跟着上面列表里正在用的配置走。</p>
-        <div class="btn-row assistant-reset"><yakit-button data-reset="polish" size="sm" variant="ghost">重置</yakit-button></div>
-    </div>
-  </yakit-drawer>
-
-  <!-- API 管理：参数 -->
-  <yakit-drawer id="api-section-request" title="参数">
-    <p class="field-note api-section-note">所有 AI 请求共用</p>
-    <div class="request-card" id="request-card" hidden>
-        <div class="setting-field">
-          <span class="setting-label">超时时间</span>
-          <div class="request-timeout">
-            <yakit-input id="request-timeout" type="number" size="sm" aria-label="超时时间（秒）" placeholder="360"></yakit-input>
-            <span class="request-unit">秒</span>
-          </div>
-        </div>
-        <p class="field-note">等这么久还没回复就结束这次请求。<br>建议 360 秒，模型慢或文字很长时再调大。</p>
-        <div class="setting-field request-gap">
-          <span class="setting-label">自动重试</span>
-          <yakit-segmented id="request-retries" size="sm" aria-label="自动重试次数" value="1">
-            <option value="0">不重试</option>
-            <option value="1">1 次</option>
-            <option value="2">2 次</option>
-            <option value="3">3 次</option>
-          </yakit-segmented>
-        </div>
-        <p class="field-note">回复里读不到结果时自动再请求，超时和连不上不重试。<br>建议 1 次，每次重试都会再消耗额度。</p>
-    </div>
-  </yakit-drawer>
 
   <!-- 文本导出：导出设置抽屉 -->
   <yakit-drawer id="export-drawer" title="导出设置" side="left">

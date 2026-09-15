@@ -103,12 +103,8 @@
     loadAssistants();
   }
 
-  /* ---------- 入口行：点一行打开对应抽屉，行尾灰字写当前状态 ---------- */
+  /* ---------- 折叠项：行尾灰字写当前状态 ---------- */
 
-  const ENTRY_DRAWERS = { profiles: 'api-section-profiles', prompts: 'api-section-prompts', assistants: 'api-section-assistants', request: 'api-section-request' };
-  Object.entries(ENTRY_DRAWERS).forEach(([key, drawer]) => {
-    $(`api-entry-${key}`).addEventListener('activate', () => $(drawer).show());
-  });
   let assistantSummary = null;
 
   function renderEntries() {
