@@ -70,7 +70,7 @@
       ['<next>…</next>', '后一楼开头，仅供衔接参考，选楼重做时提供'],
     ],
     regex: [
-      ['<sample floor="楼号">…</sample>', '当前聊天最后一条非隐藏 AI 消息的原文样本，楼号从 0 开始；只供分析'],
+      ['<sample floor="楼号">…</sample>', '当前聊天最后一条非隐藏 AI 消息按已有规则清洗后的文字样本，楼号从 0 开始；只供分析'],
       ['<rule>/pattern/flags</rule>', '输出一条新增 JavaScript 正则；pattern 是匹配模式，flags 是正则标志'],
       ['<explanation>…</explanation>', '用一句中文解释紧前一条正则实际匹配什么'],
     ],

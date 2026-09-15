@@ -3,6 +3,8 @@ import { getAssistantSelection } from '../assistant-management/index.js';
 import { getMainClient, generateSecondary } from './ai-client.js';
 import { buildRuleMessages, parseRuleSuggestions } from './ai-rules.js';
 import { getMessageType } from './filter-messages.js';
+import { cleanMessages } from './clean-messages.js';
+import { parseRule } from './export-ui-settings.js';
 import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
 
 let activeRun = null;
@@ -57,7 +59,11 @@ export async function suggestRules(options) {
     // 在等待模型之前固定选择、原文和规则，后续界面改动不影响本次请求。
     const { api, jailbreak, sampling } = getAssistantSelection('regex');
     const rules = [...options.rules];
-    const sample = { floor, text: context.chat[floor].mes };
+    // 样本是这楼按导出页当前规则和匹配方式清洗后的文字。
+    const parsedRules = rules.map(rule => parseRule(rule)).filter(rule => rule !== null);
+    const [cleaned] = cleanMessages([{ mes: context.chat[floor].mes }], parsedRules, options.mode === 'delete' ? 'remove' : 'keep');
+    if (!cleaned.mes.trim()) throw new Error('这条 AI 回复按现有规则清洗后没有剩下文字，请调整规则后重试');
+    const sample = { floor, text: cleaned.mes };
     const messages = buildRuleMessages({ request: options.request.trim(), mode: options.mode, rules, sample, jailbreak, promptText: listCorePrompts().find(item => item.id === 'regex').text });
     const { timeoutSeconds, retries } = getRequestSettings();
     const timeoutMessage = `等了 ${timeoutSeconds} 秒还没生成规则，请检查当前 API 后重试`;
