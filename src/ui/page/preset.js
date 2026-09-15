@@ -6,7 +6,7 @@
  *
  * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat 上提供，界面通过 parent.YaKitChat 调用）─────────
  *
- * content 的形状：{ types: { ai, user, system }, format, labels, mode, rules }（含义同导出设置 settings）
+ * content 的形状：{ types: { ai, user, system }, format, labels, illustrated, mode, rules }（含义同导出设置 settings；旧预设没有 illustrated 时按 false）
  * 函数都可以返回 Promise；失败时 reject Error，message 是给用户看的中文原因，界面直接显示。
  *
  *  1. presets.list() → [{ id, name, content }]，按创建顺序
@@ -44,12 +44,13 @@
   const exportPage = () => window.YaKitExportPage;
   const active = () => presets.find((preset) => preset.id === activeId) || null;
 
-  // 预设只关心这五项
+  // 预设只关心这六项
   function pickContent(settings = {}) {
     return {
       types: { ai: Boolean(settings.types?.ai), user: Boolean(settings.types?.user), system: Boolean(settings.types?.system) },
       format: settings.format,
       labels: settings.labels,
+      illustrated: Boolean(settings.illustrated),
       mode: settings.mode,
       rules: Array.isArray(settings.rules) ? [...settings.rules] : [],
     };
