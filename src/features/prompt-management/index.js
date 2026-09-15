@@ -98,8 +98,10 @@ export function savePromptTemplate(template) {
             content: template.content,
             ...getMetadata(template.category, template, group.items.find(item => item.id === template.id)),
         };
-        // 保存内置 Gemini 时记住编辑意图，主动清空后不再补默认正文。
-        if (template.category === 'jailbreak' && template.id === 'builtin-jailbreak-gemini') {
+        // 记录内置及历史内置项的编辑意图，后续迁移不再把它当作默认内容。
+        if (isBuiltinJailbreak(template.category, template.id)
+            || (template.category === 'jailbreak'
+                && ['builtin-jailbreak-gemini', 'builtin-jailbreak-deepseek'].includes(template.id))) {
             record.contentEdited = true;
         }
         if (template.id === undefined) group.items.push(record);
