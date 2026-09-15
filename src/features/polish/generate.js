@@ -85,8 +85,6 @@ export function createGenerator(context) {
         floors = floors.map(({ floor, text }) => ({ floor, text }));
         const messages = [];
         if (jailbreak?.content?.trim()) messages.push({ role: 'system', content: jailbreak.content });
-        messages.push({ role: 'system', content: ASSISTANT_PROMPTS.polish });
-        if (prompt?.content?.trim()) messages.push({ role: 'user', content: prompt.content });
         const tail = typeof previousTail === 'string' ? Array.from(previousTail).slice(-300).join('') : '';
         const referenceText = references.map(({ startFloor, endFloor, previous, next }) => {
             const before = Array.from(previous || '').slice(-300).join('');
@@ -95,9 +93,12 @@ export function createGenerator(context) {
                 + `<previous>${before}</previous>\n<next>${after}</next>`;
         }).join('\n\n');
         const original = floors.map(({ floor, text }) => `<floor n="${floor}">${text}</floor>`).join('\n');
-        messages.push({ role: 'user', content: (tail ? `前一楼结尾（仅供衔接，不输出）：\n<previous>${tail}</previous>\n\n` : '')
+        const task = (prompt?.content?.trim() ? `文风要求：\n<style>${prompt.content}</style>\n\n` : '')
+            + (tail ? `前一楼结尾（仅供衔接，不输出）：\n<previous>${tail}</previous>\n\n` : '')
             + (referenceText ? `${referenceText}\n\n` : '')
-            + `请按编号逐楼润色以下原文：\n<original>${original}</original>` });
+            + `请按编号逐楼润色以下原文：\n<original>${original}</original>`;
+        // 文风和原文只插入一次，不展开其中的宏或替换标记。
+        messages.push({ role: 'user', content: ASSISTANT_PROMPTS.polish.replace('{{task}}', () => task) });
         // ponytail: 按码点估算输出额度，最高 32768；需要精确预算时再接分词器。
         const chars = floors.reduce((sum, item) => sum + Array.from(item.text).length, 0);
         const maxTokens = Math.min(32768, Math.max(8192, chars * 2 + 2048));
