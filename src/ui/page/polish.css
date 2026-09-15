@@ -40,6 +40,34 @@
 .polish-seg-meta { flex: 1; min-width: 0; font-size: 12px; color: var(--text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .polish-seg .notice { margin: 4px 0 8px; }
 
+/* 楼层：楼号按钮点一下选中（点睛色底，同导出页的标签按钮），行尾是说明和修改按钮 */
+.polish-floor + .polish-floor { margin-top: 10px; }
+.polish-floor-head { display: flex; align-items: center; gap: 6px; min-height: 28px; margin-bottom: 2px; }
+.polish-floor-chip.is-static { cursor: default; background: transparent; box-shadow: none; padding: 0; color: var(--text-muted); }
+.polish-floor-chip.is-static:hover { background: transparent; color: var(--text-muted); }
+.polish-floor-note { display: inline-flex; align-items: center; gap: 4px; flex: 1; min-width: 0; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.polish-floor-note svg { flex: none; }
+.polish-floor-note.is-short { color: var(--text-body); }
+.polish-floor-note.is-short svg { color: var(--warning); }
+.polish-floor-edit { margin-left: auto; }
+.polish-floor-editor > .btn-row { justify-content: flex-end; margin-top: 8px; }
+
+/* 聊天里新增了楼层 */
+.polish-new {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: none;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--divider);
+  background: color-mix(in srgb, var(--text-title) 3%, var(--card-bg));
+}
+.polish-new .field-note { margin: 0; }
+.polish-new yakit-button { flex: none; }
+
 /* 段落状态：等待中只有灰字；润色中主色转圈；完成、失败用状态色图标 + 文字 */
 .polish-state { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .polish-state svg { flex: none; }
@@ -98,5 +126,10 @@
   .polish-progress-track { flex: 1; }
   .polish-actions { margin-left: auto; }
   .polish-actions yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
+  .polish-floor-chip:not(.is-static) { height: 34px; padding: 0 14px; font-size: 13px; }
+  .polish-floor-edit { --btn-height: 34px; --btn-icon: 18px; }
+  .polish-floor-editor yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
+  .polish-new { flex-wrap: wrap; }
+  .polish-new yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
   .polish-clean-source yakit-select { width: auto; flex: 1; max-width: none; --select-height: 34px; --select-font: 13px; }
 }

@@ -95,6 +95,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4M12 17h.01"/></svg>
           <span></span>
         </div>
+        <div class="polish-new" id="polish-new" hidden>
+          <span class="field-note" id="polish-new-text"></span>
+          <yakit-button id="polish-new-go" size="sm" icon="../icons/sparkle.svg">润色新增部分</yakit-button>
+        </div>
         <div class="polish-list" id="polish-list"></div>
       </yakit-card>
 
@@ -107,6 +111,7 @@
           </div>
         </div>
         <div class="btn-row polish-actions">
+          <yakit-button id="polish-select-clear" variant="ghost" hidden>取消选择</yakit-button>
           <yakit-button id="polish-run" variant="primary" icon="../icons/sparkle.svg" disabled>开始润色</yakit-button>
           <yakit-button id="polish-export" icon="../icons/ouput.svg" disabled>导出</yakit-button>
         </div>

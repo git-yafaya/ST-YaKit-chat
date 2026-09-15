@@ -24,14 +24,21 @@
  * segment 的形状：
  *   { index, startFloor, endFloor, chars, original, polished: string | null,
  *     status: 'pending' | 'running' | 'done' | 'failed', error: string | null,
- *     resumeFloor: number | null, shortFloors: number[] }
+ *     resumeFloor: number | null, floors: floor[] }
  *   回复按楼层标记读取：被截断或中途停止时，已完整的楼层留在 polished 里，
  *   resumeFloor 是下次从哪一楼接着润色（这一段还没开始或已完成时为 null）
- *   shortFloors 是润色后字数明显比原文少的楼层（只提醒，不自动重发），没有时为 []
  *
- * job 的形状（一次润色任务，存在业务层内存里，关掉抽屉或弹窗、切页签都不影响）：
+ * floor 的形状（界面按楼层显示、选择、手动修改）：
+ *   { floor, original, polished: string | null, status: 'pending' | 'running' | 'done',
+ *     edited: boolean, short: boolean }
+ *   edited = 用户手动改过；short = 润色后字数明显比原文少（只提醒，不自动重发）
+ *   planSegments 返回的段也带 floors（polished 为 null）；没有 floors 时界面按整段显示
+ *
+ * job 的形状（一个聊天一份，业务层保存到酒馆服务器，刷新网页、关掉酒馆都不丢；关掉抽屉或弹窗、切页签都不影响）：
  *   { id, status: 'running' | 'review' | 'stopped' | 'finished', chatName, isCurrentChat: boolean,
- *     stopReason: string | null, waitUntil: number | null, segments: segment[] }
+ *     stopReason: string | null, waitUntil: number | null,
+ *     newFloors: { count, from, to } | null, segments: segment[] }
+ *   newFloors = 聊天里在这份结果之后新增、且符合润色设置的楼层；没有时为 null
  *   review    = 开始润色后只润色第 1 段，等用户看过效果点「继续润色」
  *   waitUntil = 接口限速时，等到这个时间（毫秒时间戳）再发下一次请求；不在等待时为 null
  *   stopReason = 自动停止的原因（如连续 2 段失败），用户点停止时为 null
@@ -49,10 +56,16 @@
  *  7. polishUI.resume() → job             按顺序继续润色等待中和失败的段，有 resumeFloor 的从那一楼接着润色
  *  8. polishUI.retrySegment(index) → job  这一段整段重新润色（清掉原结果，任务不在进行时）
  *  9. polishUI.stop()                     停止；正在请求的那次作废，这一段已完整的楼层保留，回到等待中
- * 10. polishUI.clearJob()                 清空当前任务（任务在进行时 reject）
+ * 10. polishUI.clearJob()                 清空当前聊天的润色结果，连同已保存的一起删除（任务在进行时 reject）
  * 11. polishUI.getJob() → job | null；polishUI.onJobChange(callback) → unsubscribe()
- *       任务或任一段状态变化时调用 callback(job)
- * 12. polishUI.exportFile({ format, fileName }) → { count }   按段落顺序导出润色后的文字；还有没完成的段时 reject
+ *       getJob 返回当前聊天已保存的结果（正在润色的是别的聊天时返回那份，isCurrentChat 为 false）；
+ *       任务或任一段、任一楼状态变化，以及读到已保存的结果、切换聊天后，调用 callback(job)
+ * 13. polishUI.editFloor(floor, text) → job        手动修改这一楼的润色结果并保存，不发请求；空内容 reject
+ * 14. polishUI.estimateRedo(floors) → number       重新润色这些楼层预计要请求几次（同步）
+ * 15. polishUI.redoFloors(floors) → job            只重新润色选中的楼层：连着的楼层一组，每组带前后楼衔接，
+ *       尽量合成一次请求，超过每次发送字数才拆开；覆盖手动修改；任务不在进行时
+ * 16. polishUI.appendNew() → job                   润色聊天里新增的楼层，接在已有结果后面（不先试第 1 段）
+ * 12. polishUI.exportFile({ format, fileName }) → { count }   按段落顺序导出润色后的文字（含手动修改）；还有没完成的段时 reject
  *
  * 函数失败时 reject Error，message 是给用户看的中文原因，界面直接显示。
  * 清洗规则下拉框的预设列表用 presets.list()；导出页当前规则用 window.YaKitExportPage.getState()。
@@ -199,6 +212,10 @@
   const STATE_TEXT = { pending: '等待中', running: '润色中', done: '已完成', failed: '失败' };
   const rows = new Map();
   let listKey = '';
+  // 选中要重新润色的楼层；正在手动修改的楼层（刷新列表时不覆盖输入框）
+  const selected = new Set();
+  const editing = new Set();
+  const canTouch = () => hasJob() && !running() && job.isCurrentChat !== false;
 
   function createRow(segment) {
     const row = document.createElement('article');
@@ -210,7 +227,7 @@
         <yakit-button size="sm" variant="ghost" hidden>重新润色</yakit-button>
       </div>
       <div class="notice" role="alert" hidden>${ALERT_ICON}<span></span></div>
-      <div class="preview-text"></div>
+      <div class="polish-floors"></div>
     `;
     const retry = row.querySelector('yakit-button');
     retry.setAttribute('aria-label', `重新润色第 ${segment.index + 1} 段`);
@@ -238,37 +255,157 @@
 
     row.querySelector('yakit-button').hidden = !hasJob() || running() || !['done', 'failed'].includes(segment.status);
 
-    // 失败原因用危险提示框；字数明显变少只用提醒提示框，由用户决定要不要重新润色
-    const shortFloors = hasJob() && segment.status === 'done' && Array.isArray(segment.shortFloors) ? segment.shortFloors : [];
-    const error = segment.status === 'failed' ? (segment.error || '润色失败')
-      : shortFloors.length ? `第 ${shortFloors.join('、')} 楼润色后字数明显变少，可以重新润色这段` : '';
-    const noticeKey = `${segment.status}|${error}`;
-    if (cache.error !== noticeKey) {
+    // 失败原因用危险提示框
+    const error = segment.status === 'failed' ? (segment.error || '润色失败') : '';
+    if (cache.error !== error) {
       const notice = row.querySelector('.notice');
-      const warning = segment.status !== 'failed';
       notice.hidden = !error;
-      notice.classList.toggle('is-warning', warning);
-      notice.setAttribute('role', warning ? 'status' : 'alert');
-      notice.innerHTML = `${warning ? WARNING_ICON : ALERT_ICON}<span></span>`;
       notice.querySelector('span').textContent = error;
-      cache.error = noticeKey;
+      cache.error = error;
     }
 
-    // 还没润色的段在「润色后」里显示灰字占位
+    const box = row.querySelector('.polish-floors');
+    const floors = Array.isArray(segment.floors) && segment.floors.length
+      ? segment.floors
+      : [{ floor: null, original: segment.original, polished: segment.polished, status: segment.status === 'done' ? 'done' : 'pending' }];
+    const floorKey = floors.map((item) => item.floor).join(',');
+    if (cache.floorKey !== floorKey) {
+      cache.floors = new Map();
+      box.replaceChildren(...floors.map((item) => {
+        const entry = createFloor(item);
+        cache.floors.set(item.floor, entry);
+        return entry.el;
+      }));
+      cache.floorKey = floorKey;
+    }
+    floors.forEach((item) => updateFloor(cache.floors.get(item.floor), item, segment));
+  }
+
+  /* ---------- 楼层：选择、手动修改、字数变少提醒 ---------- */
+
+  function createFloor(item) {
+    const el = document.createElement('div');
+    el.className = 'polish-floor';
+    el.innerHTML = `
+      <div class="polish-floor-head">
+        <button type="button" class="tag-chip polish-floor-chip" aria-pressed="false"></button>
+        <span class="polish-floor-note"></span>
+        <yakit-button class="polish-floor-edit" size="sm" variant="ghost" icon="../icons/edit.svg" hidden></yakit-button>
+      </div>
+      <div class="preview-text"></div>
+      <div class="polish-floor-editor" hidden>
+        <yakit-input multiline rows="6"></yakit-input>
+        <div class="btn-row">
+          <yakit-button size="sm" variant="ghost" data-act="cancel">取消</yakit-button>
+          <yakit-button size="sm" variant="primary" data-act="save">保存</yakit-button>
+        </div>
+      </div>
+    `;
+    const head = el.querySelector('.polish-floor-head');
+    head.hidden = item.floor === null;
+    if (item.floor === null) return { el, cache: {} };
+
+    const chip = el.querySelector('.polish-floor-chip');
+    chip.textContent = `第 ${item.floor} 楼`;
+    chip.setAttribute('aria-label', `选中第 ${item.floor} 楼`);
+    // 鼠标或手指点击时不抢焦点，避免出现焦点框
+    chip.addEventListener('mousedown', (event) => event.preventDefault());
+    chip.addEventListener('click', () => {
+      if (!canTouch()) return;
+      if (selected.has(item.floor)) selected.delete(item.floor);
+      else selected.add(item.floor);
+      renderAll();
+    });
+
+    const editButton = el.querySelector('.polish-floor-edit');
+    editButton.setAttribute('aria-label', `修改第 ${item.floor} 楼`);
+    editButton.addEventListener('click', () => openEditor(el, item.floor));
+    el.querySelector('[data-act="cancel"]').addEventListener('click', () => closeEditor(el, item.floor));
+    el.querySelector('[data-act="save"]').addEventListener('click', (event) => saveEditor(el, item.floor, event.currentTarget));
+    return { el, cache: {} };
+  }
+
+  function updateFloor(entry, item, segment) {
+    if (!entry) return;
+    const { el, cache } = entry;
     const showPolished = hasJob() && view === 'polished';
-    const text = showPolished ? segment.polished : segment.original;
-    const placeholder = showPolished && !segment.polished
-      ? (segment.status === 'running' ? '（正在润色…）' : '（还没润色）')
+    const touch = canTouch() && item.floor !== null;
+
+    if (item.floor !== null) {
+      const chip = el.querySelector('.polish-floor-chip');
+      const pressed = touch && selected.has(item.floor);
+      chip.setAttribute('aria-pressed', String(pressed));
+      chip.classList.toggle('is-static', !touch);
+      chip.tabIndex = touch ? 0 : -1;
+
+      // 行尾说明：重新润色中（主色转圈）/ 字数明显变少（提醒色图标 + 文字）/ 已手动修改（灰字）
+      const redoing = hasJob() && item.status === 'running' && segment.status !== 'running';
+      const note = redoing ? 'running' : (hasJob() && item.short ? 'short' : (hasJob() && item.edited ? 'edited' : ''));
+      if (cache.note !== note) {
+        const box = el.querySelector('.polish-floor-note');
+        box.className = `polish-floor-note${note ? ` is-${note}` : ''}`;
+        box.innerHTML = note === 'running' ? '<span class="polish-spinner" aria-hidden="true"></span><span>重新润色中</span>'
+          : note === 'short' ? `${WARNING_ICON}<span>字数明显变少</span>`
+            : note === 'edited' ? '<span>已手动修改</span>' : '';
+        cache.note = note;
+      }
+      el.querySelector('.polish-floor-edit').hidden = !(touch && showPolished && item.polished) || editing.has(item.floor);
+    }
+
+    if (editing.has(item.floor)) return;
+    const text = showPolished ? item.polished : item.original;
+    const placeholder = showPolished && !item.polished
+      ? (item.status === 'running' ? '（正在润色…）' : '（还没润色）')
       : (!text ? '（清洗后为空）' : '');
-    const key = `${placeholder}\u0000${text || ''}`;
+    const key = `${placeholder}|${text || ''}`;
     if (cache.text !== key) {
-      const box = row.querySelector('.preview-text');
+      const box = el.querySelector('.preview-text');
       box.classList.toggle('is-empty', Boolean(placeholder));
       if (placeholder) box.textContent = placeholder;
       else fillText(box, text);
       cache.text = key;
     }
   }
+
+  function openEditor(el, floor) {
+    const item = findFloor(floor);
+    if (!item || !canTouch()) return;
+    editing.add(floor);
+    const input = el.querySelector('.polish-floor-editor yakit-input');
+    input.setAttribute('aria-label', `第 ${floor} 楼润色后的文字`);
+    input.value = item.polished || '';
+    el.querySelector('.preview-text').hidden = true;
+    el.querySelector('.polish-floor-editor').hidden = false;
+    el.querySelector('.polish-floor-edit').hidden = true;
+    input.focus();
+  }
+
+  function closeEditor(el, floor) {
+    editing.delete(floor);
+    el.querySelector('.polish-floor-editor').hidden = true;
+    el.querySelector('.preview-text').hidden = false;
+    renderAll();
+  }
+
+  async function saveEditor(el, floor, button) {
+    const text = el.querySelector('.polish-floor-editor yakit-input').value;
+    button.setAttribute('loading', '');
+    try {
+      job = await service().editFloor(floor, text);
+      editing.delete(floor);
+      el.querySelector('.polish-floor-editor').hidden = true;
+      el.querySelector('.preview-text').hidden = false;
+      renderAll();
+      YaKitToast.show(`已保存第 ${floor} 楼`, 'success');
+    } catch (error) {
+      YaKitToast.show(error?.message || '保存失败', 'danger');
+    } finally {
+      button.removeAttribute('loading');
+    }
+  }
+
+  const allFloors = () => (job?.segments || []).flatMap((segment) => segment.floors || []);
+  const findFloor = (floor) => allFloors().find((item) => item.floor === floor);
 
   function renderList() {
     const info = chatInfo();
@@ -305,11 +442,24 @@
     toolbar.hidden = false;
     $('polish-view').hidden = !job;
 
+    // 聊天里有新楼层：提示并提供「润色新增部分」
+    const fresh = job && !running() && job.isCurrentChat !== false ? job.newFloors : null;
+    $('polish-new').hidden = !fresh?.count;
+    if (fresh?.count) $('polish-new-text').textContent = `聊天里新增了 ${fresh.count} 层楼（第 ${fresh.from}–${fresh.to} 楼），可以接着润色。`;
+
+    // 选中的楼层只在能操作时有效；不存在的楼层去掉
+    if (!canTouch()) selected.clear();
+    else {
+      const exists = new Set(allFloors().map((item) => item.floor));
+      [...selected].forEach((floor) => { if (!exists.has(floor)) selected.delete(floor); });
+    }
+
     // 换了任务或重新分段时整体重建，否则只更新变化的部分，滚动位置不跳
     const key = job ? `job:${job.id}:${segments.length}` : `plan:${segments.map((s) => `${s.startFloor}-${s.endFloor}-${s.chars}`).join(',')}`;
     const list = $('polish-list');
     if (key !== listKey) {
       rows.clear();
+      if (listKey.split(':')[1] !== key.split(':')[1]) editing.clear();
       list.replaceChildren(...segments.map((segment) => {
         const entry = createRow(segment);
         rows.set(segment.index, entry);
@@ -339,6 +489,21 @@
     run.setAttribute('icon', '../icons/sparkle.svg');
     const primary = (button, on) => (on ? button.setAttribute('variant', 'primary') : button.removeAttribute('variant'));
 
+    // 选中了楼层：操作条换成「取消选择」+「重新润色选中的楼层」
+    const selecting = selected.size > 0 && canTouch();
+    $('polish-select-clear').hidden = !selecting;
+    exportButton.hidden = selecting;
+    if (selecting) {
+      let requests = null;
+      try { requests = service().estimateRedo?.([...selected].sort((a, b) => a - b)); } catch { requests = null; }
+      text.textContent = `已选 ${selected.size} 层楼${Number.isFinite(requests) ? ` · 约 ${requests} 次请求` : ''}`;
+      track.hidden = true;
+      run.textContent = '重新润色选中的楼层';
+      run.removeAttribute('disabled');
+      primary(run, true);
+      return;
+    }
+
     if (!job) {
       const canStart = ready() && chatInfo().status === 'ok' && anyType() && plan.length > 0 && !planError;
       run.textContent = '开始润色';
@@ -361,8 +526,11 @@
     if (running()) {
       const current = segments.find((segment) => segment.status === 'running');
       const wait = waitSeconds();
+      const redoing = current ? 0 : allFloors().filter((item) => item.status === 'running').length;
       const doing = wait ? `接口限速，${wait} 秒后继续 · ` : (current ? `正在润色第 ${current.index + 1} 段 · ` : '');
-      text.textContent = `${doing}已完成 ${done} / ${segments.length} 段${failedText}`;
+      text.textContent = redoing && !wait
+        ? `正在重新润色 ${redoing} 层楼`
+        : `${doing}已完成 ${done} / ${segments.length} 段${failedText}`;
       run.textContent = '停止';
       run.setAttribute('icon', '../icons/close.svg');
       run.removeAttribute('disabled');
@@ -572,7 +740,7 @@
       const done = (job?.segments || []).filter((segment) => segment.status === 'done').length;
       const ok = await YaKitModal.confirm({
         title: '清空润色结果？',
-        message: done ? `已经润色好的 ${done} 段会一起清空，不能找回。` : '清空后按新设置重新分段。',
+        message: done ? `已经润色好的 ${done} 段会连同保存的结果一起删除，不能找回。` : '清空后按新设置重新分段。',
         confirmText: '清空',
       });
       if (!ok) return;
@@ -648,6 +816,21 @@
   $('polish-run').addEventListener('click', async () => {
     const button = $('polish-run');
     if (!ready() || button.hasAttribute('loading')) return;
+    if (selected.size && canTouch()) {
+      const floors = [...selected].sort((a, b) => a - b);
+      const edited = floors.filter((floor) => findFloor(floor)?.edited).length;
+      if (edited) {
+        const ok = await YaKitModal.confirm({
+          title: '重新润色选中的楼层？',
+          message: `其中 ${edited} 层手动改过，重新润色会覆盖这些修改。`,
+          confirmText: '重新润色',
+        });
+        if (!ok) return;
+      }
+      selected.clear();
+      await call(button, () => service().redoFloors(floors), '重新润色失败');
+      return;
+    }
     if (running()) {
       await call(button, () => service().stop(), '停止失败');
       YaKitToast.show('已停止润色', 'success');
@@ -675,8 +858,26 @@
   });
 
   async function retrySegment(index, button) {
+    const edited = (job?.segments?.[index]?.floors || []).filter((item) => item.edited).length;
+    if (edited) {
+      const ok = await YaKitModal.confirm({
+        title: `重新润色第 ${index + 1} 段？`,
+        message: `这一段有 ${edited} 层手动改过，整段重新润色会覆盖这些修改。`,
+        confirmText: '重新润色',
+      });
+      if (!ok) return;
+    }
     await call(button, () => service().retrySegment(index), '重新润色失败');
   }
+
+  $('polish-select-clear').addEventListener('click', () => {
+    selected.clear();
+    renderAll();
+  });
+
+  $('polish-new-go').addEventListener('click', (event) => {
+    call(event.currentTarget, () => service().appendNew(), '润色新增部分失败');
+  });
 
   $('polish-view').addEventListener('change', (event) => {
     view = event.detail.value;
@@ -709,6 +910,7 @@
     const wasRunning = running();
     job = next || null;
     renderAll();
+    if (!job) schedulePlan(0);
     if (!wasRunning || running() || !job) return;
     const failed = job.segments.filter((segment) => segment.status === 'failed').length;
     if (job.stopReason) notify(`润色已停止：${job.stopReason}`, 'warning');
@@ -724,13 +926,10 @@
     if (typeof service().onChatChanged === 'function') {
       const offChat = service().onChatChanged(() => {
         renderSummary();
-        if (job) {
-          // 当前聊天变了，结果是否来自当前聊天由业务重新判断
-          try { job = service().getJob() || null; } catch { /* 保留原结果 */ }
-          renderAll();
-        } else {
-          schedulePlan();
-        }
+        // 换了聊天就换成那个聊天保存的结果；没有结果时显示分段预览
+        try { job = service().getJob() || null; } catch { /* 保留原结果 */ }
+        renderAll();
+        if (!job) schedulePlan();
       });
       if (typeof offChat === 'function') window.addEventListener('pagehide', offChat);
     }
