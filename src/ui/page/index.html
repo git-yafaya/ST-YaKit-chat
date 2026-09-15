@@ -34,10 +34,11 @@
     <!-- ========== 页签：文本导出 ========== -->
     <div data-page="export" class="export-page">
       <!-- 主要内容：导出预览 -->
-      <yakit-card class="preview-card" title="导出预览" subtitle="最近 2 条消息导出后的样子">
+      <yakit-card class="preview-card" id="preview-card" title="导出预览" subtitle="最近 2 条消息导出后的样子">
         <!-- 导出设置入口和当前设置摘要，放在预览标题同一行 -->
         <div slot="extra" class="preview-extra">
           <span class="export-summary" id="export-summary"></span>
+          <yakit-input id="preview-floor" class="preview-floor" type="number" size="sm" placeholder="看第几楼" aria-label="预览第几楼"></yakit-input>
           <yakit-button id="export-settings" size="sm" variant="ghost" icon="../icons/settings.svg">导出设置</yakit-button>
           <yakit-button id="preview-expand" size="sm" variant="ghost" icon="../icons/expand.svg" aria-label="查看全部楼层的导出预览"></yakit-button>
         </div>

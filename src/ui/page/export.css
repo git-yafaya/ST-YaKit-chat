@@ -146,6 +146,7 @@
   box-shadow: var(--card-shadow);
 }
 .preview-extra { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.preview-floor { width: 96px; flex: none; }
 
 /* 放大查看导出预览的宽抽屉 */
 .preview-drawer-note { margin: 0 0 12px; }
@@ -206,6 +207,8 @@
   .preview-card::part(header) { flex-wrap: wrap; row-gap: 4px; }
   .preview-extra { display: contents; }
   .export-summary { order: 1; flex-basis: 100%; }
+  /* 看第几楼放到摘要下面一行，不挤标题 */
+  .preview-floor { order: 2; width: 120px; --input-height: 34px; }
   .export-page { height: auto; min-height: 0; }
   .export-page > .preview-card { flex: none; }
   .preview-card::part(body) { max-height: 280px; }

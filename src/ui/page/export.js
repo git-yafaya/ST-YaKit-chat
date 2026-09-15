@@ -121,6 +121,10 @@
     body.firstChild.textContent = text;
   }
 
+  // 看第几楼：空着显示最近 2 条；填了楼号显示这一楼和它前一条（楼号从 0 开始，按当前设置筛选后的楼层）
+  let previewFloor = null;
+  const PREVIEW_SUBTITLE = '最近 2 条消息导出后的样子';
+
   let previewToken = 0;
   async function renderPreview() {
     const info = chatInfo();
@@ -136,7 +140,12 @@
     const token = ++previewToken;
     let messages;
     try {
-      messages = await service().previewMessages(structuredClone(state), PREVIEW_COUNT);
+      if (previewFloor === null) {
+        messages = await service().previewMessages(structuredClone(state), PREVIEW_COUNT);
+      } else {
+        const all = await service().previewMessages(structuredClone(state), Math.max(info.floorCount || 0, 0));
+        messages = (all || []).filter((message) => message.floor <= previewFloor).slice(-PREVIEW_COUNT);
+      }
     } catch (error) {
       if (token === previewToken) showEmpty('预览加载失败');
       YaKitErrorLog.warn('预览失败', error);
@@ -145,7 +154,7 @@
     if (token !== previewToken) return; // 期间设置又变了，丢掉旧结果
 
     if (!messages?.length) {
-      showEmpty('（无可预览内容）');
+      showEmpty(previewFloor === null ? '（无可预览内容）' : `第 ${previewFloor} 楼之前没有可预览的内容`);
       return;
     }
     const body = $('preview-body');
@@ -217,6 +226,14 @@
       if (entries.some((entry) => entry.isIntersecting)) appendBatch();
     }, { rootMargin: '600px 0px' });
     appendBatch();
+    // 填了楼号：一直加载到这一楼，再滚到它
+    if (previewFloor !== null) {
+      const index = messages.findIndex((message) => message.floor >= previewFloor);
+      if (index >= 0) {
+        while (fullShown <= index) appendBatch();
+        box.children[index]?.scrollIntoView({ block: 'start' });
+      }
+    }
     fullObserver.observe(sentinel);
   }
   const FULL_BATCH = 20;
@@ -589,6 +606,15 @@
     });
 
     $('export-settings').addEventListener('click', () => $('export-drawer').show());
+    $('preview-floor').addEventListener('change', (event) => {
+      const input = event.currentTarget;
+      const text = input.value.trim();
+      const value = text === '' ? null : Math.trunc(Number(text));
+      previewFloor = value === null || !Number.isFinite(value) ? null : Math.max(0, value);
+      input.value = previewFloor === null ? '' : String(previewFloor);
+      $('preview-card').setAttribute('subtitle', previewFloor === null ? PREVIEW_SUBTITLE : `第 ${previewFloor} 楼导出后的样子`);
+      renderPreview();
+    });
     $('preview-expand').addEventListener('click', () => {
       renderFullPreview();
       $('preview-drawer').show();
