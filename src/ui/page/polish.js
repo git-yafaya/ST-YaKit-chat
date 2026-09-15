@@ -673,7 +673,7 @@
     $('polish-lock').hidden = !locked;
     $('polish-lock-note').innerHTML = running()
       ? '正在润色，只能改文件名。<br>停止后才能清空结果。'
-      : '已有润色结果，只能改文件名。<br>要按新设置润色，先清空结果。';
+      : '已有润色结果，只能改文件名、文风和本次任务。<br>要按新设置润色，先清空结果。';
     $('polish-clear').toggleAttribute('disabled', running());
   }
 
@@ -764,7 +764,9 @@
       const done = (job?.segments || []).filter((segment) => segment.status === 'done').length;
       const ok = await YaKitModal.confirm({
         title: '清空润色结果？',
-        message: done ? `已经润色好的 ${done} 段会连同保存的结果一起删除，不能找回。` : '清空后按新设置重新分段。',
+        message: done
+          ? `已经润色好的 ${done} 段会连同保存的结果一起删除，不能找回。本次任务的补充要求和参考材料也会清空。`
+          : '清空后按新设置重新分段。本次任务的补充要求和参考材料也会清空。',
         confirmText: '清空',
       });
       if (!ok) return;
@@ -772,6 +774,7 @@
         await service().clearJob();
         job = null;
         renderAll();
+        notifyTask(true);
         schedulePlan(0);
         YaKitToast.show('已清空润色结果', 'success');
       } catch (error) {
@@ -930,11 +933,14 @@
     if ($('polish-drawer').open) renderLock();
   }
 
+  // 通知「本次任务」一节：进行中不能编辑；reload = 结果被清空或换了聊天，要重新读取
+  const notifyTask = (reload = false) => window.dispatchEvent(new CustomEvent('yakit-polish-job', { detail: { running: running(), reload } }));
+
   function onJob(next) {
     const wasRunning = running();
     job = next || null;
     renderAll();
-    window.dispatchEvent(new CustomEvent('yakit-polish-job', { detail: { running: running() } }));
+    notifyTask();
     if (!job) schedulePlan(0);
     if (!wasRunning || running() || !job) return;
     const failed = job.segments.filter((segment) => segment.status === 'failed').length;
@@ -954,6 +960,7 @@
         // 换了聊天就换成那个聊天保存的结果；没有结果时显示分段预览
         try { job = service().getJob() || null; } catch { /* 保留原结果 */ }
         renderAll();
+        notifyTask(true);
         if (!job) schedulePlan();
       });
       if (typeof offChat === 'function') window.addEventListener('pagehide', offChat);

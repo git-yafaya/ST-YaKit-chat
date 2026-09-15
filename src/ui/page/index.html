@@ -401,7 +401,7 @@
           <yakit-button id="polish-ref-add" size="sm" icon="../icons/plus.svg">添加参考</yakit-button>
         </div>
       </div>
-      <p class="field-note">只对这次润色生效，不改文风预设。<br>参考材料只帮助学写法、理解前情，不会写进结果。</p>
+      <p class="field-note">按聊天保存，下次开始、继续或重做时生效。<br>参考材料只帮助学写法、理解前情，不会写进结果。</p>
     </section>
 
     <section class="drawer-section">
@@ -496,7 +496,7 @@
   <!-- 预设：新建 / 编辑文风预设 -->
   <yakit-drawer id="style-drawer" title="新建文风">
     <section class="drawer-section drawer-stack">
-      <yakit-input id="style-name" label="名称" required maxlength="30" placeholder="例如 轻小说"></yakit-input>
+      <yakit-input id="style-name" label="名称" required maxlength="64" placeholder="例如 轻小说"></yakit-input>
       <yakit-input id="style-text" label="文风要求" required multiline rows="10" placeholder="写你对文字风格的要求，例如：句子短一些，多写动作和神态"></yakit-input>
       <div class="btn-row">
         <yakit-button id="style-template" size="sm" variant="ghost" icon="../icons/plus.svg">插入模板</yakit-button>
