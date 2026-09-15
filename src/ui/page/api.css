@@ -11,6 +11,7 @@
 /* 助手：名字在左、小号下拉在右 */
 .assistant-card yakit-select { width: min(240px, 62%); }
 .assistant-card .field-note:last-child { margin-bottom: 0; }
+.assistant-reset { justify-content: flex-end; margin-top: 4px; }
 /* 采样参数：接口下面两列，名字在左、小号数字输入框在右 */
 .sampling-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin-top: 10px; }
 .sampling-cell { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
