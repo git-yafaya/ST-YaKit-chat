@@ -27,7 +27,7 @@
  * 11. apiUI.listCorePrompts() → [corePrompt]，按 通用破限词 / 正则提示词 / 润色提示词 排列
  * 12. apiUI.saveCorePrompt(id, text) → 保存后的 corePrompt   正则、润色提示词正文为空时 reject
  * 13. apiUI.resetCorePrompt(id) → 恢复默认后的 corePrompt
- *      三个函数都提供时才显示提示词卡片
+ *      三个函数没全提供时，卡片照样显示三行，摘要写「还没接入」，不能点开编辑
  *
  * 助手（kind 为 'regex' 正则助手 | 'polish' 润色助手）：只选接口，profile 取值 'follow' 跟随使用中 / 'main' 主 API / 具体配置 id
  *
@@ -105,7 +105,7 @@
     const available = Boolean(service());
     $('api-actions').hidden = !available;
     $('api-unavailable').hidden = available;
-    $('prompt-card').hidden = !available || !hasCorePrompts();
+    $('prompt-card').hidden = !available;
     if (!available) {
       $('api-list').replaceChildren();
       return;
@@ -363,9 +363,19 @@
     return `${prompt.target} · ${text || '空着，不发送'}`;
   };
 
+  // 业务没接上时照样显示三行，方便先看界面
+  const PLACEHOLDER_PROMPTS = [
+    { id: 'jailbreak', name: '通用破限词', target: 'system' },
+    { id: 'regex', name: '正则提示词', target: 'user' },
+    { id: 'polish', name: '润色提示词', target: 'user' },
+  ];
+
   async function loadPrompts() {
-    $('prompt-card').hidden = !hasCorePrompts();
-    if ($('prompt-card').hidden) return;
+    if (!hasCorePrompts()) {
+      prompts = [];
+      renderPrompts();
+      return;
+    }
     try {
       const list = await service().listCorePrompts();
       prompts = Array.isArray(list) ? list : [];
@@ -377,6 +387,14 @@
   }
 
   function renderPrompts() {
+    if (!hasCorePrompts()) {
+      $('prompt-list').replaceChildren(...PLACEHOLDER_PROMPTS.map((prompt) => {
+        const row = YaKitChoice.row({ name: prompt.name, summary: `${prompt.target} · 还没接入` });
+        row.querySelector('.choice-main').disabled = true;
+        return row;
+      }));
+      return;
+    }
     $('prompt-list').replaceChildren(...prompts.map((prompt) => {
       const row = YaKitChoice.row({
         name: prompt.name,

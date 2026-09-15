@@ -81,5 +81,5 @@
 }
 .error-log-actions { margin-top: 10px; }
 
-/* 插件更新：「更新公告」和「检查更新」并排，不换行 */
-.update-actions { flex: none; flex-wrap: nowrap; gap: 4px; }
+/* 更新：「更新公告」在上、「检查更新」在下，两个按钮一样宽 */
+.update-actions { flex: none; flex-direction: column; align-items: stretch; gap: 8px; }

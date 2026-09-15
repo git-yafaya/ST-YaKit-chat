@@ -19,7 +19,7 @@
  *  9. styles.importStyle(text) → 新 style           text 是用户选的文件内容；重名自动加序号
  *
  * 给润色页用：window 事件 yakit-style-change（文风列表或正在用的文风变化时触发）
- * 没提供 styles 时，文风预设显示「文风预设还没接入」。
+ * 没提供 styles 时，文风预设显示「文风预设还没接入」，导入和新建按钮照样显示但不能点。
  */
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -84,7 +84,8 @@
   function render() {
     const available = Boolean(service());
     const empty = $('style-empty');
-    $('style-actions').hidden = !available;
+    $('style-import').toggleAttribute('disabled', !available);
+    $('style-create').toggleAttribute('disabled', !available);
     if (!available || !styles.length) {
       $('style-list').replaceChildren();
       empty.hidden = false;

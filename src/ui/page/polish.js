@@ -611,9 +611,14 @@
 
   async function loadStyles() {
     const api = styleService();
-    $('polish-style').closest('.setting-field').hidden = !api;
-    $('polish-style').closest('.setting-field').nextElementSibling.hidden = !api;
-    if (!api) return;
+    const select = $('polish-style');
+    // 业务没接上时照样显示这一行，下拉框不能选
+    select.toggleAttribute('disabled', !api);
+    if (!api) {
+      select.replaceChildren(new Option('还没接入', ''));
+      select.value = '';
+      return;
+    }
     try {
       const [list, id] = await Promise.all([api.list(), api.getActiveId()]);
       styleList = Array.isArray(list) ? list : [];
@@ -623,7 +628,6 @@
       styleList = [];
       activeStyleId = null;
     }
-    const select = $('polish-style');
     select.replaceChildren(new Option('不使用文风', ''), ...styleList.map((style) => new Option(style.name, style.id)));
     select.value = activeStyleId ?? '';
   }
