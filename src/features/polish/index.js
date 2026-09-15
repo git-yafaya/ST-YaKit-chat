@@ -389,6 +389,6 @@ export const polishUI = Object.freeze({
         if (!value && entry) { await loadEntry(entry); value = getJob(); }
         if (!options || typeof options !== 'object' || Array.isArray(options)) throw new Error('导出选项必须是对象');
         const { settings, source } = resolveSettings(entry?.record?.settings);
-        return exportPolish(value, { fileName: options.fileName ?? settings.fileName, format: source.format });
+        return exportPolish(value, { fileName: options.fileName ?? settings.fileName, format: source.format, illustrated: source.illustrated === true });
     },
 });

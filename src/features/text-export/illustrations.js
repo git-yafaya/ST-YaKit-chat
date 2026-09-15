@@ -1,7 +1,7 @@
 // 插画小说：识别柏宝绘、智绘姬的生图标签，清洗和润色期间用占位符代替，导出 EPUB 时换成图片。
-const TOKEN_OPEN = '';
-const TOKEN_CLOSE = '';
-export const TOKEN_PATTERN = /(\d+)/g;
+const TOKEN_OPEN = '\uE000';
+const TOKEN_CLOSE = '\uE001';
+export const TOKEN_PATTERN = /\uE000(\d+)\uE001/g;
 const BBI_TAG = /<bbi_image>[\s\S]+?<\/bbi_image>/gi;
 const CHATU8_KEY = 'st-chatu8';
 const IMAGE_TYPES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
@@ -40,6 +40,48 @@ export function replaceImageTags(text, chatMessage, floor, context, refs) {
         return makeToken(id);
     });
     return result;
+}
+
+/* ---------- 润色：去掉占位符再发给模型，完成后按相对位置补回 ---------- */
+
+// 取出占位符，记录每张图在去掉后的文字里的相对位置（0 为开头，1 为结尾）。
+export function takeImages(text, refs) {
+    const images = [];
+    let stripped = '';
+    let last = 0;
+    for (const match of text.matchAll(TOKEN_PATTERN)) {
+        stripped += text.slice(last, match.index);
+        const ref = refs[Number(match[1])];
+        if (ref) images.push({ ref, offset: stripped.length });
+        last = match.index + match[0].length;
+    }
+    stripped += text.slice(last);
+    const length = stripped.length;
+    return { text: stripped, images: images.map(({ ref, offset }) => ({ ref, at: length ? offset / length : 0 })) };
+}
+
+// 按相对位置放回润色后的文字，落在最近的段落开头或全文首尾，不插进句子中间。
+export function placeImages(text, images, refs) {
+    if (!Array.isArray(images) || !images.length) return text;
+    const length = text.length;
+    const stops = [0, length];
+    for (let i = text.indexOf('\n'); i >= 0; i = text.indexOf('\n', i + 1)) stops.push(i + 1);
+    let result = '';
+    let cursor = 0;
+    for (const image of [...images].sort((x, y) => x.at - y.at)) {
+        const target = Math.min(1, Math.max(0, Number(image.at) || 0)) * length;
+        let position = stops.reduce((best, stop) => Math.abs(stop - target) < Math.abs(best - target) ? stop : best, 0);
+        position = Math.max(position, cursor);
+        result += text.slice(cursor, position) + makeToken(refs.push(image.ref) - 1);
+        cursor = position;
+    }
+    return result + text.slice(cursor);
+}
+
+export function isImageRef(ref) {
+    if (!ref || typeof ref !== 'object' || !Number.isInteger(ref.floor) || ref.floor < 0) return false;
+    if (ref.kind === 'bbi') return Number.isInteger(ref.swipeId) && Number.isInteger(ref.seq) && typeof ref.tag === 'string';
+    return ref.kind === 'chatu8' && typeof ref.link === 'string' && Boolean(ref.link);
 }
 
 /* ---------- 柏宝绘：图片记在消息 extra.bbiImage[swipeId][promptHash][] ---------- */

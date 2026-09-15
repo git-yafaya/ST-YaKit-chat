@@ -4,6 +4,7 @@ import { filterMessages } from '../text-export/filter-messages.js';
 import { cleanMessages } from '../text-export/clean-messages.js';
 import { loadSettings as loadExportSettings, normalizeSettings as normalizeExportSettings, parseRule } from '../text-export/export-ui-settings.js';
 import { list as listPresets } from '../presets/store.js';
+import { replaceImageTags, takeImages } from '../text-export/illustrations.js';
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const CHUNK_FLOORS = { fewer: 20, balanced: 10, quality: 5 };
@@ -110,12 +111,17 @@ export function buildPlan(value = {}, context = globalThis.SillyTavern?.getConte
     for (const message of messages) {
         if (typeof message.mes !== 'string') throw new TypeError(`第 ${message.floor - 1} 楼正文不是文字，无法润色`);
     }
+    // 插画小说：生图标签不发给模型，记下位置，导出 EPUB 时补回。
+    const refs = source.illustrated === true && source.format === 'epub' ? [] : null;
+    if (refs) messages = messages.map(message => ({ ...message, mes: replaceImageTags(message.mes, context.chat[message.floor - 1], message.floor - 1, context, refs) }));
     const rules = source.rules.map(parseRule).filter(rule => rule !== null);
     if (rules.length) messages = cleanMessages(messages, rules, source.mode === 'keep' ? 'keep' : 'remove');
 
     const segments = [];
     const floors = [];
-    for (const message of messages) {
+    for (const taken of messages) {
+        const { text, images } = refs ? takeImages(taken.mes, refs) : { text: taken.mes, images: [] };
+        const message = { ...taken, mes: text };
         if (!message.mes.trim()) continue;
         const chars = Array.from(message.mes).length;
         const previous = segments.at(-1);
@@ -134,7 +140,7 @@ export function buildPlan(value = {}, context = globalThis.SillyTavern?.getConte
         }
         segments.at(-1).floors.push({
             floor: message.floor - 1, original: message.mes, polished: null,
-            status: 'pending', edited: false, short: false,
+            status: 'pending', edited: false, short: false, ...(images.length ? { images } : {}),
         });
         floors.at(-1).push({ floor: message.floor - 1, text: message.mes });
     }

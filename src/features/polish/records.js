@@ -1,5 +1,6 @@
 import { normalizeSettings, buildPlan } from './segments.js';
 import { syncSegment } from './floors.js';
+import { isImageRef } from '../text-export/illustrations.js';
 
 export function chatKey(context) {
     if (context?.characterId == null || !Array.isArray(context.chat)) return null;
@@ -60,6 +61,13 @@ export function restoreRecord(value) {
                 || typeof floor.edited !== 'boolean' || typeof floor.short !== 'boolean'
                 || (floor.status === 'done' && floor.polished === null)) throw invalid();
             lastFloor = floor.floor;
+            // 插图位置只在格式正确时保留，旧结果没有这一项。
+            if (Object.hasOwn(floor, 'images')) {
+                const images = Array.isArray(floor.images) ? floor.images.filter(image => isImageRef(image?.ref)
+                    && Number.isFinite(image.at) && image.at >= 0 && image.at <= 1).map(({ ref, at }) => ({ ref, at })) : [];
+                if (images.length) floor.images = images;
+                else delete floor.images;
+            }
             if (floor.status === 'running') floor.status = floor.polished === null ? 'pending' : 'done';
         }
         segment.original = segment.floors.map(floor => floor.original).join('\n\n');
