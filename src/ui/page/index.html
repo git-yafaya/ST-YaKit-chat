@@ -324,13 +324,15 @@
         <option value="txt">TXT</option>
         <option value="md">Markdown</option>
         <option value="epub">EPUB</option>
+        <option value="jsonl">酒馆聊天</option>
       </yakit-segmented>
       <yakit-segmented id="opt-labels" block aria-label="内容格式" value="with">
         <option value="with">带类别标注</option>
         <option value="plain">仅正文</option>
       </yakit-segmented>
       <yakit-switch id="opt-illustrated" label="插画小说" hidden></yakit-switch>
-      <figure class="format-example" aria-label="导出效果示例">
+      <p class="field-note" id="opt-jsonl-note" hidden>导出成酒馆能直接导入的聊天文件，正文按规则清洗，其他信息原样保留。<br>建议先导出一份，导入后可以反复清洗。</p>
+      <figure class="format-example" id="format-example" aria-label="导出效果示例">
         <figcaption>示例</figcaption>
         <pre id="format-example-text"></pre>
       </figure>

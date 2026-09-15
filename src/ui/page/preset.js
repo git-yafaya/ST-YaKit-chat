@@ -32,7 +32,7 @@
   const service = () => parent.YaKitChat?.presets;
 
   const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
-  const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB' };
+  const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB', jsonl: '酒馆聊天' };
   const NAME_MAX = 30;
   const ACTION_LABELS = { rename: '重命名', duplicate: '复制', export: '导出', delete: '删除' };
   const ACTION_ICONS = { rename: '../icons/edit.svg', duplicate: '../icons/copy.svg', export: '../icons/ouput.svg', delete: '../icons/trash.svg' };
@@ -70,7 +70,7 @@
     const parts = [rules.length ? `${rules.length} 条规则 · ${content.mode === 'keep' ? '只保留匹配' : '删除匹配'}` : '无规则'];
     const types = Object.keys(TYPE_LABELS).filter((key) => content.types?.[key]).map((key) => TYPE_LABELS[key]);
     parts.push(types.length ? types.join('/') : '未选择消息类型');
-    parts.push(`${FORMAT_LABELS[content.format] || 'TXT'}${content.labels === 'plain' ? ' 仅正文' : ' 带标注'}`);
+    parts.push(content.format === 'jsonl' ? FORMAT_LABELS.jsonl : `${FORMAT_LABELS[content.format] || 'TXT'}${content.labels === 'plain' ? ' 仅正文' : ' 带标注'}`);
     return parts.join(' · ');
   }
 

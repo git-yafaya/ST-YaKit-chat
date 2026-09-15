@@ -13,7 +13,7 @@
  *     start: string, end: string,    起止楼层（allFloors 为 false 时有效，可能为空字符串）
  *     types: { ai, user, system },   三种消息类型的开关（隐藏的楼层按它原来的类型算）
  *     includeHidden: boolean,        包含在酒馆里隐藏过的楼层
- *     format: 'txt' | 'md' | 'epub', 文件格式
+ *     format: 'txt' | 'md' | 'epub' | 'jsonl', 文件格式；jsonl = 酒馆聊天文件，只保留当前显示的回复，其他字段原样保留，「带类别标注 / 仅正文」不生效
  *     labels: 'with' | 'plain',      带类别标注 / 仅正文
  *     illustrated: boolean,          插画小说：导出 EPUB 时带上柏宝绘、智绘姬生成的图片（只对 EPUB 生效，存进导出预设）
  *                                    loadSettings 返回的设置里没有这一项（且不是 null）时，界面认为还没接入：开关不能点，说明写「还没接入」
@@ -55,7 +55,7 @@
   const $ = (id) => document.getElementById(id);
 
   const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
-  const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB' };
+  const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB', jsonl: '酒馆聊天' };
 
   const service = () => parent.YaKitChat?.exportUI;
   const ready = () => Boolean(service());
@@ -479,7 +479,7 @@
     const types = anyType()
       ? Object.keys(TYPE_LABELS).filter((key) => state.types[key]).map((key) => TYPE_LABELS[key]).join('/')
       : '未选择消息类型';
-    const format = `${FORMAT_LABELS[state.format]}${state.labels === 'with' ? ' 带标注' : ' 仅正文'}`;
+    const format = state.format === 'jsonl' ? FORMAT_LABELS.jsonl : `${FORMAT_LABELS[state.format]}${state.labels === 'with' ? ' 带标注' : ' 仅正文'}`;
     $('export-summary').textContent = `${range} · ${types}${state.includeHidden === false ? '（不含隐藏）' : ''} · ${format}`;
     $('floor-hint').textContent = floorCount ? `当前聊天共 ${floorCount} 条，楼层 0–${last}` : '当前聊天没有消息';
   }
@@ -510,9 +510,18 @@
       return false;
     }
   })();
+  // 酒馆聊天文件不分「带类别标注 / 仅正文」，换成说明小字
+  function syncFormatOptions() {
+    const jsonl = state.format === 'jsonl';
+    $('opt-labels').hidden = jsonl;
+    $('format-example').hidden = jsonl;
+    $('opt-jsonl-note').hidden = !jsonl;
+  }
+
   function syncIllustrated() {
     const toggle = $('opt-illustrated');
     toggle.hidden = state.format !== 'epub';
+    syncFormatOptions();
     toggle.checked = Boolean(state.illustrated);
     toggle.toggleAttribute('disabled', !illustratedReady);
     if (illustratedReady) toggle.removeAttribute('description');

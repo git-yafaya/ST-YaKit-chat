@@ -32,7 +32,7 @@ export function createExportFilename(characterName, extension, now = new Date(),
         throw new TypeError('fileName 必须是字符串');
     }
     // 自定义名称统一后缀，文件路径字符沿用默认名称的替换规则。
-    const customName = fileName.trim().replace(/\.(txt|md|epub)$/i, '')
+    const customName = fileName.trim().replace(/\.(txt|md|epub|jsonl)$/i, '')
         .replace(/[<>:"/\\|?*\u0000-\u001f\u007f-\u009f]/g, '_').replace(/[. ]+$/, '');
     if (customName) return `${customName}.${extension}`;
     // 沿用 TXT 的本地时间和文件名替换规则。

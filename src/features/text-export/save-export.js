@@ -1,6 +1,7 @@
 import { saveTxt } from './export-txt.js';
 import { buildMarkdown } from './export-markdown.js';
 import { buildEpub } from './export-epub.js';
+import { buildChatJsonl } from './export-jsonl.js';
 import { createExportFilename, validateMessages } from './export-common.js';
 import { createEpubChapters } from './epub-chapters.js';
 import { getEpubPreferences } from './epub-preferences.js';
@@ -14,8 +15,8 @@ export async function saveExport(messages, options = {}) {
         throw new TypeError('导出选项必须是对象');
     }
     const { fileType = 'txt', labelMode = 'speaker', epub, fileName = '', illustrations = null } = options;
-    if (!['txt', 'md', 'epub'].includes(fileType)) {
-        throw new TypeError('fileType 仅支持 txt、md 或 epub');
+    if (!['txt', 'md', 'epub', 'jsonl'].includes(fileType)) {
+        throw new TypeError('fileType 仅支持 txt、md、epub 或 jsonl');
     }
     validateMessages(messages, labelMode);
     if (typeof globalThis.SillyTavern?.getContext !== 'function') {
@@ -37,6 +38,11 @@ export async function saveExport(messages, options = {}) {
     if (fileType === 'md') {
         download(markdown, filename, 'text/markdown;charset=utf-8');
         return { filename, text: markdown };
+    }
+    if (fileType === 'jsonl') {
+        const text = buildChatJsonl(context, messages);
+        download(text, filename, 'application/jsonl;charset=utf-8');
+        return { filename, text };
     }
     // 宿主现成的 ZIP 文件通过副作用提供 JSZip。
     if (typeof globalThis.JSZip !== 'function') await import('/lib/jszip.min.js');

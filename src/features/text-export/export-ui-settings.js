@@ -28,7 +28,7 @@ export function normalizeSettings(value = {}) {
         settings[key] = value[key];
     }
     for (const [key, allowed] of Object.entries({
-        format: ['txt', 'md', 'epub'],
+        format: ['txt', 'md', 'epub', 'jsonl'],
         labels: ['with', 'plain'],
         mode: ['delete', 'keep'],
     })) {

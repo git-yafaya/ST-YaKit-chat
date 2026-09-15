@@ -12,6 +12,7 @@ export async function exportPolish(job, options = {}) {
     }
     if (!options || typeof options !== 'object' || Array.isArray(options)) throw new Error('导出选项必须是对象');
     const { format = 'txt', fileName = '', illustrated = false } = options;
+    if (format === 'jsonl') throw new Error('润色结果暂不能导出成酒馆聊天文件，请在导出预设里换成 TXT、Markdown 或 EPUB');
     if (!['txt', 'md', 'epub'].includes(format)) throw new Error('导出格式仅支持 TXT、Markdown 或 EPUB');
     if (typeof fileName !== 'string') throw new Error('文件名必须是文字');
     if (typeof job.chatName !== 'string' || !job.chatName.trim()) throw new Error('润色任务缺少聊天名称，请重新开始润色');
