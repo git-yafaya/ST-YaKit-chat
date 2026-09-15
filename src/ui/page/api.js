@@ -103,11 +103,38 @@
     loadAssistants();
   }
 
+  /* ---------- 入口行：点一行打开对应抽屉，行尾灰字写当前状态 ---------- */
+
+  const ENTRY_DRAWERS = { profiles: 'api-section-profiles', prompts: 'api-section-prompts', assistants: 'api-section-assistants', request: 'api-section-request' };
+  Object.entries(ENTRY_DRAWERS).forEach(([key, drawer]) => {
+    $(`api-entry-${key}`).addEventListener('activate', () => $(drawer).show());
+  });
+  let assistantSummary = null;
+
+  function renderEntries() {
+    const available = Boolean(service());
+    const active = profiles.find((profile) => profile.id === activeProfileId);
+    $('api-entry-profiles').setAttribute('summary', available ? (active?.name || '主 API（跟随ST）') : '还没接入');
+    $('api-entry-prompts').hidden = !available;
+    const modified = prompts.filter((prompt) => prompt.modified).length;
+    $('api-entry-prompts').setAttribute('summary', modified ? `已修改 ${modified} 条` : '默认');
+    $('api-entry-assistants').hidden = $('assistant-card').hidden;
+    if (assistantSummary) {
+      const follow = Object.values(assistantSummary).every((item) => item?.profile === 'follow');
+      $('api-entry-assistants').setAttribute('summary', follow ? '跟随使用中' : '已单独选接口');
+    }
+    $('api-entry-request').hidden = $('request-card').hidden;
+    const timeout = $('request-timeout').value;
+    const retries = Number($('request-retries').value);
+    $('api-entry-request').setAttribute('summary', `${timeout || 360} 秒 · ${retries ? `重试 ${retries} 次` : '不重试'}`);
+  }
+
   function renderProfiles() {
     const available = Boolean(service());
     $('api-actions').hidden = !available;
     $('api-unavailable').hidden = available;
     $('prompt-card').hidden = !available;
+    renderEntries();
     if (!available) {
       $('api-list').replaceChildren();
       return;
@@ -131,6 +158,7 @@
       if (row.classList.contains('is-active')) row.tools.innerHTML = '<span class="choice-state">使用中</span>';
     });
     $('api-list').replaceChildren(mainRow, ...rows);
+    renderEntries();
   }
 
   async function activateProfile(id) {
@@ -408,6 +436,7 @@
       if (prompt.modified) row.tools.innerHTML = '<span class="choice-state">已修改</span>';
       return row;
     }));
+    renderEntries();
   }
 
   /* ---------- 提示词抽屉 ---------- */
@@ -491,6 +520,7 @@
   async function loadAssistants() {
     const card = $('assistant-card');
     card.hidden = !hasAssistants();
+    renderEntries();
     if (card.hidden) return;
     const api = service();
     const token = ++assistantToken;
@@ -508,6 +538,8 @@
       return;
     }
     if (token !== assistantToken) return;
+    assistantSummary = data.current;
+    renderEntries();
     const follow = data.profileList.find((item) => item.id === data.activeProfile)?.name || '主 API';
     const options = [
       ['follow', `跟随使用中（${follow}）`],
@@ -591,6 +623,7 @@
 
   async function loadRequestSettings() {
     $('request-card').hidden = !hasRequestSettings();
+    renderEntries();
     if ($('request-card').hidden) return;
     try {
       const settings = await service().getRequestSettings();
@@ -601,6 +634,7 @@
     } catch (error) {
       YaKitErrorLog.warn('读取参数失败', error);
     }
+    renderEntries();
   }
 
   async function saveRequestSettings(patch, { input } = {}) {
@@ -609,6 +643,8 @@
       savedTimeout = String(saved?.timeoutSeconds ?? savedTimeout);
       input?.removeAttribute('error');
       YaKitToast.show('已保存参数', 'success');
+      if (saved?.timeoutSeconds !== undefined) $('request-timeout').value = String(saved.timeoutSeconds);
+      renderEntries();
     } catch (error) {
       // 超时时间填错时在输入框下面提示，不弹提示消息
       if (input) input.setAttribute('error', error?.message || '保存参数失败');

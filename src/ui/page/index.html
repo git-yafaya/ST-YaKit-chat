@@ -213,18 +213,39 @@
     </div>
 
     <!-- ========== 页签：API 管理 ========== -->
+    <!-- 入口行：点一行打开对应的抽屉，行尾灰字写当前状态 -->
     <div data-page="api" class="api-page" hidden>
-      <!-- 主要内容：API 配置列表 -->
-      <yakit-card class="api-card" title="API 配置" subtitle="纪实的 AI 功能用哪个接口">
-        <div slot="extra" class="btn-row" id="api-actions">
-          <yakit-button id="api-create" size="sm" variant="primary" icon="../icons/plus.svg">新建配置</yakit-button>
-        </div>
-        <div class="choice-list" id="api-list" role="list"></div>
-        <p class="list-empty" id="api-unavailable" hidden>API 管理还没接入</p>
-      </yakit-card>
+      <div class="settings-list">
+        <yakit-collapse id="api-entry-profiles" title="API 配置" icon="../icons/link.svg" link></yakit-collapse>
+        <yakit-collapse id="api-entry-prompts" title="提示词" icon="../icons/edit.svg" link></yakit-collapse>
+        <yakit-collapse id="api-entry-assistants" title="助手" icon="../icons/sparkle.svg" link hidden></yakit-collapse>
+        <yakit-collapse id="api-entry-request" title="参数" icon="../icons/settings.svg" link hidden></yakit-collapse>
+      </div>
+    </div>
+  </main>
 
-      <!-- 助手：各个 AI 功能分别用哪个接口；名字在左、小号下拉在右，改了立即保存 -->
-      <yakit-card class="assistant-card" id="assistant-card" title="助手" subtitle="各个 AI 功能用哪个接口" hidden>
+  <!-- API 管理：API 配置 -->
+  <yakit-drawer id="api-section-profiles" title="API 配置">
+    <p class="field-note api-section-note">纪实的 AI 功能用哪个接口</p>
+    <div class="choice-list" id="api-list" role="list"></div>
+    <p class="list-empty" id="api-unavailable" hidden>API 管理还没接入</p>
+    <div class="btn-row list-add" id="api-actions">
+      <yakit-button id="api-create" size="sm" variant="primary" icon="../icons/plus.svg">新建配置</yakit-button>
+    </div>
+  </yakit-drawer>
+
+  <!-- API 管理：提示词 -->
+  <yakit-drawer id="api-section-prompts" title="提示词">
+    <p class="field-note api-section-note">发给 AI 的固定提示词</p>
+    <div class="prompt-card" id="prompt-card">
+        <div class="choice-list prompt-fixed" id="prompt-list" role="list"></div>
+    </div>
+  </yakit-drawer>
+
+  <!-- API 管理：助手 -->
+  <yakit-drawer id="api-section-assistants" title="助手">
+    <p class="field-note api-section-note">各个 AI 功能用哪个接口</p>
+    <div class="assistant-card" id="assistant-card" hidden>
         <div class="setting-field">
           <span class="setting-label">正则助手</span>
           <yakit-select size="sm" data-kind="regex" aria-label="正则助手用的接口"></yakit-select>
@@ -251,10 +272,13 @@
         </div>
         <p class="field-note">润色页改写文字时用。<br>选「跟随使用中」时，跟着上面列表里正在用的配置走。</p>
         <div class="btn-row assistant-reset"><yakit-button data-reset="polish" size="sm" variant="ghost">重置</yakit-button></div>
-      </yakit-card>
+    </div>
+  </yakit-drawer>
 
-      <!-- 参数：所有 AI 请求共用的等待时间和自动重试 -->
-      <yakit-card class="request-card" id="request-card" title="参数" subtitle="所有 AI 请求共用" hidden>
+  <!-- API 管理：参数 -->
+  <yakit-drawer id="api-section-request" title="参数">
+    <p class="field-note api-section-note">所有 AI 请求共用</p>
+    <div class="request-card" id="request-card" hidden>
         <div class="setting-field">
           <span class="setting-label">超时时间</span>
           <div class="request-timeout">
@@ -273,14 +297,8 @@
           </yakit-segmented>
         </div>
         <p class="field-note">回复里读不到结果时自动再请求，超时和连不上不重试。<br>建议 1 次，每次重试都会再消耗额度。</p>
-      </yakit-card>
-
-      <!-- 提示词：固定三条，点一行编辑，可以恢复默认 -->
-      <yakit-card class="prompt-card" id="prompt-card" title="提示词" subtitle="发给 AI 的固定提示词">
-        <div class="choice-list prompt-fixed" id="prompt-list" role="list"></div>
-      </yakit-card>
     </div>
-  </main>
+  </yakit-drawer>
 
   <!-- 文本导出：导出设置抽屉 -->
   <yakit-drawer id="export-drawer" title="导出设置" side="left">
