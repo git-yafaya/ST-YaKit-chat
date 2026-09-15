@@ -495,6 +495,10 @@
   <!-- API 管理：编辑固定提示词 -->
   <yakit-drawer id="prompt-drawer" title="编辑提示词">
     <p class="field-note" id="prompt-target-note"></p>
+    <section class="drawer-section prompt-tags" id="prompt-tags" hidden>
+      <h3>标签</h3>
+      <div class="prompt-tags-table" role="table" aria-label="标签和含义"></div>
+    </section>
     <section class="drawer-section">
       <yakit-input id="prompt-text" label="正文" multiline rows="12" placeholder="写下提示词内容"></yakit-input>
     </section>
