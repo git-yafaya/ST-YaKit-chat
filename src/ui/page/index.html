@@ -374,7 +374,6 @@
   <yakit-drawer id="polish-drawer" title="润色设置" side="left">
     <div class="polish-lock" id="polish-lock" hidden>
       <p class="field-note" id="polish-lock-note"></p>
-      <yakit-button id="polish-clear" size="sm" variant="ghost" icon="../icons/trash.svg">清空结果</yakit-button>
     </div>
 
     <section class="drawer-section">
@@ -444,7 +443,10 @@
       <yakit-input id="polish-file-name" size="sm" placeholder="不填就用角色名加日期"></yakit-input>
     </section>
 
-    <yakit-button slot="footer" id="polish-drawer-done" variant="primary">完成</yakit-button>
+    <div slot="footer" class="btn-row polish-drawer-footer">
+      <yakit-button id="polish-clear" variant="ghost">重置</yakit-button>
+      <yakit-button id="polish-drawer-done" variant="primary">完成</yakit-button>
+    </div>
   </yakit-drawer>
 
   <!-- API 管理：新建 / 编辑副 API 配置 -->

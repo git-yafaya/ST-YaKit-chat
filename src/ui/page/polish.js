@@ -672,8 +672,8 @@
     document.querySelectorAll('#polish-drawer [data-lock-inert]').forEach((control) => control.toggleAttribute('inert', locked));
     $('polish-lock').hidden = !locked;
     $('polish-lock-note').innerHTML = running()
-      ? '正在润色，只能改文件名。<br>停止后才能清空结果。'
-      : '已有润色结果，只能改文件名、文风和本次任务。<br>要按新设置润色，先清空结果。';
+      ? '正在润色，只能改文件名。<br>停止后才能重置。'
+      : '已有润色结果，只能改文件名、文风和本次任务。<br>要按新设置润色，先点「重置」。';
     $('polish-clear').toggleAttribute('disabled', running());
   }
 
@@ -763,11 +763,11 @@
     $('polish-clear').addEventListener('click', async () => {
       const done = (job?.segments || []).filter((segment) => segment.status === 'done').length;
       const ok = await YaKitModal.confirm({
-        title: '清空润色结果？',
+        title: '重置润色？',
         message: done
           ? `已经润色好的 ${done} 段会连同保存的结果一起删除，不能找回。本次任务的补充要求和参考材料也会清空。`
           : '清空后按新设置重新分段。本次任务的补充要求和参考材料也会清空。',
-        confirmText: '清空',
+        confirmText: '重置',
       });
       if (!ok) return;
       try {
@@ -776,7 +776,7 @@
         renderAll();
         notifyTask(true);
         schedulePlan(0);
-        YaKitToast.show('已清空润色结果', 'success');
+        YaKitToast.show('已重置润色', 'success');
       } catch (error) {
         YaKitToast.show(error?.message || '清空失败', 'danger');
       }

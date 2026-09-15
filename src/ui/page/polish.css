@@ -103,6 +103,8 @@
   background: color-mix(in srgb, var(--text-title) 3%, var(--card-bg));
 }
 .polish-lock .field-note { margin: 0; }
+.polish-drawer-footer { flex: 1; }
+.polish-drawer-footer #polish-clear { margin-right: auto; }
 .polish-chunk-custom { margin-top: 10px; }
 /* 分段选择器没有禁用属性：锁住时整块不可操作并变淡 */
 [data-lock-inert][inert] { opacity: 0.45; }
