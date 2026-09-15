@@ -177,6 +177,11 @@
 
     <!-- ========== 页签：预设 ========== -->
     <div data-page="preset" class="preset-page" hidden>
+      <!-- 备份：预设卡片上方单独一行 -->
+      <div class="btn-row backup-actions">
+        <yakit-button id="backup-export" icon="../icons/ouput.svg">备份全部</yakit-button>
+        <yakit-button id="backup-restore" icon="../icons/input.svg">从备份恢复</yakit-button>
+      </div>
       <!-- 主要内容：预设列表 -->
       <yakit-card class="preset-card" id="preset-card" title="预设" subtitle="保存导出页的规则、消息类型和格式">
         <yakit-segmented slot="extra" id="preset-kind" size="sm" aria-label="预设类别" value="export">
@@ -203,14 +208,6 @@
         </div>
       </yakit-card>
 
-      <!-- 其他功能：备份 -->
-      <yakit-card class="backup-card" title="备份">
-        <p class="field-note backup-note">把全部预设和纪实的设置存成一个文件。<br>建议换设备或重装前先备份一份。</p>
-        <div class="btn-row">
-          <yakit-button id="backup-export" size="sm" icon="../icons/ouput.svg">备份全部</yakit-button>
-          <yakit-button id="backup-restore" size="sm" icon="../icons/input.svg">从备份恢复</yakit-button>
-        </div>
-      </yakit-card>
       <input type="file" id="preset-file" hidden>
       <input type="file" id="style-file" hidden>
     </div>

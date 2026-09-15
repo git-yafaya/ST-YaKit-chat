@@ -115,7 +115,7 @@
     const list = $('preset-list');
     const empty = $('preset-empty');
     $('preset-actions').hidden = !available;
-    document.querySelector('.backup-card').hidden = !available;
+    document.querySelector('.backup-actions').hidden = !available;
 
     if (!available || !presets.length) {
       list.replaceChildren();

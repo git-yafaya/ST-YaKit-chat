@@ -1,7 +1,7 @@
 /* 预设页 */
 .preset-page { display: flex; flex-direction: column; gap: 12px; }
 
-.backup-note { margin: 0 0 12px; }
+.backup-actions { flex: none; }
 
 /* 导出页底部的预设下拉框 */
 .export-preset { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 320px; }
