@@ -2,29 +2,33 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列）。「文本导出」页完整可用：导出预览（含全部楼层分批查看）、正则匹配（含识别最近两楼标签、AI 辅助生成规则）、导出设置抽屉（含包含隐藏开关），导出 TXT / Markdown / EPUB；预设页管理纪实自己的预设（切换、导入导出、整体备份恢复）；API 管理页管理副 API 配置、破限词与文风提示词、正则 / 润色助手和请求参数；设置页可在线更新本插件、查看报错记录。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.6.0。「文本导出」页：导出预览（含全部楼层分批查看）、正则匹配（识别最近两楼标签、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、导出成品；「预设」页：导出预设、文风预设、整体备份恢复；「API 管理」页：副 API 配置、正则 / 润色助手接口与采样参数、请求参数、固定三条提示词；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
-- **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。
+- **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。入口目前直接引用多个业务模块，尚未收敛为「UI 总文件 + 业务总文件」两个引用。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
-- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；文本导出页接口 `exportUI.{getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags, getAiContext, suggestRules, cancelSuggestRules}`；API 管理页接口 `apiUI`（22 个 Promise 函数：API 配置 10 个、提示词 7 个、助手 3 个、请求参数 2 个）；预设 `presets.{list, getActiveId, activate, create, update, rename, duplicate, remove, exportPreset, importPreset, exportBackup, restoreBackup, suggestName}`；插件更新 `updater.{checkUpdate, update}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences`；底层副 API 配置与提示词管理函数（见第 6 节）。
-- **当前还没做什么**：润色页签只有占位卡片，润色生成业务未接入（润色助手配置与定位词已就位）；预设只管纪实自己的导出设置，不操作酒馆的生成预设；备份不含 API 配置、提示词、助手与请求参数；EPUB 分章偏好没有界面；内置破限词正文为空，需用户填写；正则 / 润色助手定位词为占位文字，在 `src/shared/assistant-prompts.js` 修改。
+- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出与正则 AI 辅助，11 个）；`polishUI`（润色，18 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、固定提示词、助手、请求参数；旧提示词接口仍保留）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
+- **当前还没做什么**：真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
 
 ## 仓库结构
 
 ```text
 ST-YaKit-chat/
 ├── manifest.json           扩展声明：js 指向 src/index.js，css 指向 src/ui/style.css
+├── NOTICE.md               更新公告，按版本从新到旧
 ├── src/
 │   ├── index.js            入口：组装 YaKitChat，初始化界面
 │   ├── features/
 │   │   ├── text-export/        读取、类型过滤、正则清洗、三种格式生成与下载、文本导出页接口、标签扫描
 │   │   ├── presets/            纪实预设的增删改查、单套文件导入导出、整体备份与恢复
 │   │   ├── updater/            定位本插件安装目录、检查版本、在线更新本插件
-│   │   ├── api-ui/             API 管理页接口：配置、提示词、助手、获取模型与测试连接
+│   │   ├── polish/             润色：设置与分段、生成与续写、串行执行、逐楼操作、服务器保存、导出
+│   │   ├── styles/             文风预设的增删改查、单套文件导入导出与备份校验
+│   │   ├── notice/             更新公告：本地与仓库 NOTICE.md 读取、解析与版本比较
+│   │   ├── api-ui/             API 管理页接口：配置、固定提示词、助手、获取模型与测试连接
 │   │   ├── api-management/     副 API 配置底层存储、校验与引用清理
 │   │   ├── prompt-management/  提示词底层存储、校验与引用清理
-│   │   └── assistant-management/ 正则 / 润色助手的选择与实际接口、提示词解析
-│   ├── shared/             扩展设置读写、校验、请求参数与超时、助手定位词、内置破限词、服务地址检查
+│   │   └── assistant-management/ 正则 / 润色助手的接口选择、采样参数与请求组装所需解析
+│   ├── shared/             扩展设置读写、校验、请求参数与超时、助手规则与标签说明、通用破限词、采样参数适配、服务地址检查
 │   └── ui/
 │       ├── style.css       弹窗外壳样式
 │       ├── panel/          界面总文件：魔法棒入口、弹窗外壳、页签、主题、跟随ST取色
@@ -64,7 +68,10 @@ ST-YaKit-chat/
 ├── src/features/presets/files.js
 ├── src/features/updater/host.js
 ├── src/features/updater/index.js
-├── src/features/api-ui/index.js、profiles.js、prompts.js、assistants.js、connection.js
+├── src/features/polish/index.js、segments.js、generate.js、runner.js、floors.js、records.js、storage.js、export.js
+├── src/features/styles/index.js
+├── src/features/notice/index.js、parse.js、source.js
+├── src/features/api-ui/index.js、profiles.js、prompts.js、core-prompts.js、assistants.js、connection.js
 ├── src/features/api-management/index.js
 ├── src/features/prompt-management/index.js
 ├── src/features/assistant-management/index.js
@@ -72,6 +79,7 @@ ST-YaKit-chat/
 ├── src/shared/validation.js
 ├── src/shared/ai-request.js
 ├── src/shared/assistant-prompts.js
+├── src/shared/assistant-sampling.js
 ├── src/shared/builtin-prompts.js
 ├── src/shared/service-url.js
 ├── src/ui/style.css
@@ -83,13 +91,16 @@ ST-YaKit-chat/
 ├── src/ui/page/choice.js
 ├── src/ui/page/export.js / export.css
 ├── src/ui/page/ai-rules.js
+├── src/ui/page/polish.js / polish.css
+├── src/ui/page/style-preset.js
+├── src/ui/page/notice.js / notice.css
 ├── src/ui/page/settings.js / settings.css
 ├── src/ui/page/preset.js / preset.css
 ├── src/ui/page/api.js / api.css
 ├── src/ui/page/demo.js / demo.css
 ├── src/ui/components/embed-frame.js、icon.js、segmented.js、card.js、collapse.js、drawer.js、button.js、input.js、select.js、switch.js、toast.js、scrollbar.js、modal.js、error-log.js、theme-list.js、themes.css
 ├── src/ui/icons/*.svg、src/ui/icons/theme/*.svg
-├── README.md / Public.md
+├── README.md / Public.md / NOTICE.md
 ├── CLAUDE.md / AGENTS.md / CLAUDE.local.md
 ├── AGENT_LOG.md
 └── .gitignore
@@ -114,26 +125,31 @@ ST-YaKit-chat/
    - AI 辅助（`src/ui/page/ai-rules.js`）：打开抽屉 `getAiContext()`；生成 `suggestRules({request, mode, rules})`，期间锁住需求输入框；候选用 `isValidRule` 标无效，`previewMessages({...settings, rules: [...rules, ...有效候选]}, 2)` 预览；「添加到规则」由界面去重后写入并保存。关闭抽屉或弹窗不调用 `cancelSuggestRules`，生成继续，结果留在抽屉；抽屉关着时结束会提示，弹窗开着用面板提示消息，弹窗关着用宿主 `toastr`
    - 点击导出：`exportFile(settings)` → 成功提示「已导出 N 条消息」
    - `onChatChanged` 回调：刷新摘要、预览、标签
-7. 预设（`src/ui/page/preset.js`，预设页与导出页底部下拉框）：
-   - 打开面板和切到预设页时 `list()` + `getActiveId()`
-   - 选择预设：有未保存改动时先确认 → `activate(id)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）
-   - 「已修改」由界面比对当前导出设置与当前预设的五项内容；「更新预设」→ `update(activeId, content)`
-   - 存为新预设：`suggestName()` 预填（空串回退「新预设」）→ `create(name, content)` → `activate(新 id)`
-   - 导入 / 从备份恢复：界面选文件读文字 → `importPreset(text)` / 确认后 `restoreBackup(text)`；恢复后 `exportUI.loadSettings()` 刷新导出页，并应用返回的 `uiPrefs`（`theme`、`nav`、`themeSwitch`，值不合法时忽略）
+7. 润色页（`src/ui/page/polish.js`）：
+   - 打开时 `loadSettings()`、`getContext()`、`presets.list()`、`styles.list()` + `getActiveId()`、`getJob()`；没有任务时 `planSegments(settings)` 显示按楼层的原文预览与「约 N 次请求」（段数），设置或导出页设置变化时重新分段
+   - 首次 `getJob()` 可能同步返回 null 而服务器结果仍在读取，读回后由 `onJobChange` 推送；界面据此切换到结果视图
+   - 「开始润色」`start(settings)` 只润色第 1 段后进入 `review`；「继续润色」`resume()`；「停止」`stop()`；整段「重新润色」`retrySegment(index)`；选中楼层后「重新润色选中的楼层」`estimateRedo(floors)` 显示次数，`redoFloors(floors)` 执行；逐楼修改 `editFloor(floor, text)`；「润色新增部分」`appendNew()`；「清空结果」`clearJob()`；全部段 done 后「导出」`exportFile({fileName})`
+   - 润色设置抽屉：导出预设（`presetId`，含 `export`）、文风（直接调用 `styles.activate`，不锁定）、楼层范围、每次发送（`chunkMode` / `chunkFloors`）、文件名；已有任务时锁住导出预设、楼层范围、每次发送
+   - 进度、限速倒计时（`waitUntil`）、首段完成 / 结束 / 自动停止的提示由界面根据任务快照完成；弹窗关着时用宿主 `toastr`
+8. 预设（`src/ui/page/preset.js` 导出预设、`src/ui/page/style-preset.js` 文风预设）：
+   - 卡片右上角分段切换「导出预设 / 文风预设」；「备份全部」「从备份恢复」在卡片上方
+   - 导出预设：打开面板和切到预设页时 `list()` + `getActiveId()`；选择预设时有未保存改动先确认 → `activate(id)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）；「已修改」由界面比对五项内容；「更新预设」→ `update(activeId, content)`；存为新预设：`suggestName()` 预填 → `create(name, content)` → `activate(新 id)`
+   - 文风预设：`styles.list()` + `getActiveId()`；点一行 `activate(id|null)`；新建 / 编辑抽屉输入时 `check(draft)`，保存 `save(draft)`；复制 `duplicate`、导出 `exportStyle`、删除 `remove`、导入 `importStyle(text)`；变化后派发 `yakit-style-change`，润色页刷新文风下拉
+   - 导入 / 从备份恢复：界面选文件读文字 → `importPreset(text)` / 确认后 `restoreBackup(text)`；恢复后 `exportUI.loadSettings()` 刷新导出页，并应用返回的 `uiPrefs`
    - 备份全部：界面读取 `yakit-theme`、`yakit-nav`、`yakit-theme-switch` 作为 `uiPrefs` → `exportBackup(uiPrefs)`
-8. 设置页「插件更新」（`src/ui/page/settings.js`）：
-   - 切到设置页时 `updater.checkUpdate()`，一分钟内不重复自动检查；已是最新或检查失败时按钮为「检查更新」，点击立即重新检查
-   - 有新版本时点「更新」：`updater.update()` → `updated: true` 时提示并在约 1.2 秒后由界面 `parent.location.reload()`；`updated: false` 提示「已经是最新版本」
-   - 失败：按钮下方提示框显示 `error.message`，可重试；未提供 `updater` 时不显示这一行
-   - 「报错记录」：`YaKitErrorLog` 记录危险提示、页面脚本捕获的失败、面板与弹窗中未处理的报错（弹窗只记插件文件的错），存 `localStorage` 最多 50 条；「复制全部」「清空」由界面完成
-9. API 管理页（`src/ui/page/api.js`）：
-   - 打开时 `listProfiles()` + `getActiveProfileId()`、`listPrompts(kind)` + `getActivePromptId(kind)`、`getAssistant(kind)`、`getRequestSettings()`
-   - 配置抽屉：输入时 `checkProfile(draft)` 显示错误 / 提醒，保存 `saveProfile(draft)`；「获取模型」`fetchModels(draft)`、「测试连接」`testConnection(draft)`，两者不锁抽屉，改了地址或密钥后旧结果作废
-   - 提示词抽屉：`checkPrompt` / `savePrompt`；内置破限词不显示删除按钮
-   - 助手抽屉：下拉改动即 `setAssistant(kind, {字段: 值})`；参数卡片：超时离开输入框、重试点选即 `setRequestSettings(patch)`
+9. 设置页（`src/ui/page/settings.js`、`src/ui/page/notice.js`）：
+   - 「更新」：切到设置页时 `updater.checkUpdate()`，一分钟内不重复自动检查；已是最新或检查失败时按钮为「检查更新」；有新版本时「更新」→ `updater.update()` → `updated: true` 时约 1.2 秒后 `parent.location.reload()`；失败在按钮下方显示 `error.message`；未提供 `updater` 时不显示这一行
+   - 「更新公告」按钮：打开抽屉先 `notice.listInstalled()`，再 `notice.fetchNewer()`，新版本条目标「还没更新」排在最上；读取失败显示危险提示框。面板加载后收到页签消息时，比较 `localStorage` 的 `yakit-notice-seen` 与 `YaKitChat.version`：记录存在且不同、已安装公告里有当前版本时自动弹出一次；没有记录（首次安装）只写入不弹
+   - 「报错记录」：`YaKitErrorLog` 记录危险提示、页面脚本捕获的失败、面板与弹窗中未处理的报错（弹窗只记插件文件的错，浏览器 ResizeObserver 布局提示不记），存 `localStorage` 最多 50 条
+10. API 管理页（`src/ui/page/api.js`）：
+   - 打开时 `listProfiles()` + `getActiveProfileId()`、`listCorePrompts()`、`getAssistant('regex'|'polish')`、`getRequestSettings()`
+   - 配置抽屉：输入时 `checkProfile(draft)`，保存 `saveProfile(draft)`；「获取模型」`fetchModels(draft)`、「测试连接」`testConnection(draft)`
+   - 助手卡片：接口下拉改动即 `setAssistant(kind, {profile})`；采样参数输入框离开时 `setAssistant(kind, {sampling: {某项: 数字|null}})`，空着为 null
+   - 提示词卡片固定三行；编辑抽屉保存 `saveCorePrompt(id, text)`，「恢复默认」`resetCorePrompt(id)`，输入时把输入框原文和 `defaultText` 比较决定按钮能不能点；正则 / 润色提示词编辑页在正文上方列出程序使用的标签（界面静态表，内容来自业务说明）
+   - 参数卡片：超时离开输入框、重试点选即 `setRequestSettings(patch)`
 
 <details>
-<summary>边界情况（以业务交接单为准）</summary>
+<summary>边界情况</summary>
 
 **楼层与范围**
 
@@ -205,8 +221,8 @@ ST-YaKit-chat/
 | 单套文件名 | 预设名中 `<>:"/\|?*`、U+0000–001F、U+007F–009F 逐个替换为 `_`，直接追加 `.yakit-preset.json`（`原始名称.md` → `原始名称.md.yakit-preset.json`）；文件内 `name` 保留原名 |
 | 单套导入 | 可含开头 BOM；`type`、数字 `schemaVersion:1`、名称、完整内容必须合法；未知字段忽略；追加到末尾 |
 | 备份文件名 | `纪实备份` + 本地毫秒时间戳 + `.yakit-backup.json` |
-| 备份内容 | 全部预设及顺序、当前 ID、完整已保存导出设置（尚无时为默认值，含 `includeHidden`；旧备份缺项按 true 恢复）、界面传入的 `uiPrefs`；不含 API 配置、提示词、助手与请求参数；`uiPrefs` 必须可完整表达为 JSON，拒绝 undefined、函数、非有限数字、BigInt、Date、循环引用、稀疏数组 |
-| 恢复 | 写入前校验整个文件（版本、记录完整、名称与 ID 唯一、当前 ID 引用存在或为 null、完整导出设置、界面偏好）；通过后一次覆盖 `presets` 与 `exportUI`，其他模块设置保留；保留原 ID 与顺序，不重新应用当前预设（保留备份里的导出草稿）；校验失败不写入 |
+| 备份内容 | 全部导出预设及顺序、当前 ID、完整已保存导出设置（尚无时为默认值，含 `includeHidden`；旧备份缺项按 true 恢复）、界面传入的 `uiPrefs`、`styles:{items,activeId}`、`corePrompts:{jailbreak,regex,polish}`；不含 API 配置 / 密钥、助手接口与 sampling、请求参数、旧自建破限词、润色任务设置与服务器润色结果；`uiPrefs` 必须可完整表达为 JSON，拒绝 undefined、函数、非有限数字、BigInt、Date、循环引用、稀疏数组 |
+| 恢复 | 写入前校验整个文件（版本、记录完整、名称与 ID 唯一、当前 ID 引用存在或为 null、完整导出设置、界面偏好、文风与固定提示词）；通过后一次覆盖 `presets`、`exportUI` 以及备份里有的文风与固定提示词，旧备份缺哪组就保留本机哪组，恢复空通用破限词会记编辑标记保持为空，其他模块设置保留；保留原 ID 与顺序，不重新应用当前预设（保留备份里的导出草稿）；校验失败不写入 |
 | 保存 | 在副本上校验修改，宿主保存排队失败回滚；成功仅表示已交给宿主保存队列；所有返回值是独立副本，支持 iframe 传入对象 |
 
 **插件更新（`updater`）**
@@ -238,35 +254,115 @@ ST-YaKit-chat/
 | `testConnection` | 必须有模型名（否则「请先填写模型名称」）；经宿主生成接口非流式发送 `Reply with OK.`，输出上限 64 tokens，收到非空文字返回 `{message:'连接成功，模型已回复'}`；等待使用 `timeoutSeconds`，不做格式重试 |
 | 草稿请求 | 显式传 `reverse_proxy` 与 `proxy_password`，空密钥不回退主密钥，不保存草稿；错误不回显上游正文或密钥 |
 
-**提示词与助手**
+**固定提示词、助手与采样参数**
 
 | 情况 | 实际行为 |
 | --- | --- |
-| 类别 | `jailbreak` 固定 `system`，`style` 读取、保存、复制固定 `user`；旧正则提示词数据保留在存储中，不公开、不注入 |
-| 内置破限词 | ID `builtin-jailbreak-gemini`、`builtin-jailbreak-deepseek`，缺失时在副本中补齐；不可删除，可改名改正文，允许空正文；空正文解析为不注入、保留选择，且不能复制 |
-| 正则助手 | `{profile, jailbreak}`；profile 为 `follow`（跟随 API 配置使用中，无有效副 API 时用主 API）/ `main` / 有效副 API ID，jailbreak 为 `follow` / `none` / 有效 ID |
-| 润色助手 | `{profile, jailbreak, prompt}`，取值规则同上；润色生成业务未接入 |
-| 旧值与失效引用 | 已保存的合法 `regex.profile` 直接生效；缺失、非法或悬空值在读取结果中按 `follow`，读取不写盘，下一次有效非空 `setAssistant` 时一并保存规范化结果 |
-| 删除引用 | 删除副 API 时指向它的助手 profile 在同一事务中改回 `follow`；删除提示词时有效引用回到跟随 |
-| `setAssistant` | 非法 profile reject「所选接口已不存在或不能使用，请重新选择」；未知字段 reject「这项助手设置不能修改」；任一字段非法整份拒绝；`{}` 只读不保存；失败回滚 |
+| 固定三条 | `jailbreak` 通用破限词（system，完整正文，允许空 / 纯空白，空白时不发送 system）；`regex` 正则提示词、`polish` 润色提示词（user，只可编辑规则与要求，非空白）；每条返回 `{id,name,target,text,defaultText,modified}`，顺序固定 |
+| 默认与修改 | `defaultText` 为源码默认原文；`modified` 用严格字符串不等、不 trim；恢复默认后 `text===defaultText`、`modified=false` |
+| 消息组装 | system（仅通用正文非空白）+ 一条 user：助手规则 → 本次任务与材料标题 → 程序固定的标签说明 → 本次具体材料 → 程序固定的输出格式；标签说明与输出格式不因编辑规则而移除，模型是否遵循需真实测试；没有 assistant 预填充 |
+| 正则材料 | 需求、delete/keep、已有规则（普通文字标题）及 `<sample floor="原楼号">原文</sample>`；样本为当前聊天最后一条可见 AI 楼层，不取隐藏楼层或旁白，不截断 |
+| 润色材料 | 可选 `<style>` 文风、`<previous>` / `<next>` 前后参考（各最多 300 码点，优先已润色文）、`<original><floor n="原楼号">原文</floor></original>`；只输出对应 `<floor>` |
+| 旧破限词 | 两个助手固定使用通用内置 id；旧 Gemini / DeepSeek 未编辑默认条目迁移为通用，改过的保留为普通记录，不进入助手请求；旧中文默认仅在无编辑标记且逐字匹配时更新为英文 |
+| 助手接口 | `getAssistant(kind)` 返回 `{profile,sampling}`；profile 为 follow / main / 有效副 API id；旧悬空 profile 只读回退 follow，保存无效 id 拒绝；旧 jailbreak / prompt 字段保留但不参与，新 setter 传入拒绝 |
+| `setAssistant` | 局部合并，两个助手独立；profile 改变不清 sampling；任一参数不合法或保存排队失败整个 patch 回滚；apiUI 返回中文 Error，不承诺保留内部 code / field |
+| 采样范围 | temperature 0–2、topP 0–1、topK 0–9007199254740991 安全整数、frequencyPenalty / presencePenalty -2–2，均含端点；null 清该项，默认全 null；字符串、undefined、NaN/Infinity、未知字段拒绝 |
+| 采样发送 | null 不发送，主 API 不继承酒馆预设对应值；主聊天补全经宿主参数构建后删除 null，Claude / Gemini / Vertex AI / AI21 / MiniMax 跳过两种惩罚；主文本补全 generic 跳过 topK；Kobold / Horde 跳过两种惩罚；副 API local 发送全部非 null，openai / auto 普通模型跳过 topK、o1/o3/o4 前缀跳过五项，gpt-5-chat-latest 保留温度、Top P 和两种惩罚，名称匹配 gpt-5.1/5.2/5.3/5.4 且非 chat-latest 保留温度与 Top P，其他含 gpt-5 的模型跳过五项；未知服务拒绝时按生成失败处理，不自动探测重发 |
+| 生效时机 | 正则每次生成固定消息、接口、sampling、超时与重试；润色每轮开始固定接口、sampling、超时 / 重试，每次实际请求前重新读取当前文风与固定提示词 |
 
 **AI 辅助（`getAiContext` / `suggestRules` / `cancelSuggestRules`）**
 
 | 情况 | 实际行为 |
 | --- | --- |
-| 上下文 | `getAiContext()` 返回正则助手实际解析的 `{apiName, model, usingMainApi, jailbreakName}`，不含密钥或正文；空正文破限词的 `jailbreakName` 为 null |
+| 上下文 | `getAiContext()` 返回正则助手实际解析的 `{apiName, model, usingMainApi, jailbreakName}`，不含密钥或正文；通用破限词正文为空时 `jailbreakName` 为 null |
 | 需求 | 去首尾空白后不能为空，`mode` 为 `delete/keep`，`rules` 为已有规则字符串数组；无聊天 reject「请先在酒馆里打开一个聊天」 |
 | 样本 | 最近一条未隐藏的 AI 回复原文及楼层号，不应用导出范围、类型或规则；找不到时「当前聊天没有可参考的 AI 回复」；正文非字符串直接报错 |
-| 快照 | 请求前固定接口、破限词、规则、样本与参数，重试沿用；生成中改选择只影响下一次 |
-| 提示顺序 | 非空 `system` 破限词 → `system` 正则助手定位词 → `system` 固定输出格式 → `user` 需求、模式、已有规则与 `<sample floor="N">原文</sample>`；不展开宏，原文不裁剪，不发送完整聊天 |
+| 快照 | 请求前固定接口、通用破限词、规则、样本、sampling 与参数，重试沿用；生成中改选择只影响下一次 |
+| 提示顺序 | 见上方「固定提示词、助手与采样参数」：可选 system 通用破限词 + 一条完整 user；不展开宏，原文不裁剪，不发送完整聊天 |
 | 输出协议 | 最多 3 组相邻的 `<rule>…</rule><explanation>…</explanation>`，组外文字忽略，不做实体解码；`/pattern/flags` 去外围空白，裸 pattern 规范为 `/g`；排除已有、批内去重 |
 | 返回 | `{rules:[{rule, explanation}]}`；语法无效的候选仍返回，由界面标出并阻止添加；业务不保存设置 |
 | 重试 | 每次尝试单独计时；只重试空文字、缺完整组、字段格式错误，原消息重发；网络、HTTP、额度、JSON 解析、超时、全部重复不重试 |
-| 输出上限 | 主、副 API 通常 2048 tokens，不改全局设置；NovelAI 沿用宿主更低上限（可能 150 / 250），截断可能导致格式失败 |
+| 输出上限 | 正则主、副 API 通常 2048 tokens，不改全局设置；NovelAI 沿用宿主更低上限（可能 150 / 250），截断可能导致格式失败 |
 | 支持的主 API | 聊天补全、文本补全、Kobold、NovelAI、Horde；副 API 走 OpenAI 兼容路径 |
 | 关闭界面 | 生成继续，受超时约束；结果、输入锁定与通知由界面负责 |
 | 显式停止 | `cancelSuggestRules()` 同步返回 undefined，无活动调用时静默；有活动调用时结束等待与后续重试，reject `Error('已停止生成')`、`code='AI_CANCELLED'`；新的有效 `suggestRules` 会替换旧调用，参数错误的新调用不打断原调用 |
 | 上游中止 | 支持中止的请求会收到信号；KoboldCpp 文本接口只结束等待，原生 Kobold 不发全局停止，Horde 仅在取得任务 ID 后定向取消；不保证供应商计算或计费即时结束 |
+
+**润色设置与分段（`polishUI`）**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 范围 | 只支持单人聊天；无可用聊天或全部类型未勾选时 `planSegments` 可返回 `[]`；`start` 没有有效内容 reject「没有可润色的内容，请检查楼层、消息类型和清洗规则」 |
+| 设置 | `{allFloors,start,end,presetId,chunkMode,chunkFloors,fileName}`；`loadSettings()` 未保存过返回 null |
+| 处理顺序 | 楼层范围 → 隐藏标记 → 消息类型 → 正则清洗 → 去掉空白正文 → 按楼层数分段；楼号为 0 起算真实楼号，不重编号 |
+| 楼层范围 | 起止为空或不能转有限数字分别取首 / 末楼；截去小数；颠倒交换；越界夹紧；范围内消息不是对象或正文不是字符串时给含楼号的中文错误 |
+| 导出预设 | `presetId='export'` 用文本导出页当前已保存设置；其他值取该导出预设的 `types/mode/rules/format`；`includeHidden` 始终取导出页当前值；忽略 `labels`；预设被删或引用不存在时回退 `export`，不清空已有结果、查询不另行保存 |
+| 清洗 | 规则为空或全部无效时不清洗；多条有效规则对原文匹配并合并区间，delete 删除并集、keep 保留并集；清洗后为空的楼层不计入 |
+| 分段 | `quality=5`、`balanced=10`、`fewer=20` 层，`custom=chunkFloors`；一层不拆，不按字数提前切，末段可不足；`segment.chars` 仅展示（Unicode 码点，计入楼间双换行） |
+| 自定义楼层 | `Number.isInteger(value) && value > 0`，无业务上限；否则 reject「自定义楼层数必须是正整数」，`error.field='chunkFloors'`；非法 chunkMode 给 `error.field='chunkMode'` |
+| 旧设置 | 未给 chunkMode 而给 chunkFloors 按 custom；缺 chunkFloors 补 10；固定档位收到非法 chunkFloors 规范为 10；旧 `chunkSize` 不换算、不再保存，只有 chunkSize 时用 balanced/10；旧 clean 不为 false 且 cleanSource 为字符串时作为缺省 presetId，否则 export；旧 types/includeHidden/format/clean 不再控制润色 |
+| 已保存任务 | 使用自己的 settings；旧服务器结果恢复时只规范设置，不重新分段；继续 / 整段重试沿用旧段，选楼重做 / 追加按任务规范后的档位 |
+
+**润色执行（首段、续写、重试、停止）**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 首段 | `start` 先建立全部分段并保存服务器任务，再只运行第 1 段；成功为 `review`（只有一段也 review），失败为 stopped 并给原因 |
+| 返回时机 | `start/resume/retrySegment/redoFloors/appendNew` 返回准备完成后的快照，不等整轮生成结束；进度看 `getJob/onJobChange` |
+| `resume` | 处理尚未 done 的楼层；每楼都已有结果时只补保存并归为 done，不请求模型 |
+| 输出额度 | 每次润色请求 65535 token（含续写、格式重试、限速后重试）；不保证服务接受或实际生成这么长；NovelAI 受宿主上限 |
+| 格式 | `<floor n="实际楼号">正文</floor>` 按输入顺序，每楼非空闭合，不能缺号、错号、重号、嵌套，结果外不能有额外文字 |
+| 截断 | 只接纳此前完整楼层；缺失后续楼层需有 length 依据，半个起始标签或未闭合最后一楼按截断；未闭合局部文字不保存，下次从该楼原文重来；每轮续写至少要得到一个完整楼层，否则这一批失败 |
+| 重试 | 格式失败按共享 retries 重试；网络 / HTTP 失败与超时不自动重发 |
+| 限速 | 识别 429 与已知 rate-limit（`quota_error=true` 不算）；Retry-After 支持秒数和日期，缺失等 30 秒，至少 1 秒；单次超过 300 秒或同批累计超过 900 秒拒绝；等待期间 `waitUntil` 为毫秒时间戳，可 stop，不消耗格式重试 |
+| 失败与结束 | 单批失败保留结果并继续后续批，连续两批失败停止整轮；`finished` 仍可能有 failed 段，导出前须全部 done |
+| 并发与停止 | 同时只允许一个生成轮次或保存修改操作，忙时其他操作拒绝；`stop()` 无运行任务时直接完成，保存准备期拒绝停止；停止保留完整结果并保存；不能保证所有服务立刻停止计算 |
+
+**润色结果保存与切聊天**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 身份 | 每个聊天一份：`JSON.stringify([groupId或null,角色avatar,chatId])`；角色文件或聊天文件改名后按新身份查找，不迁移旧文件 |
+| 文件 | `user/files/ST-YaKit-chat-polish-<sha256(chatKey)>.json`（宿主 `/lib.js` 的 sha256）；封套 `{version:1,chatKey,record:{settings,sourcePrefix,job}}`；不写原聊天、不保存 API 密钥、不放浏览器持久存储 |
+| 接口 | 上传 `POST /api/files/upload`（`{name,data}`，data 为 UTF-8 JSON 的 Base64）；读取 `/user/files/<文件名>` 禁缓存；删除 `POST /api/files/delete`（`{path:'user/files/<文件名>'}`）；同聊天读写删排队，每次 30 秒期限；读取 / 删除 404 视为不存在 / 已删除 |
+| 保存点 | 新任务、整段重试、手动编辑、重做准备、追加先保存成功再替换内存；各批开始、完整楼层接收后、批结束、整轮结束、停止时保存；完整楼层落盘后才发下一次请求 |
+| 保存失败 | 生成中保存失败停止继续请求，保留本页内存结果，`resume()` 先补保存；未落盘内容刷新后不能恢复；编辑失败不覆盖旧文，删除失败不清空内存 |
+| 读取 | 首次 `getJob()` 同步返回 null 时可能仍在读取，读回后 `onJobChange` 通知；读取错误在后续 getJob / 操作时抛出；损坏记录不当作空任务覆盖，`clearJob()` 可删除损坏文件 |
+| 刷新恢复 | 读回的 running 任务改为 stopped、清 waitUntil，不自动请求；旧 running 楼层有完整旧文恢复 done，否则 pending |
+| 切聊天 | 触发刷新与读取；其他聊天正在生成时 getJob 返回那份并 `isCurrentChat=false`，结束后回到当前聊天结果；等待加载期间聊天切换时操作拒绝 |
+| 错误码 | 文件层 `POLISH_LOAD/POLISH_SAVE/POLISH_DELETE`，另有具体中文原因 |
+
+**逐楼修改、选楼重做、新增楼层、短文提醒与导出**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| `editFloor` | 当前聊天任务空闲时；floor 必须在任务中，text 必须非空白字符串，原样保存；可填尚未生成的楼层；保存后 done、edited=true，重算段汇总与短文标记 |
+| 选楼分批 | `estimateRedo` 与 `redoFloors` 共用：非空楼号数组、非负整数且在任务内，去重升序，按任务档位楼层数合批；估算不含截断续写、格式重试、限速重试 |
+| 衔接参考 | 每批连续楼号为一组，组前 / 后取相邻已保存楼层末 / 头 300 码点，优先润色文；参考不计入楼层数 |
+| 选楼重做结果 | 保留旧文，收到该楼完整结果才覆盖并 edited=false；失败 / 停止时有旧文恢复 done、无旧文恢复 pending；未选楼不重生成 |
+| 整段重试 | `retrySegment` 清空整段重新生成，会替换该段手改结果 |
+| 短文提醒 | 润色正文去全部空白后的码点数严格少于清洗后原文同口径 50% 时 `floor.short=true`，汇总到 `segment.shortFloors`；只提醒 |
+| 新增楼层 | `job.newFloors={count,from,to}|null` 只统计开始 / 上次追加之后新出现且符合任务范围、当前预设筛选与清洗的楼层；`appendNew()` 按任务档位追加并直接生成，不重跑首段试润色 |
+| 阻止追加 | 旧楼原始正文、用户 / 隐藏 / 具名标记、extra.type 改变，或删除 / 换回复 / 中间插入时阻止追加，保留旧结果，提示清空后重新分段；手改、重做、导出仍针对保存的旧原文 |
+| 导出 | `exportFile({fileName})` 格式取任务 presetId 指向预设导出时的最新 format（找不到回退导出页），旧 `format` 字段忽略；须无运行中生成且所有段 done、正文非空，不提供部分导出；返回 `{count}` 为段数；TXT / Markdown 只含正文，EPUB 每段一章「第 N 段」；省略 fileName 用任务保存值，空值用聊天名加时间戳；不回写原聊天 |
+
+**文风预设（`styles`）**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 形状 | `{id,name,text}`；初始空列表，activeId=null 为不使用；创建 / 复制 / 导入不自动启用；删除当前使用项立即变为不使用 |
+| 名称与正文 | 名称 trim 后 1–64 个 UTF-16 代码单元，禁止控制字符，忽略大小写查重（界面输入框限 30 字）；正文非空白，原样保存；复制名「原名 副本」，冲突加序号；导入冲突为「原名(2)」等并生成新 id |
+| 单套文件 | `{type:'ST-YaKit-chat/style',schemaVersion:1,name,text}`，扩展名 `.yakit-style.json`；坏文件拒绝 |
+| 迁移 | 旧 `prompts.style` 直接作为文风库（id / 名称 / 正文不变）；首次快照优先迁移旧润色助手有效指定的 prompt，none 清当前文风，follow / 缺失 / 悬空保留原 activeId；`styleSelectionMigrated=true` 随下次成功保存落盘；旧文风提示词接口仍操作同一库 |
+| 通知 | 列表或选择成功变更时在宿主窗口派发 `yakit-style-change` |
+
+**更新公告（`notice`）**
+
+| 情况 | 实际行为 |
+| --- | --- |
+| 本地 | `listInstalled()` 按实际安装路径读取根目录 NOTICE.md，支持目录改名；404 返回 `[]`，其他错误拒绝；20 秒期限 |
+| 远端 | `fetchNewer()` 沿用 updater 安装定位，POST `/api/extensions/version` 取仓库地址与当前分支（宿主会执行 git fetch origin）；支持公开 GitHub HTTPS / git@ / ssh://git@ 地址，读取 Contents API 当前分支的 NOTICE.md；只返回版本高于 `YaKitChat.version` 的条目；定位与读取各 20 秒，不自动重试；私有仓库、网络 / CORS、GitHub 限额、缺分支或文件均报中文原因；请求不带酒馆 Cookie、CSRF 或模型密钥 |
+| 解析 | 只识别 `## vX.Y.Z` 或 `## vX.Y.Z · YYYY-MM-DD`（日期须有效）；三段无前导零整数逐段比较，不支持预发布后缀；一级标题及之前内容忽略，坏块与空块跳过，同版本取第一份；`- ` 行为 item，其他非空行为 text，Markdown / HTML 原样交给界面；按版本降序 |
 
 **事件订阅（`onChatChanged`）**
 
@@ -304,10 +400,27 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 | 位置 | 默认 | 含义 |
 | --- | --- | --- |
 | `apiProfiles` | `{items:[], activeId:null}` | 副 API 配置与当前选择，未选时用主 API |
-| `prompts.jailbreak`、`prompts.style` | 缺失内置破限词在副本中补齐 | 破限词与文风提示词 |
-| `assistants.regex` | `{profile:'follow', jailbreak:'follow'}` | 正则助手 |
-| `assistants.polish` | 各项 `follow` | 润色助手 |
+| `corePrompts` | 源码默认（jailbreak 英文纯文本，regex / polish 中文规则） | 固定三条提示词正文与编辑标记 |
+| `prompts.jailbreak` | 通用内置条目 | 旧破限词库（旧接口仍可用，自建破限词不进入助手请求） |
+| `prompts.style` | `[]`，activeId null | 文风预设库（`styles` 接口操作） |
+| `assistants.regex` / `assistants.polish` | `{profile:'follow', sampling:{五项 null}}` | 两个助手独立 |
 | `requestSettings` | `{timeoutSeconds:360, retries:1}` | 超时 30–1800 整数秒，重试 0–3 |
+| `polishUI` | `{allFloors:true,start:'',end:'',presetId:'export',chunkMode:'balanced',chunkFloors:10,fileName:''}` | 润色设置；`loadSettings()` 未保存过返回 null |
+
+**润色其他默认与限制**
+
+| 项目 | 默认值 / 规则 |
+| --- | --- |
+| 每次发送 | 重质量 5 层、均衡 10 层、省次数 20 层；自定义正整数，缺省 10，无业务上限 |
+| 输出额度 | 润色每次 65535 token；正则 2048 token |
+| 衔接参考 | 前末 / 后头各最多 300 个 Unicode 码点 |
+| 短文提醒 | 去空白码点数严格小于原文 50% |
+| 限速等待 | 默认 30 秒；单次最多 300 秒、同批累计最多 900 秒 |
+| 服务器文件请求 | 30 秒期限，含读取正文 |
+| 公告读取 | 本地 20 秒；远端定位与内容各 20 秒 |
+| 文件格式版本 | 润色服务器封套 version=1；文风单套 / 完整备份 schemaVersion=1 |
+
+普通设置成功仅确认进入宿主防抖保存队列；润色结果文件保存有独立服务器响应确认。
 
 **界面设置**（浏览器 `localStorage`）
 
@@ -318,6 +431,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 | `yakit-theme-switch` | `auto` | 设置页主题选择区 `auto` / `icon` / `select` |
 | `yakit-tavern-theme` | 首次使用时生成 | 「跟随ST」取色结果与美化指纹 |
 | `yakit-error-log` | 空 | 报错记录，最多 50 条，弹窗与面板共用 |
+| `yakit-notice-seen` | 首次打开时写入当前版本 | 看过更新公告的版本号，判断更新后是否自动弹出 |
 | `yakit-demo` | 无 | 值为 `on` 时设置页显示组件示例 |
 
 旧版本存在 `dsh-theme`、`dsh-nav`、`dsh-theme-switch`、`dsh-tavern-theme` 里的值，弹窗初始化时自动搬到对应的 `yakit-` 键（新键已有值时不覆盖），并删除旧键。
@@ -331,7 +445,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 
 ## 公开 API
 
-以下代码来自业务交接单原文，在已启用插件的酒馆顶层控制台运行。`exportUI` 的参数、返回与错误：
+以下代码在已启用插件的酒馆顶层控制台运行。`exportUI` 的参数、返回与错误：
 
 | 接口 | 参数、返回与错误 |
 | --- | --- |
@@ -606,7 +720,7 @@ async function restorePresets(file) {
 })();
 ```
 
-`apiUI` 的 22 个函数全部返回 Promise（下表省略 Promise 包装；顶层用 `globalThis.YaKitChat.apiUI`，iframe 用 `parent.YaKitChat.apiUI`）。API 配置 `profile` 为 `{id,name,url,key,model,provider}`，提示词 `prompt` 为 `{id,name,target,text,builtin}`：
+`apiUI` 的公开操作全部返回 Promise（下表省略 Promise 包装；顶层用 `globalThis.YaKitChat.apiUI`，iframe 用 `parent.YaKitChat.apiUI`）。API 配置 `profile` 为 `{id,name,url,key,model,provider}`：
 
 | 调用 | 成功值 |
 | --- | --- |
@@ -620,22 +734,16 @@ async function restorePresets(file) {
 | `removeProfile(id)` | true |
 | `fetchModels(draft)` | 去重后的模型名称数组 |
 | `testConnection(draft)` | `{message}` |
-| `listPrompts(kind)` | 提示词数组；kind 为 jailbreak/style |
-| `getActivePromptId(kind)` | ID 或 null |
-| `activatePrompt(kind,id\|null)` | ID 或 null；破限词不能通过此接口设 null |
-| `checkPrompt(kind,draft)` | `{errors:{name?,text?}}` |
-| `savePrompt(kind,draft)` | 保存后的提示词 |
-| `duplicatePrompt(kind,id)` | 新提示词 |
-| `removePrompt(kind,id)` | true；内置破限词拒绝删除 |
-| `getAssistant('regex')` | `{profile,jailbreak}` |
-| `getAssistant('polish')` | `{profile,jailbreak,prompt}` |
-| `setAssistant(kind,patch)` | 保存后的该助手配置 |
-| `resolveAssistant('regex')` | `{profile:{id,name,model,usingMainApi},jailbreak}`，破限词为摘要或 null |
-| `resolveAssistant('polish')` | `{profile:{id,name,model,usingMainApi},jailbreak,prompt}`，两个提示词为摘要或 null |
+| `listCorePrompts()` | `[{id,name,target,text,defaultText,modified}]`，顺序 jailbreak / regex / polish |
+| `saveCorePrompt(id,text)` | 保存后的 corePrompt；regex / polish 正文空白时 reject |
+| `resetCorePrompt(id)` | 恢复默认后的 corePrompt |
+| `getAssistant(kind)` | `{profile,sampling}` |
+| `setAssistant(kind,{profile?,sampling?})` | 保存后的该助手配置 |
+| `resolveAssistant(kind)` | 无密钥的 `{profile:{id,name,model,usingMainApi},jailbreak:{id,name}\|null}`；polish 另有 `prompt:{id,name}\|null` 表示当前文风 |
 | `getRequestSettings()` | `{timeoutSeconds,retries}` |
 | `setRequestSettings(patch)` | 保存后的完整参数；空 patch 不保存 |
 
-表中 getAssistant／resolveAssistant 按两种 kind 分列，实际仍是 22 个函数。正则助手接受 profile/jailbreak；润色助手接受 profile/jailbreak/prompt。profile 可用 follow/main/记录 ID，提示词项可用 follow/none/记录 ID。
+旧提示词接口（`listPrompts`、`getActivePromptId`、`activatePrompt`、`checkPrompt`、`savePrompt`、`duplicatePrompt`、`removePrompt`）仍保留，操作旧破限词库与文风库，界面不再使用。
 
 | 情况 | 提示或错误码 |
 | --- | --- |
@@ -645,6 +753,7 @@ async function restorePresets(file) {
 | 没有可参考 AI 回复 | 当前聊天没有可参考的 AI 回复 |
 | 生成请求失败 | AI 请求失败，请检查当前 API 的连接和额度后重试 |
 | 无完整规则组 | 没有拿到规则，可能被模型拒绝了，换个破限词或说法再试；`AI_RULE_FORMAT` |
+| 自定义楼层数不合法 | 自定义楼层数必须是正整数；`error.field='chunkFloors'` |
 | 候选字段格式错误 | AI 返回的规则格式不对，请重新生成；`AI_RULE_FORMAT` |
 | 全部重复 | AI 没有给出新的规则，请换个说法再试 |
 | 超时 | 等了 N 秒还没生成规则，请检查当前 API 后重试；`AI_TIMEOUT` |
@@ -663,16 +772,6 @@ async function restorePresets(file) {
     console.log(await apiUI.resolveAssistant('regex'));
     console.log(await apiUI.getRequestSettings());
     console.log(await exportUI.getAiContext());
-})();
-```
-
-下面保存请求参数，并将正则助手的接口和破限词设为跟随当前选择：
-
-```js
-(async () => {
-    const api = globalThis.YaKitChat.apiUI;
-    console.log(await api.setRequestSettings({ timeoutSeconds: 360, retries: 1 }));
-    console.log(await api.setAssistant('regex', { profile: 'follow', jailbreak: 'follow' }));
 })();
 ```
 
@@ -718,40 +817,367 @@ async function testDraftModel(draft) {
 }
 ```
 
-`readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及第 6 节列出的底层管理函数本次交接未更新契约，调用前以源码为准。
+### 润色、文风、固定提示词、助手、备份与公告
+
+以下示例可单独复制到已加载插件的酒馆控制台；兼容面板 iframe，通过当前窗口或 parent 取 YaKitChat。带生成 / 保存 / 下载说明的块会产生对应操作。
+
+#### 当前接口与只读状态
+
+本块不发模型生成；getJob 可能启动服务器结果文件读取，两个上下文查询会准备当前 API 信息。
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log('版本', y.version);
+    console.log('聊天', y.polishUI.getChatInfo());
+    console.log('润色设置', y.polishUI.loadSettings());
+    console.log('润色上下文', await y.polishUI.getContext());
+    console.log('正则上下文', await y.exportUI.getAiContext());
+    console.log('当前任务', y.polishUI.getJob());
+    console.table(await y.styles.list());
+    console.log('使用中的文风', await y.styles.getActiveId());
+    console.table(await y.apiUI.listCorePrompts());
+    console.log('正则助手', await y.apiUI.getAssistant('regex'));
+    console.log('润色助手', await y.apiUI.getAssistant('polish'));
+    console.log('请求参数', await y.apiUI.getRequestSettings());
+})();
+```
+
+#### 文风创建、检查、使用、修改、复制及导入导出
+
+创建两项后导出示例文风文件；末尾删除本块创建的两项并恢复原使用项。下载文件不自动删除。
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    const oldActive = await y.styles.getActiveId();
+    const name = `示例文风-${Date.now()}`;
+    const draft = { name, text: '句式自然，保留动作、对话和事实。' };
+    console.log(await y.styles.check(draft));
+    const style = await y.styles.save(draft);
+    let duplicate;
+    try {
+        await y.styles.activate(style.id);
+        console.log(await y.styles.save({ ...style, text: '语言简洁，保留细节，不改变事实。' }));
+        duplicate = await y.styles.duplicate(style.id);
+        console.log(await y.styles.exportStyle(style.id));
+    } finally {
+        if (duplicate) await y.styles.remove(duplicate.id);
+        await y.styles.remove(style.id);
+        await y.styles.activate(oldActive);
+    }
+})();
+```
+
+单套导入接受文件文本。此块保留新导入项，不自动选中：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    const text = JSON.stringify({
+        type: 'ST-YaKit-chat/style', schemaVersion: 1,
+        name: '导入示例文风', text: '语句通顺，保留原文的具体细节。'
+    });
+    console.log(await y.styles.importStyle(text));
+})();
+```
+
+#### 固定提示词编辑与恢复
+
+本块将正则规则保存为默认原文；操作后正则提示词是默认状态。演示 defaultText/modified 以及实时比较依据：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    const current = (await y.apiUI.listCorePrompts()).find(item => item.id === 'regex');
+    const editedText = current.defaultText + '\n按实际匹配范围解释规则。';
+    console.log('恢复按钮是否可用', editedText !== current.defaultText);
+    console.log(await y.apiUI.saveCorePrompt('regex', editedText));
+    const reset = await y.apiUI.resetCorePrompt('regex');
+    console.log(reset.text === reset.defaultText, reset.modified);
+})();
+```
+
+明确停用通用破限词及恢复默认，二选一执行：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log(await y.apiUI.saveCorePrompt('jailbreak', ''));
+})();
+```
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log(await y.apiUI.resetCorePrompt('jailbreak'));
+})();
+```
+
+#### 助手接口、采样与超时
+
+本块保存配置。只改 profile 不影响 sampling；第二次采样保存只清温度，其余项保留。
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    await y.apiUI.setAssistant('regex', { profile: 'follow' });
+    await y.apiUI.setAssistant('polish', {
+        profile: 'main', sampling: { temperature: 0.7, topP: 0.9, topK: null }
+    });
+    await y.apiUI.setAssistant('polish', { sampling: { temperature: null } });
+    console.log(await y.apiUI.getAssistant('polish'));
+    console.log(await y.apiUI.resolveAssistant('polish'));
+    console.log(await y.apiUI.setRequestSettings({ timeoutSeconds: 360, retries: 1 }));
+})();
+```
+
+指定已存在的副 API，不在代码中嵌入地址和密钥：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    const profiles = await y.apiUI.listProfiles();
+    if (!profiles.length) throw new Error('请先在 API 管理中建立一个副 API 配置');
+    console.log(await y.apiUI.setAssistant('polish', { profile: profiles[0].id }));
+})();
+```
+
+#### 复用导出预设与分段预览
+
+仅预览，不保存任务或请求模型；没有导出预设时使用导出页当前设置。
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    const presets = await y.presets.list();
+    const settings = {
+        allFloors: true, start: '', end: '',
+        presetId: presets[0]?.id ?? 'export',
+        chunkMode: 'custom', chunkFloors: 7, fileName: '润色结果'
+    };
+    const segments = await y.polishUI.planSegments(settings);
+    console.table(segments.map(s => ({
+        index: s.index, startFloor: s.startFloor, endFloor: s.endFloor,
+        floors: s.floors.length, chars: s.chars
+    })));
+})();
+```
+
+#### 状态订阅与首段试润色
+
+先订阅，后开始。订阅代码保存取消函数；不依赖首次 getJob 非空：
+
+```js
+(() => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    globalThis.yakitStopPolishLog?.();
+    globalThis.yakitStopPolishLog = y.polishUI.onJobChange(job => {
+        console.log('润色任务变化', job);
+    });
+    console.log('当前快照', y.polishUI.getJob());
+})();
+```
+
+本块保存润色设置，替换当前聊天已有任务并调用模型试润色第一段；请在要开始新任务的聊天运行：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    if (y.polishUI.getChatInfo().status !== 'ok') throw new Error('请先打开单人聊天');
+    const settings = y.polishUI.saveSettings({
+        allFloors: true, start: '', end: '', presetId: 'export',
+        chunkMode: 'balanced', chunkFloors: 10, fileName: '润色结果'
+    });
+    console.log(await y.polishUI.start(settings));
+})();
+```
+
+看到 review/stopped 后再继续；本块可能调用模型，也可能只补保存：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log(await y.polishUI.resume());
+})();
+```
+
+停止与取消日志订阅可独立执行：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    await y.polishUI.stop();
+    globalThis.yakitStopPolishLog?.();
+    delete globalThis.yakitStopPolishLog;
+})();
+```
+
+#### 手动编辑与按楼层重做
+
+须等待当前聊天结果已加载且任务空闲。本块保存第一楼示例修改，之后按第一、二楼重做并请求模型；选择来源为实际任务楼号：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    const p = y.polishUI;
+    const job = p.getJob();
+    if (!job || !job.isCurrentChat || job.status === 'running') {
+        throw new Error('请等当前聊天结果加载完成并停止生成');
+    }
+    const floors = job.segments.flatMap(segment => segment.floors);
+    const first = floors[0];
+    await p.editFloor(first.floor, (first.polished ?? first.original) + '\n手动补充的示例句。');
+    const selected = floors.slice(0, 2).map(floor => floor.floor);
+    console.log('预计请求次数', p.estimateRedo(selected));
+    console.log(await p.redoFloors(selected));
+})();
+```
+
+整段重试会清空该段手改结果；此块重做当前任务第 1 段：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log(await y.polishUI.retrySegment(0));
+})();
+```
+
+#### 润色新增楼层、导出与清空
+
+新增楼层示例：原聊天旧前缀须未改变，且有符合任务筛选条件的新楼。
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log('新增信息', y.polishUI.getJob()?.newFloors ?? null);
+    console.log(await y.polishUI.appendNew());
+})();
+```
+
+全部段完成后下载；TXT/MD/EPUB 由任务所选导出预设当前格式决定：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log(await y.polishUI.exportFile({ fileName: '润色成品' }));
+})();
+```
+
+此块删除当前聊天的服务器润色结果，不删除原聊天：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    await y.polishUI.clearJob();
+})();
+```
+
+#### 正则助手与完整备份
+
+正则生成会发送当前聊天最近可见 AI 楼层给当前正则助手接口：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log(await y.exportUI.suggestRules({
+        request: '删除 thinking 标签及其中的内容', mode: 'delete', rules: []
+    }));
+})();
+```
+
+下载备份。`uiPrefs` 应由调用方传实际界面偏好；此示例明确使用空偏好：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.log(await y.presets.exportBackup({}));
+})();
+```
+
+恢复 API 示例使用当前状态构造一份完整合法备份文本，再恢复；会调用设置保存，不会发模型请求。真实导入时把 text 换成读取到的文件全文；返回的 uiPrefs 由 UI 自行应用：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    const text = JSON.stringify({
+        type: 'ST-YaKit-chat/backup', schemaVersion: 1,
+        presets: { items: await y.presets.list(), activeId: await y.presets.getActiveId() },
+        exportSettings: y.exportUI.loadSettings() ?? {
+            allFloors: true, includeHidden: true, start: '', end: '',
+            types: { ai: true, user: true, system: true },
+            format: 'txt', labels: 'with', fileName: '', mode: 'delete', rules: []
+        },
+        uiPrefs: {},
+        styles: { items: await y.styles.list(), activeId: await y.styles.getActiveId() },
+        corePrompts: Object.fromEntries((await y.apiUI.listCorePrompts()).map(item => [item.id, item.text]))
+    });
+    console.log(await y.presets.restoreBackup(text));
+})();
+```
+
+#### 更新公告
+
+第一项读已安装静态文件；第二项会请求宿主仓库信息并读取 GitHub，可能触发宿主 git fetch，按第 2.9 节处理错误：
+
+```js
+(async () => {
+    const y = globalThis.YaKitChat ?? globalThis.parent?.YaKitChat;
+    console.table(await y.notice.listInstalled());
+    try {
+        console.table(await y.notice.fetchNewer());
+    } catch (error) {
+        console.error(error.message);
+    }
+})();
+```
+
+**返回值和同步性速查**
+
+- `polishUI` 共 18 项：同步的 getChatInfo/onChatChanged/loadSettings/saveSettings/getJob/onJobChange/estimateRedo；Promise 的 getContext/planSegments/start/resume/retrySegment/stop/clearJob/editFloor/redoFloors/appendNew/exportFile。两个订阅函数返回取消订阅函数。getContext 返回 `{apiName,model,usingMainApi,jailbreakName,styleName}`，不返回密钥或正文。
+- job 为 `{id,status,chatName,isCurrentChat,stopReason,waitUntil,newFloors,segments}`。段为 `{index,startFloor,endFloor,chars,original,polished,status,error,resumeFloor,shortFloors,floors}`；楼为 `{floor,original,polished,status,edited,short}`。楼状态 pending/running/done；段另有 failed；任务状态 running/review/stopped/finished。空正文结果不是合格 done。返回快照独立，不应通过修改返回对象保存。
+- `styles` 共 9 项：list/getActiveId/activate/check/save/duplicate/remove/importStyle 同步，exportStyle 返回 Promise；均可用 await。check 返回 `{errors:{name?,text?}}`；save/duplicate/importStyle 返回 style，activate 返回 id|null，remove 返回 true。
+- `apiUI` 的公开操作统一 Promise，包括 listCorePrompts/saveCorePrompt/resetCorePrompt、getAssistant/setAssistant/resolveAssistant、getRequestSettings/setRequestSettings。resolveAssistant 返回无密钥的 `{profile:{id,name,model,usingMainApi},jailbreak:{id,name}|null}`，polish 另有 `prompt:{id,name}|null` 表示当前文风。
+- `presets` 公开操作统一 Promise，原导出预设 API 未改签名；`notice` 两个读取接口也均为 Promise。
+
+`readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层管理函数的契约以源码为准。
 
 ## 当前接入状态
 
-**已实现（含界面，已通过小主复测）**
-- 文本导出页：导出预览、正则匹配、识别到的标签、导出设置抽屉（楼层范围、消息类型、格式、文件名）、TXT / Markdown / EPUB 导出；`getChatInfo` 等八个基础接口全部接入
-- 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、九套主题、设置页（插件更新、主题、导航栏位置；组件示例默认隐藏）
-- 插件更新：`updater` 两个接口全部接入，无未接入业务项
-- 预设：预设页（列表、切换、重命名、复制、导出、删除、导入、备份全部、从备份恢复）与导出页底部预设下拉框、「更新预设」；`presets` 十三个接口全部接入，无未接入业务项
+**已实现（含界面，已通过整体复测）**
+- 文本导出页：导出预览、正则匹配、识别到的标签、导出设置抽屉（楼层范围、消息类型、格式、文件名）、TXT / Markdown / EPUB 导出
+- 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、九套主题、设置页（更新、主题、导航栏位置；组件示例默认隐藏）
+- 插件更新：`updater` 两个接口
+- 导出预设：列表、切换、重命名、复制、导出、删除、导入、备份全部、从备份恢复，导出页底部下拉框与「更新预设」
 
-**已实现并接入界面，待小主复测**
-- API 管理页：API 配置（含获取模型、真实测试连接）、助手（正则 / 润色）、参数、提示词（破限词 / 文风提示词，内置两个破限词）；`apiUI` 22 个接口全部接入
-- 正则匹配 AI 辅助：`getAiContext`、`suggestRules` 接入；关闭抽屉或弹窗后继续生成与完成提示由界面实现；`cancelSuggestRules` 保留，界面不调用
-- 导出设置「包含隐藏的楼层」与隐藏楼层按原类型归类；放大查看全部楼层分批加载；起止楼层输入框自动整理
-- 设置页报错记录
-- 验收情况：业务组合测试 26/26 通过（网络与存储为替身）；界面接入经浏览器只读核对与模拟接口自测；尚无本批 AI 生成与测试连接全部真实成功的记录；正则助手接口选择的真实复测待完成
+**已实现并接入界面，未经真实 API 与整体复测**
+- 润色页：`polishUI` 18 个接口已装配；已接真实业务核对无结果状态、按楼层分段预览（104 层在 5 / 10 / 20 / 自定义 7 层下为 21 / 11 / 6 / 15 段）与自定义 0 层错误；首段 review→继续、65535 额度是否被服务接受、超长单楼、截断续写、429 倒计时、停止、格式重试、短文提醒与真实内容质量均未验证
+- 润色结果服务器链路：上传、刷新读回、跨聊天、坏文件恢复、写入失败恢复、逐楼手改、选楼重做、新增楼层及旧楼改变后阻止追加，只有离线测试
+- 润色导出：TXT / Markdown / EPUB 真实下载与文件内容未验证
+- 复用导出预设、文风预设、固定三条提示词（含 defaultText 实时恢复按钮）：真实只读核对通过；新建、切换、导入导出、删除回退、恢复默认、旧数据迁移、新旧备份恢复、生成中切换文风或规则的实际效果未验证
+- 助手接口与采样参数：只读核对两个助手五项为 null；保存、参数实际送达各服务与生成效果未验证
+- 正则 / 润色标签说明：已加入实际请求组装；界面在提示词编辑页展示标签表
+- 更新公告：本地三版公告读取与失败提示已核对；远端读取在本机因 SSH 远端 HTTP 500 未测通，待 push 后用 HTTPS 安装验证；更新后自动弹出一次需真实版本变化验证
+- API 管理（API 配置、参数）、正则 AI 辅助、包含隐藏楼层、全部楼层分批预览、报错记录：沿用 v0.5.0 状态
+- 验收情况：业务离线回归 45 项通过（网络、存储、宿主为替身）；公开 API 示例完成静态语法核对，未在用户账户上执行生成、保存或下载
 
 **已实现但无界面**
-- 底层副 API 配置管理（`src/features/api-management/`，已在 `YaKitChat` 上）：`getApiProfiles`、`validateApiConfig`、`shouldWarnEmptyKey`、`saveApiProfile`、`deleteApiProfile`、`selectApiProfile`、`getActiveApiConfig`
-- 底层提示词管理（`src/features/prompt-management/`，已在 `YaKitChat` 上）：`getPromptTemplates`、`validatePromptTemplate`、`savePromptTemplate`、`deletePromptTemplate`、`selectPromptTemplate`、`getActivePrompt`
-- EPUB 分章偏好（`getEpubPreferences` / `saveEpubPreferences`）：导出时读取已存偏好，无设置界面
+- 底层副 API 配置管理与提示词管理函数（`src/features/api-management/`、`src/features/prompt-management/`，已在 `YaKitChat` 上）；旧提示词接口
+- EPUB 分章偏好（`getEpubPreferences` / `saveEpubPreferences`）：文本导出时读取已存偏好，无设置界面；润色 EPUB 固定每段一章，不用这项偏好
 
 **未实现**
-- 润色页签的内容（目前为占位卡片）与润色生成业务
-- 备份覆盖 API 配置、提示词、助手与请求参数
-- 内置破限词正文与助手定位词的正式内容（当前为空 / 占位）
+- assistant 预填充消息与预填充开关
+- 群聊润色
+- 「备份全部」覆盖 API 配置与密钥、助手接口与采样、请求参数、润色设置与服务器润色结果
+- 入口文件收敛为「UI 总文件 + 业务总文件」两个引用
 
-**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理与 AI 辅助使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；关闭弹窗后的生成完成提示使用宿主 `toastr`。无第三方依赖。
+**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约并完成人工验收，其他版本未单独验证。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 
 ## 开发与验证
 
 - **分工**：Claude 负责界面代码（`src/ui/`）、README.md / Public.md / DESIGN.md 与设计一致性核对；Codex 负责业务逻辑（`src/features/`、`src/shared/`）与业务测试；入口文件改动由小主协调；界面与业务通过接口说明对接，不共同修改同一文件。
-- **验收方式**：业务由 Codex 自测（不使用浏览器），界面由 Claude 在浏览器中自测，再由小主整体复测。
+- **验收方式**：业务由 Codex 自测（不使用浏览器）；界面在业务接好后由 Claude 在酒馆里接真实业务自测（避开发模型请求和写入用户数据的操作），再由小主整体复测。
 - **构建**：不涉及，浏览器直接加载 ES 模块；插件须在酒馆扩展设置中启用。
 - **协作记录**：关键节点见 `AGENT_LOG.md`。
