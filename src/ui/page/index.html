@@ -22,6 +22,7 @@
   <script src="../components/theme-list.js"></script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="export.css">
+  <link rel="stylesheet" href="polish.css">
   <link rel="stylesheet" href="settings.css">
   <link rel="stylesheet" href="preset.css">
   <link rel="stylesheet" href="api.css">
@@ -76,8 +77,40 @@
     </div>
 
     <!-- ========== 页签：润色 ========== -->
-    <div data-page="polish" hidden>
-      <yakit-card title="润色">这里是「润色」页签的内容区。</yakit-card>
+    <div data-page="polish" class="polish-page" hidden>
+      <!-- 主要内容：按段显示原文和润色后的文字 -->
+      <yakit-card class="polish-card" id="polish-card" title="润色结果">
+        <div slot="extra" class="preview-extra">
+          <span class="export-summary" id="polish-summary"></span>
+          <yakit-button id="polish-settings" size="sm" variant="ghost" icon="../icons/settings.svg">润色设置</yakit-button>
+        </div>
+        <div class="polish-toolbar" id="polish-toolbar" hidden>
+          <span class="polish-context" id="polish-context"></span>
+          <yakit-segmented id="polish-view" size="sm" aria-label="显示哪种文字" value="polished">
+            <option value="polished">润色后</option>
+            <option value="original">原文</option>
+          </yakit-segmented>
+        </div>
+        <div class="notice is-warning" id="polish-chat-notice" role="status" hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4M12 17h.01"/></svg>
+          <span></span>
+        </div>
+        <div class="polish-list" id="polish-list"></div>
+      </yakit-card>
+
+      <!-- 底部操作条：进度 + 开始 / 停止 + 导出 -->
+      <div class="export-bar polish-bar">
+        <div class="polish-progress">
+          <span class="polish-progress-text" id="polish-progress-text"></span>
+          <div class="polish-progress-track" id="polish-progress-track" role="progressbar" aria-label="润色进度" aria-valuemin="0" aria-valuemax="100" hidden>
+            <div class="polish-progress-fill" id="polish-progress-fill"></div>
+          </div>
+        </div>
+        <div class="btn-row polish-actions">
+          <yakit-button id="polish-run" variant="primary" icon="../icons/sparkle.svg" disabled>开始润色</yakit-button>
+          <yakit-button id="polish-export" icon="../icons/ouput.svg" disabled>导出</yakit-button>
+        </div>
+      </div>
     </div>
 
     <!-- ========== 页签：设置 ========== -->
@@ -299,6 +332,83 @@
       <yakit-button id="ai-regenerate" hidden>重新生成</yakit-button>
       <yakit-button id="ai-apply" variant="primary" hidden>添加到规则</yakit-button>
     </div>
+  </yakit-drawer>
+
+  <!-- 润色：润色设置抽屉 -->
+  <yakit-drawer id="polish-drawer" title="润色设置" side="left">
+    <div class="polish-lock" id="polish-lock" hidden>
+      <p class="field-note" id="polish-lock-note"></p>
+      <yakit-button id="polish-clear" size="sm" variant="ghost" icon="../icons/trash.svg">清空结果</yakit-button>
+    </div>
+
+    <section class="drawer-section">
+      <h3>楼层范围</h3>
+      <yakit-switch id="polish-all-floors" label="润色全部楼层" data-lock></yakit-switch>
+      <div id="polish-floor-range">
+        <div class="range-inputs">
+          <yakit-input id="polish-start" label="起始楼层" type="number" size="sm" placeholder="0" data-lock></yakit-input>
+          <yakit-input id="polish-end" label="结束楼层" type="number" size="sm" placeholder="最后一楼" data-lock></yakit-input>
+        </div>
+      </div>
+      <p class="field-note" id="polish-floor-hint"></p>
+    </section>
+
+    <section class="drawer-section">
+      <h3>消息类型</h3>
+      <div class="drawer-rows">
+        <yakit-switch id="polish-type-ai" label="AI 回复" description="角色说的话" data-lock></yakit-switch>
+        <yakit-switch id="polish-type-user" label="用户台词" description="你发的消息" data-lock></yakit-switch>
+        <yakit-switch id="polish-type-system" label="系统提示" description="系统消息和旁白（/sys）" data-lock></yakit-switch>
+        <yakit-switch id="polish-include-hidden" label="包含隐藏的楼层" description="关掉后，在酒馆里隐藏过的楼层都不润色" data-lock></yakit-switch>
+      </div>
+      <div class="notice" id="polish-type-warning" role="alert" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+        <span>请至少选择一种消息类型</span>
+      </div>
+    </section>
+
+    <section class="drawer-section">
+      <h3>清洗</h3>
+      <div class="drawer-rows">
+        <yakit-switch id="polish-clean" label="先按正则规则清洗" description="去掉状态栏、思维链这类内容，再交给润色助手" data-lock></yakit-switch>
+      </div>
+      <div class="setting-field polish-clean-source" id="polish-clean-row">
+        <span class="setting-label">用哪套规则</span>
+        <yakit-select id="polish-clean-source" size="sm" aria-label="用哪套规则" data-lock></yakit-select>
+      </div>
+      <p class="field-note" id="polish-clean-note">只用预设里的正则规则和匹配方式。<br>建议选导出时常用的那套，润色前后去掉的内容一致。</p>
+    </section>
+
+    <section class="drawer-section">
+      <div class="setting-field">
+        <span class="setting-label">每段字数</span>
+        <div class="request-timeout">
+          <yakit-input id="polish-chunk" type="number" size="sm" aria-label="每段字数" placeholder="3000" data-lock></yakit-input>
+          <span class="request-unit">字</span>
+        </div>
+      </div>
+      <p class="field-note">按楼层凑够这么多字发一次，一层楼不会被拆开。<br>建议 3000 字左右，太长容易超时。</p>
+      <div class="notice" id="polish-chunk-error" role="alert" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+        <span></span>
+      </div>
+    </section>
+
+    <section class="drawer-section drawer-stack">
+      <h3>导出格式</h3>
+      <yakit-segmented id="polish-format" block aria-label="文件格式" value="txt">
+        <option value="txt">TXT</option>
+        <option value="md">Markdown</option>
+        <option value="epub">EPUB</option>
+      </yakit-segmented>
+    </section>
+
+    <section class="drawer-section">
+      <h3>文件名</h3>
+      <yakit-input id="polish-file-name" size="sm" placeholder="不填就用角色名加日期"></yakit-input>
+    </section>
+
+    <yakit-button slot="footer" id="polish-drawer-done" variant="primary">完成</yakit-button>
   </yakit-drawer>
 
   <!-- API 管理：新建 / 编辑副 API 配置 -->
@@ -614,6 +724,7 @@
   <script src="settings.js"></script>
   <script src="export.js"></script>
   <script src="ai-rules.js"></script>
+  <script src="polish.js"></script>
   <script src="choice.js"></script>
   <script src="preset.js"></script>
   <script src="api.js"></script>

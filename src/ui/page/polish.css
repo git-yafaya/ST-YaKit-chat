@@ -1,0 +1,99 @@
+/* 润色页：布局沿用文本导出页（主要内容占剩余高度 + 底部操作条），预览文字、摘要、操作条外观复用 export.css */
+.polish-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(100vh - 40px);
+  min-height: 460px;
+}
+.polish-page > .polish-card {
+  flex: 1;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+}
+.polish-card::part(body) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+}
+
+/* 润色助手信息 + 润色后 / 原文 */
+.polish-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; margin-bottom: 10px; }
+.polish-context { min-width: 0; overflow: hidden; font-size: 12px; line-height: 24px; color: var(--text-muted); white-space: nowrap; text-overflow: ellipsis; }
+.polish-card .notice { flex: none; margin: 0 0 10px; }
+
+/* 提醒提示框：提醒色 + 图标 + 文字 */
+.notice.is-warning {
+  background: color-mix(in srgb, var(--warning) 9%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
+}
+.notice.is-warning svg { color: var(--warning); }
+
+/* 段落列表：内容多了在卡片里滚动；四周留 4px，焦点框不被切掉 */
+.polish-list { flex: 1; min-height: 0; overflow-y: auto; margin: -4px; padding: 4px; }
+
+.polish-seg + .polish-seg { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--divider); }
+.polish-seg-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 4px; }
+.polish-seg-meta { flex: 1; min-width: 0; font-size: 12px; color: var(--text-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.polish-seg .notice { margin: 4px 0 8px; }
+
+/* 段落状态：等待中只有灰字；润色中主色转圈；完成、失败用状态色图标 + 文字 */
+.polish-state { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.polish-state svg { flex: none; }
+.polish-state.is-done svg { color: var(--success); }
+.polish-state.is-failed { color: var(--danger); font-weight: 500; }
+.polish-spinner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  border-top-color: var(--primary);
+  animation: polish-spin 0.8s linear infinite;
+}
+@keyframes polish-spin { to { transform: rotate(360deg); } }
+
+/* 底部操作条：左边进度，右边按钮 */
+.polish-progress { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding-left: 4px; }
+.polish-progress-text { min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-muted); white-space: nowrap; text-overflow: ellipsis; }
+.polish-progress-track { flex: 0 1 140px; min-width: 60px; height: 4px; overflow: hidden; border-radius: 999px; background: var(--divider); }
+.polish-progress-fill { width: 0; height: 100%; border-radius: inherit; background: var(--primary); transition: width 0.28s cubic-bezier(0.3, 0.7, 0.2, 1); }
+.polish-actions { flex: none; }
+
+/* 润色设置抽屉：有结果时锁住会改变分段的几项 */
+.polish-lock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--divider);
+  background: color-mix(in srgb, var(--text-title) 3%, var(--card-bg));
+}
+.polish-lock .field-note { margin: 0; }
+.polish-clean-source { margin-top: 8px; }
+.polish-clean-source yakit-select { width: 200px; max-width: 60%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .polish-spinner { animation: none; }
+  .polish-progress-fill { transition: none; }
+}
+
+/* 手机：不强求一屏；进度占一整行，按钮在下面一行加高 */
+@media (max-width: 600px) {
+  .polish-page { height: auto; min-height: 0; }
+  .polish-page > .polish-card { flex: none; }
+  .polish-card::part(header) { flex-wrap: wrap; row-gap: 4px; }
+  #polish-summary { order: 1; flex-basis: 100%; }
+  .polish-list { max-height: 360px; }
+  .polish-bar { flex-wrap: wrap; row-gap: 8px; }
+  .polish-progress { flex-basis: 100%; }
+  .polish-progress-track { flex: 1; }
+  .polish-actions { margin-left: auto; }
+  .polish-actions yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
+  .polish-clean-source yakit-select { width: auto; flex: 1; max-width: none; --select-height: 34px; --select-font: 13px; }
+}
