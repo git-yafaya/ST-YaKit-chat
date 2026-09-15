@@ -1,6 +1,6 @@
 import { getAssistantSelection } from '../assistant-management/index.js';
 import { getMainClient, generateSecondary } from '../text-export/ai-client.js';
-import { ASSISTANT_PROMPTS, ASSISTANT_FORMATS } from '../../shared/assistant-prompts.js';
+import { ASSISTANT_PROMPTS } from '../../shared/assistant-prompts.js';
 import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
 
 export async function getContext() {
@@ -85,10 +85,7 @@ export function createGenerator(context) {
         floors = floors.map(({ floor, text }) => ({ floor, text }));
         const messages = [];
         if (jailbreak?.content?.trim()) messages.push({ role: 'system', content: jailbreak.content });
-        messages.push({ role: 'system', content: ASSISTANT_PROMPTS.polish }, {
-            role: 'system',
-            content: ASSISTANT_FORMATS.polish,
-        });
+        messages.push({ role: 'system', content: ASSISTANT_PROMPTS.polish });
         if (prompt?.content?.trim()) messages.push({ role: 'user', content: prompt.content });
         const tail = typeof previousTail === 'string' ? Array.from(previousTail).slice(-300).join('') : '';
         const referenceText = references.map(({ startFloor, endFloor, previous, next }) => {

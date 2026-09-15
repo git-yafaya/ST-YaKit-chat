@@ -1,4 +1,4 @@
-import { ASSISTANT_PROMPTS, ASSISTANT_FORMATS } from '../../shared/assistant-prompts.js';
+import { ASSISTANT_PROMPTS } from '../../shared/assistant-prompts.js';
 
 export function buildRuleMessages({ request, mode, rules, sample, jailbreak }) {
     const messages = [];
@@ -6,10 +6,7 @@ export function buildRuleMessages({ request, mode, rules, sample, jailbreak }) {
     if (typeof jailbreak?.content === 'string' && jailbreak.content.trim()) {
         messages.push({ role: 'system', content: jailbreak.content });
     }
-    messages.push({ role: 'system', content: ASSISTANT_PROMPTS.regex }, {
-        role: 'system',
-        content: ASSISTANT_FORMATS.regex,
-    });
+    messages.push({ role: 'system', content: ASSISTANT_PROMPTS.regex });
     messages.push({
         role: 'user',
         content: `需求：${request.trim()}\n匹配方式：${mode === 'keep' ? '只保留匹配内容（keep）' : '删除匹配内容（delete）'}`
