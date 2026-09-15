@@ -98,6 +98,10 @@ export function savePromptTemplate(template) {
             content: template.content,
             ...getMetadata(template.category, template, group.items.find(item => item.id === template.id)),
         };
+        // 保存内置 Gemini 时记住编辑意图，主动清空后不再补默认正文。
+        if (template.category === 'jailbreak' && template.id === 'builtin-jailbreak-gemini') {
+            record.contentEdited = true;
+        }
         if (template.id === undefined) group.items.push(record);
         else group.items[findRecordIndex(group.items, template.id)] = record;
         return record;
