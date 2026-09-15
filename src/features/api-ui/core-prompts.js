@@ -15,7 +15,7 @@ export function listCorePrompts() {
         const text = id === 'jailbreak'
             ? settings.prompts.jailbreak.items.find(item => item.id === 'builtin-jailbreak-universal').content
             : settings.corePrompts?.[id] ?? defaults[id];
-        return { id, name, target: id === 'jailbreak' ? 'system' : 'user', text, modified: text !== defaults[id] };
+        return { id, name, target: id === 'jailbreak' ? 'system' : 'user', text, defaultText: defaults[id], modified: text !== defaults[id] };
     });
 }
 
@@ -31,7 +31,7 @@ export function saveCorePrompt(id, text) {
             settings.corePrompts ??= {};
             settings.corePrompts[id] = text;
         }
-        return { id, name: names[id], target: id === 'jailbreak' ? 'system' : 'user', text, modified: text !== defaults[id] };
+        return { id, name: names[id], target: id === 'jailbreak' ? 'system' : 'user', text, defaultText: defaults[id], modified: text !== defaults[id] };
     });
 }
 
