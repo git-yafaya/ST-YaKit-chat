@@ -2,12 +2,12 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.6.0。「文本导出」页：导出预览（含全部楼层分批查看）、正则匹配（识别最近两楼标签、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、导出成品；「预设」页：导出预设、文风预设、整体备份恢复；「API 管理」页：副 API 配置、正则 / 润色助手接口与采样参数、请求参数、固定三条提示词；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.6.1。「文本导出」页：导出预览（含全部楼层分批查看）、正则匹配（识别最近两楼标签、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、导出成品；「预设」页：导出预设、文风预设、整体备份恢复；「API 管理」页：副 API 配置、正则 / 润色助手接口与采样参数、请求参数、固定三条提示词；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。入口目前直接引用多个业务模块，尚未收敛为「UI 总文件 + 业务总文件」两个引用。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
-- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出与正则 AI 辅助，11 个）；`polishUI`（润色，18 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、固定提示词、助手、请求参数；旧提示词接口仍保留）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
-- **当前还没做什么**：真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
+- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出与正则 AI 辅助，11 个）；`polishUI`（润色，20 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、固定提示词、助手、请求参数；旧提示词接口仍保留）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
+- **当前还没做什么**：插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
 
 ## 仓库结构
 
@@ -62,13 +62,14 @@ ST-YaKit-chat/
 ├── src/features/text-export/ai-rules.js
 ├── src/features/text-export/ai-client.js
 ├── src/features/text-export/ai-legacy-client.js
+├── src/features/text-export/illustrations.js      插画小说：识别柏宝绘 / 智绘姬标签、占位符、读取图片、润色时取出与补回
 ├── src/features/presets/index.js
 ├── src/features/presets/store.js
 ├── src/features/presets/schema.js
 ├── src/features/presets/files.js
 ├── src/features/updater/host.js
 ├── src/features/updater/index.js
-├── src/features/polish/index.js、segments.js、generate.js、runner.js、floors.js、records.js、storage.js、export.js
+├── src/features/polish/index.js、segments.js、generate.js、runner.js、floors.js、records.js、storage.js、task-inputs.js、export.js
 ├── src/features/styles/index.js
 ├── src/features/notice/index.js、parse.js、source.js
 ├── src/features/api-ui/index.js、profiles.js、prompts.js、core-prompts.js、assistants.js、connection.js
@@ -1142,6 +1143,37 @@ async function testDraftModel(draft) {
 
 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层管理函数的契约以源码为准。
 
+### 本次任务与插画小说（v0.6.1）
+
+**本次任务**（`polishUI.getTaskInputs` / `polishUI.saveTaskInputs`，按聊天保存在 `user/files/ST-YaKit-chat-polish-inputs-<sha256(聊天标识)>.json`）
+
+| 字段 | 含义与边界 |
+|---|---|
+| `instructions` | 本次补充要求；CRLF 统一为 LF；按码点最多 4000；全空白保存为 `''`；非字符串报错 `field='instructions'` |
+| `references` | `[{ kind: 'style' \| 'context', text }]`，整份替换；最多 6 条（含空行）；空正文条目保存时移除；单条最多 6000、合计最多 18000 码点；用途错误 `field='references.N.kind'`，单条超限 `references.N.text`，条数或合计超限 `references` |
+
+- `saveTaskInputs(patch)` 只接受 `instructions`、`references` 两个键，未知键报错；空对象只返回当前值；润色进行中或保存中报错，不写入。
+- 读取失败时报错，不当作空值；旧文件缺项补默认值。
+- `start`、`resume`、`retrySegment`、`redoFloors`、`appendNew` 在操作开始时读回已保存输入，与接口、采样、破限词、文风、润色提示词一起固定为本轮快照；本轮的续写、格式重试、限速重试沿用。
+- user 组装顺序：文风 `<style>` → `<task_requirements>` → `<style_reference n>` / `<context_reference n>`（按列表顺序，n 从 1 起）→ 前一楼结尾 / 衔接参考 → `<original>`；没有内容的块整块省略。
+- `clearJob()` 同时删除输入文件；不进预设备份。
+
+```js
+const polish = globalThis.YaKitChat.polishUI;
+await polish.saveTaskInputs({ instructions: '保留最后一句台词的含义。' });
+await polish.saveTaskInputs({ references: [{ kind: 'context', text: '宋青书是黄蓉的对手。' }] });
+console.log(await polish.getTaskInputs());
+```
+
+**插画小说**（导出设置与导出预设字段 `illustrated: boolean`，默认 `false`，旧预设缺省按 `false`）
+
+- 只在 `format === 'epub'` 时生效。清洗前把生图标签换成私用区占位符（`\uE000编号\uE001`），正则清洗不会删掉占位符（删除或未保留区间里的占位符按原位置补回）；EPUB 中换成 `<img class="illustration">`，图片存 `EPUB/images/编号.扩展名` 并登记 manifest；读不到的图片直接略过。
+- 柏宝绘：标签 `/<bbi_image>[\s\S]+?<\/bbi_image>/gi`；按消息 `extra.bbiImage[swipe_id ?? 0][promptHash(整段标签)]` 中 `slotSeq`（缺省 0）等于该楼第几个标签的最后一条非 `error` 记录取 `path`。
+- 智绘姬：按 `extensionSettings['st-chatu8']` 的 `startTag` / `endTag`（缺省 `image###` / `###`）识别，外层 `<image>` 一并替换；key 为 `MD5(内容.trim() 后把《》换回 <>、去掉换行)`；合并 `jiuguanStorage[key].images`（服务器路径）与浏览器数据库 `chatu8_gallery` / `tupianhuancun` 中 `tupianshuju` 的记录（只读，不创建数据库），按日期排序后取其记住的序号；视频略过。
+- 图片一律按站点根路径 `fetch` 读取，不依赖 docker / 非 docker 的文件系统前缀；只接受 PNG、JPEG、WebP、GIF。
+- `exportUI.exportFile` 在插画模式下返回 `{ count, images, missingImages }`；`previewMessages` 中占位符显示为「〔插图〕」。
+- 润色：所选导出预设 `illustrated` 且为 EPUB 时，分段前取出占位符，楼层记 `images: [{ ref, at }]`（`at` 为去掉标签后文字里的相对位置 0–1），发给模型的原文不含标签；导出 EPUB 时放回最近的段落开头或首尾。只有图片没有文字的楼层不进入润色；结果不属于当前聊天时柏宝绘图片读不到。
+
 ## 当前接入状态
 
 **已实现（含界面，已通过整体复测）**
@@ -1173,7 +1205,7 @@ async function testDraftModel(draft) {
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0、v0.6.1 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 
 ## 开发与验证
 
