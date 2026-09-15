@@ -142,6 +142,8 @@
       flex: 1;
       min-height: 0;
       overflow: auto;
+      /* 始终预留滚动条位置：内容变长出现滚动条时，抽屉里的内容不被挤窄 */
+      scrollbar-gutter: stable;
       padding: 16px 20px;
     }
 
