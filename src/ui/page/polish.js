@@ -934,6 +934,7 @@
     const wasRunning = running();
     job = next || null;
     renderAll();
+    window.dispatchEvent(new CustomEvent('yakit-polish-job', { detail: { running: running() } }));
     if (!job) schedulePlan(0);
     if (!wasRunning || running() || !job) return;
     const failed = job.segments.filter((segment) => segment.status === 'failed').length;

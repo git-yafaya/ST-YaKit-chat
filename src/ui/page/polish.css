@@ -112,6 +112,16 @@
 .setting-field + .polish-preset-summary { margin: 4px 0 0; text-align: right; color: var(--text-body); }
 .polish-preset-summary + .field-note { margin-top: 8px; }
 
+/* 润色设置抽屉「本次任务」：补充要求 + 参考材料 */
+.polish-task-off { margin: 0 0 10px; }
+.polish-ref-block { margin-top: 16px; }
+.polish-ref-block .btn-row { margin-top: 8px; }
+.polish-ref-list:not(:empty) { margin-top: 8px; }
+.polish-ref + .polish-ref { margin-top: 12px; }
+.polish-ref-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+/* 分段选择器没有禁用属性：不能编辑时整块不可操作并变淡 */
+.polish-ref yakit-segmented[inert] { opacity: 0.45; }
+
 @media (prefers-reduced-motion: reduce) {
   .polish-spinner { animation: none; }
   .polish-progress-fill { transition: none; }
@@ -136,4 +146,5 @@
   .polish-new yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
   #polish-preset, #polish-style { width: auto; flex: 1; max-width: none; --select-height: 34px; --select-font: 13px; }
   .setting-field + .polish-preset-summary { text-align: left; }
+  .polish-ref-block yakit-button, .polish-ref-head yakit-button { --btn-height: 34px; --btn-pad: 14px; --btn-font: 13px; }
 }
