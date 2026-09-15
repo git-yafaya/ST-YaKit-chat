@@ -10,6 +10,7 @@ import { updater } from './features/updater/index.js';
 import { presets } from './features/presets/index.js';
 import { apiUI } from './features/api-ui/index.js';
 import { polishUI } from './features/polish/index.js';
+import { notice } from './features/notice/index.js';
 import { initPanelUI } from './ui/panel/index.js';
 
 function getContext() {
@@ -45,6 +46,7 @@ globalThis.YaKitChat = Object.freeze({
     presets,
     apiUI,
     polishUI,
+    notice,
     readCurrentChat,
     filterMessages,
     cleanMessages,
