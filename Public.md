@@ -2,12 +2,12 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.6.1。「文本导出」页：导出预览（含全部楼层分批查看）、正则匹配（识别最近两楼标签、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、导出成品；「预设」页：导出预设、文风预设、整体备份恢复；「API 管理」页：副 API 配置、正则 / 润色助手接口与采样参数、请求参数、固定三条提示词；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.6.2。「文本导出」页：导出预览（含全部楼层分批查看）、正则匹配（识别最近两楼标签、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、固定三条提示词；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。入口目前直接引用多个业务模块，尚未收敛为「UI 总文件 + 业务总文件」两个引用。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
 - **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出与正则 AI 辅助，11 个）；`polishUI`（润色，20 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、固定提示词、助手、请求参数；旧提示词接口仍保留）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
-- **当前还没做什么**：插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
+- **当前还没做什么**：润色功能仍在测试中，已知可能出现回复格式不对、被模型拒绝、字数变少或效果不理想，世界书开关与重写后的提示词未经真实 API 对照测试；插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
 
 ## 仓库结构
 
@@ -1174,6 +1174,22 @@ console.log(await polish.getTaskInputs());
 - `exportUI.exportFile` 在插画模式下返回 `{ count, images, missingImages }`；`previewMessages` 中占位符显示为「〔插图〕」。
 - 润色：所选导出预设 `illustrated` 且为 EPUB 时，分段前取出占位符，楼层记 `images: [{ ref, at }]`（`at` 为去掉标签后文字里的相对位置 0–1），发给模型的原文不含标签；导出 EPUB 时放回最近的段落开头或首尾。只有图片没有文字的楼层不进入润色；结果不属于当前聊天时柏宝绘图片读不到。
 
+### 世界书、助手重置与默认温度（v0.6.2）
+
+| 项 | 契约与边界 |
+|---|---|
+| `polishUI` settings `worldInfo: boolean` | 默认 `false`，不锁定；每轮开始按已保存的润色设置读取。开启时每次请求用 `SillyTavern.getContext().getWorldInfoPrompt(本次楼层原文倒序数组, maxContext（缺省 8192）, true)` 扫描（dry run，不触发宿主事件），`worldInfoString` 去首尾空白非空时以「世界书（仅供理解设定，不输出）：」`<world_info>` 放在参考材料之后、衔接片段之前；宿主没有该函数或扫描出错时省略 |
+| `apiUI.resetAssistant(kind)` | `kind` 为 `regex` / `polish`；保存 `profile: 'follow'` 与默认采样（正则 `temperature: 0.8`、润色 `0.95`，其余 `null`），返回 `{ profile, sampling }`；其他 kind 报错 |
+| 默认温度 | 读取助手设置时，已保存的 sampling 缺 `temperature` 键才补默认值；用户清空后保存的 `null` 保持不设置 |
+| 默认提示词 | `ASSISTANT_PROMPTS` 的可编辑规则部分重写；材料标签说明与输出格式不变；`corePrompts` 里没有保存过正文的直接使用新默认 |
+
+```js
+const api = globalThis.YaKitChat.apiUI;
+console.log(await api.resetAssistant('polish'));
+const polish = globalThis.YaKitChat.polishUI;
+polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
+```
+
 ## 当前接入状态
 
 **已实现（含界面，已通过整体复测）**
@@ -1205,7 +1221,7 @@ console.log(await polish.getTaskInputs());
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0、v0.6.1 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.6.2 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 
 ## 开发与验证
 
