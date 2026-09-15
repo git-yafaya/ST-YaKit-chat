@@ -62,7 +62,7 @@
 
 @media (max-width: 600px) {
   /* 手机上更新按钮做大，手指好点 */
-  #update-go { --btn-height: 34px; --btn-pad: 16px; --btn-font: 13px; }
+  #update-go, #notice-open { --btn-height: 34px; --btn-pad: 16px; --btn-font: 13px; }
 }
 
 /* 报错记录 */
@@ -80,3 +80,6 @@
   overflow-wrap: anywhere;
 }
 .error-log-actions { margin-top: 10px; }
+
+/* 插件更新：「更新公告」和「检查更新」并排，不换行 */
+.update-actions { flex: none; flex-wrap: nowrap; gap: 4px; }

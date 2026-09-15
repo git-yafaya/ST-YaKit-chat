@@ -1,7 +1,7 @@
 /**
  * 设置页「更新公告」（只管界面，读取公告文件交给业务层）
  *
- * 入口行在「插件更新」下面，点开右侧抽屉，按版本从新到旧列出公告；
+ * 入口是「插件更新」里「检查更新」左边的「更新公告」按钮，点开右侧抽屉，按版本从新到旧列出公告；
  * 有还没安装的新版本时，最上面先显示新版本的公告，标「还没更新」。
  * 更新后第一次打开纪实，自动打开抽屉显示这一版的公告，只弹一次（记在 localStorage 的 yakit-notice-seen）；
  * 第一次安装时不弹，直接记下当前版本。
@@ -25,10 +25,9 @@
   const SEEN_KEY = 'yakit-notice-seen';
   const ALERT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>';
 
-  const row = $('set-notice');
-  row.hidden = !available();
+  const button = $('notice-open');
+  button.hidden = !available();
   if (!available()) return;
-  row.setAttribute('summary', current ? `v${current}` : '');
 
   let installed = null;
   let newer = [];
@@ -130,7 +129,6 @@
     } finally {
       newerLoading = false;
     }
-    row.setAttribute('summary', [current ? `v${current}` : '', newer.length ? '有新版本公告' : ''].filter(Boolean).join(' · '));
     render();
   }
 
@@ -142,7 +140,7 @@
     if (!onlyInstalled) loadNewer();
   }
 
-  row.addEventListener('activate', () => open());
+  button.addEventListener('click', () => open());
   $('notice-drawer-done').addEventListener('click', () => $('notice-drawer').close());
 
   // 更新后第一次打开：这一版有公告就自动弹出一次；第一次安装不弹
