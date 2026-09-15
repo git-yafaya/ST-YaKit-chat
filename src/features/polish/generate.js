@@ -104,9 +104,8 @@ export function createGenerator(context) {
             messages.push({ role: 'user', content: buildAssistantTask('polish', listCorePrompts().find(item => item.id === 'polish').text, task) });
             return messages;
         };
-        // ponytail: 按码点估算输出额度，最高 32768；需要精确预算时再接分词器。
-        const chars = floors.reduce((sum, item) => sum + Array.from(item.text).length, 0);
-        const maxTokens = Math.min(32768, Math.max(8192, chars * 2 + 2048));
+        // 每次请求使用固定输出上限，不随原文字数调整。
+        const maxTokens = 65535;
         for (let attempt = 0; attempt <= retries;) {
             checkCancelled(signal);
             const messages = buildMessages();

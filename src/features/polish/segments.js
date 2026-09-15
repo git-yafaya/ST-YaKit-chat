@@ -6,7 +6,7 @@ import { loadSettings as loadExportSettings, normalizeSettings as normalizeExpor
 import { list as listPresets } from '../presets/store.js';
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const CHUNK_SIZES = { fewer: 20000, balanced: 8000, quality: 3000 };
+const CHUNK_FLOORS = { fewer: 20, balanced: 10, quality: 5 };
 
 // 只接收约定字段，跨窗口对象也可传入。
 export function normalizeSettings(value = {}) {
@@ -14,7 +14,7 @@ export function normalizeSettings(value = {}) {
     const settings = {
         allFloors: true, start: '', end: '',
         presetId: 'export',
-        chunkMode: 'balanced', chunkSize: 8000, fileName: '',
+        chunkMode: 'balanced', chunkFloors: 10, fileName: '',
     };
     const labels = {
         allFloors: '全部楼层', start: '起始楼层', end: '结束楼层',
@@ -25,22 +25,22 @@ export function normalizeSettings(value = {}) {
         if (typeof value[key] !== typeof settings[key]) throw new TypeError(`润色设置中的${label}格式不正确`);
         settings[key] = value[key];
     }
-    // 旧设置和旧调用只有字数时，继续使用原来的自定义分段。
+    // 旧字数不换算成楼层；保留已有档位，缺少档位时使用均衡。
     settings.chunkMode = Object.hasOwn(value, 'chunkMode') ? value.chunkMode
-        : Object.hasOwn(value, 'chunkSize') ? 'custom' : 'balanced';
+        : Object.hasOwn(value, 'chunkFloors') ? 'custom' : 'balanced';
     if (!['fewer', 'balanced', 'quality', 'custom'].includes(settings.chunkMode)) {
         const error = new TypeError('每次发送档位只能选省次数、均衡、重质量或自定义');
         error.field = 'chunkMode';
         throw error;
     }
-    if (Object.hasOwn(value, 'chunkSize')) {
-        const valid = Number.isInteger(value.chunkSize) && value.chunkSize >= 500 && value.chunkSize <= 30000;
+    if (Object.hasOwn(value, 'chunkFloors')) {
+        const valid = Number.isInteger(value.chunkFloors) && value.chunkFloors > 0;
         if (!valid && settings.chunkMode === 'custom') {
-            const error = new TypeError('自定义字数要在 500 到 30000 字之间，请填写整数');
-            error.field = 'chunkSize';
+            const error = new TypeError('自定义楼层数必须是正整数');
+            error.field = 'chunkFloors';
             throw error;
         }
-        if (valid) settings.chunkSize = value.chunkSize;
+        if (valid) settings.chunkFloors = value.chunkFloors;
     }
     // 旧清洗来源沿用为导出预设；其余旧筛选字段由预设统一接管。
     if (!Object.hasOwn(value, 'presetId') && typeof value.cleanSource === 'string' && value.clean !== false) {
@@ -76,15 +76,15 @@ export function resolveSettings(value = {}) {
     return { settings, source: { ...(preset?.content ?? current), includeHidden: current.includeHidden } };
 }
 
-export function getChunkSize(value = {}) {
+export function getChunkFloors(value = {}) {
     const settings = normalizeSettings(value);
-    return settings.chunkMode === 'custom' ? settings.chunkSize : CHUNK_SIZES[settings.chunkMode];
+    return settings.chunkMode === 'custom' ? settings.chunkFloors : CHUNK_FLOORS[settings.chunkMode];
 }
 
 // 界面和任务共用段内楼层，保留旧的请求快照返回值。
 export function buildPlan(value = {}, context = globalThis.SillyTavern?.getContext?.()) {
     const { settings, source } = resolveSettings(value);
-    const chunkSize = getChunkSize(settings);
+    const chunkFloors = getChunkFloors(settings);
     if (context?.characterId == null || !Array.isArray(context.chat) || !context.chat.length
         || !Object.values(source.types).some(Boolean)) return { segments: [], floors: [] };
 
@@ -119,8 +119,8 @@ export function buildPlan(value = {}, context = globalThis.SillyTavern?.getConte
         if (!message.mes.trim()) continue;
         const chars = Array.from(message.mes).length;
         const previous = segments.at(-1);
-        // 双换行也计入字数；整楼保留，超长楼独占一段。
-        if (previous && previous.chars + 2 + chars <= chunkSize) {
+        // 只按有效楼层数分段；字数仅用于展示，长楼不提前拆段。
+        if (previous && previous.floors.length < chunkFloors) {
             previous.original += `\n\n${message.mes}`;
             previous.chars += 2 + chars;
             previous.endFloor = message.floor - 1;

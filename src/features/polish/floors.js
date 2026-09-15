@@ -1,4 +1,4 @@
-import { getChunkSize } from './segments.js';
+import { getChunkFloors } from './segments.js';
 
 export function syncSegment(segment) {
     const floors = segment.floors;
@@ -28,17 +28,13 @@ export function planRedo(job, selected, settings) {
         throw new TypeError('所选楼层编号不正确或不在当前润色结果中');
     }
     const floors = [...new Set(selected)].sort((a, b) => a - b).map(floor => saved[positions.get(floor)]);
-    const chunkSize = getChunkSize(settings);
+    const chunkFloors = getChunkFloors(settings);
     const batches = [];
-    let chars = 0;
     for (const floor of floors) {
-        const size = Array.from(floor.original).length;
-        if (!batches.length || chars + 2 + size > chunkSize) {
+        if (!batches.length || batches.at(-1).floors.length >= chunkFloors) {
             batches.push({ floors: [], references: [] });
-            chars = 0;
         }
         const batch = batches.at(-1);
-        chars += size + (batch.floors.length ? 2 : 0);
         batch.floors.push(floor);
     }
     const text = floor => floor?.polished ?? floor?.original ?? '';
