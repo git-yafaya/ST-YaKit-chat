@@ -22,12 +22,6 @@
 /* 固定提示词：不是「选一个用」的列表，不显示小圆点 */
 .prompt-fixed .choice-dot { display: none; }
 #prompt-target-note { margin: 0 0 14px; }
-/* 标签表：左边标签（等宽字），右边含义 */
-.prompt-tags-table { border: 1px solid var(--divider); border-radius: 8px; overflow: hidden; }
-.prompt-tag-row { display: grid; grid-template-columns: minmax(0, 13em) minmax(0, 1fr); gap: 10px; padding: 7px 10px; font-size: 12px; line-height: 1.6; }
-.prompt-tag-row + .prompt-tag-row { border-top: 1px solid var(--divider); }
-.prompt-tag-row code { font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text-title); overflow-wrap: anywhere; }
-.prompt-tag-row span { color: var(--text-body); }
 /* 恢复默认放左边，取消和保存放右边 */
 .prompt-drawer-footer { flex: 1; }
 .prompt-drawer-footer #prompt-drawer-reset { margin-right: auto; }
@@ -43,5 +37,4 @@
   /* 助手的下拉框在手机上加高，手指好点 */
   .assistant-card yakit-select { --select-height: 34px; --select-font: 13px; }
   .sampling-grid { grid-template-columns: minmax(0, 1fr); }
-  .prompt-tag-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }

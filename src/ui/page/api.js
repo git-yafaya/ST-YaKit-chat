@@ -61,22 +61,6 @@
   const PROMPT_NOTES = {
     jailbreak: '固定单独作为 system 消息发送；正文空着时不发送。',
   };
-  // 正则、润色提示词编辑时显示的标签和含义（程序发送时使用的标签）
-  const PROMPT_TAGS = {
-    polish: [
-      ['<style>…</style>', '文风要求；未选择文风时省略'],
-      ['<original>…</original>', '本次需要润色的原文容器'],
-      ['<floor n="楼号">…</floor>', '输入是该楼原文，输出是对应润色结果；楼号从 0 开始，保持原聊天编号'],
-      ['<previous>…</previous>', '前一楼结尾，仅供衔接参考'],
-      ['<next>…</next>', '后一楼开头，仅供衔接参考，选楼重做时提供'],
-    ],
-    regex: [
-      ['<sample floor="楼号">…</sample>', '当前聊天最后一条非隐藏 AI 消息按已有规则清洗后的文字样本，楼号从 0 开始；只供分析'],
-      ['<rule>/pattern/flags</rule>', '输出一条新增 JavaScript 正则；pattern 是匹配模式，flags 是正则标志'],
-      ['<explanation>…</explanation>', '用一句中文解释紧前一条正则实际匹配什么'],
-    ],
-  };
-
   let profiles = [];
   let activeProfileId = null;
   let prompts = [];
@@ -436,25 +420,10 @@
     $('prompt-drawer').setAttribute('title', `编辑${prompt.name}`);
     $('prompt-target-note').innerHTML = PROMPT_NOTES[prompt.id] || '';
     $('prompt-target-note').hidden = !PROMPT_NOTES[prompt.id];
-    renderPromptTags(prompt.id);
     $('prompt-text').value = prompt.text ?? '';
     $('prompt-text').removeAttribute('error');
     syncResetButton();
     $('prompt-drawer').show();
-  }
-
-  function renderPromptTags(id) {
-    const tags = PROMPT_TAGS[id] || [];
-    $('prompt-tags').hidden = !tags.length;
-    $('prompt-tags').querySelector('.prompt-tags-table').replaceChildren(...tags.map(([tag, meaning]) => {
-      const row = document.createElement('div');
-      row.className = 'prompt-tag-row';
-      row.setAttribute('role', 'row');
-      row.innerHTML = '<code role="cell"></code><span role="cell"></span>';
-      row.querySelector('code').textContent = tag;
-      row.querySelector('span').textContent = meaning;
-      return row;
-    }));
   }
 
   // 「恢复默认」：输入框里的内容和默认正文一样时不能点，边输入边判断
