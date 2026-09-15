@@ -1,4 +1,4 @@
-import { getLegacyClient } from './ai-legacy-client.js';
+import * as legacyClient from './ai-legacy-client.js';
 import { getServiceUrlCharacterError } from '../../shared/service-url.js';
 
 function textContent(value) {
@@ -8,18 +8,19 @@ function textContent(value) {
         && typeof part.text === 'string').map(part => part.text).join('\n');
 }
 
-function replyText(data, textCompletion) {
+function replyText(data, textCompletion, detailed) {
     const choice = Array.isArray(data?.choices) ? data.choices[0] : undefined;
     const candidates = Array.isArray(data?.candidates) ? data.candidates[0] : undefined;
     const values = [choice?.message?.content, choice?.text, data?.content, data?.text,
         data?.message?.content, candidates?.content?.parts];
     if (textCompletion) values.push(data?.response, Array.isArray(data) ? data[0]?.content : undefined);
     const text = values.map(textContent).find(value => value.trim());
+    if (detailed) return legacyClient.detailedReply(text ?? '', data);
     if (!text) throw Object.assign(new Error('模型没有返回文字，请检查模型设置后重试'), { code: 'AI_RULE_FORMAT' });
     return text;
 }
 
-async function request(context, path, body, signal, textCompletion = false) {
+async function request(context, path, body, signal, textCompletion = false, detailed = false) {
     if (signal?.aborted) throw new Error('生成已取消或超时，请重试');
     let headers;
     try {
@@ -35,6 +36,9 @@ async function request(context, path, body, signal, textCompletion = false) {
         const requestSignal = textCompletion && body.api_type === 'koboldcpp' ? undefined : signal;
         response = await fetch(path, { method: 'POST', headers, body: JSON.stringify(body), signal: requestSignal });
         if (response.ok) data = await response.json();
+        else if (detailed && response.status === 429) {
+            try { data = await response.json(); } catch { /* 限速页可能没有 JSON 正文。 */ }
+        }
     } catch {
         if (signal?.aborted) throw new Error('生成已取消或超时，请重试');
         if (response?.ok) throw new Error('没能读懂模型的回复，请检查模型设置后重试');
@@ -45,8 +49,12 @@ async function request(context, path, body, signal, textCompletion = false) {
     }
     if (response.status === 404) throw new Error('酒馆未提供生成接口，请检查宿主版本');
     if (data?.quota_error === true) throw new Error('模型服务的额度不足，请补充额度后重试');
+    if (detailed) {
+        const limited = legacyClient.rateLimitError(response, data);
+        if (limited) throw limited;
+    }
     if (!response.ok || data?.error) throw new Error('模型请求失败，请检查地址、密钥和模型设置后重试');
-    return replyText(data, textCompletion);
+    return replyText(data, textCompletion, detailed);
 }
 
 function requireModel(model) {
@@ -55,7 +63,7 @@ function requireModel(model) {
     return model.trim();
 }
 
-export async function generateSecondary(config, messages, signal) {
+export async function generateSecondary(config, messages, signal, { maxTokens = 2048, detailed = false } = {}) {
     const model = requireModel(config?.model);
     const urlCharacterError = getServiceUrlCharacterError(config.baseUrl);
     if (urlCharacterError) throw new Error(urlCharacterError);
@@ -75,13 +83,13 @@ export async function generateSecondary(config, messages, signal) {
     const body = {
         chat_completion_source: 'openai', reverse_proxy: url.href.replace(/\/+$/u, ''),
         proxy_password: config.key.trim(), model, messages, stream: false,
-        [/^(o1|o3|o4)/.test(model) || /gpt-5/.test(model) ? 'max_completion_tokens' : 'max_tokens']: 2048,
+        [/^(o1|o3|o4)/.test(model) || /gpt-5/.test(model) ? 'max_completion_tokens' : 'max_tokens']: maxTokens,
     };
-    return request(globalThis.SillyTavern?.getContext?.(), '/api/backends/chat-completions/generate', body, signal);
+    return request(globalThis.SillyTavern?.getContext?.(), '/api/backends/chat-completions/generate', body, signal, false, detailed);
 }
 
-export async function getMainClient(context) {
-    if (!['openai', 'textgenerationwebui'].includes(context?.mainApi)) return getLegacyClient(context);
+export async function getMainClient(context, { maxTokens = 2048, detailed = false } = {}) {
+    if (!['openai', 'textgenerationwebui'].includes(context?.mainApi)) return legacyClient.getLegacyClient(context, { maxTokens, detailed });
     try {
         if (context.mainApi === 'openai') {
             const { oai_settings, getChatCompletionModel, createGenerationParameters } = await import('/scripts/openai.js');
@@ -90,19 +98,19 @@ export async function getMainClient(context) {
             const proxy = { reverse_proxy: settings.reverse_proxy, proxy_password: settings.proxy_password };
             // 只改变本次副本，避开代理确认、工具调用和全局偏置缓存。
             Object.assign(settings, {
-                openai_max_tokens: 2048, stream_openai: false, function_calling: false,
+                openai_max_tokens: maxTokens, stream_openai: false, function_calling: false,
                 enable_web_search: false, request_images: false, show_thoughts: false,
                 bias_preset_selected: '', reverse_proxy: '', custom_prompt_post_processing: '',
                 custom_include_body: '', custom_exclude_body: '',
             });
             return {
                 model,
-                async generate(messages, signal) {
+                async generate(messages, signal, requestedMaxTokens = maxTokens) {
                     requireModel(model);
                     let body;
                     try {
                         ({ generate_data: body } = await createGenerationParameters(
-                            structuredClone(settings), model, 'quiet', structuredClone(messages)));
+                            { ...structuredClone(settings), openai_max_tokens: requestedMaxTokens }, model, 'quiet', structuredClone(messages)));
                     } catch {
                         throw new Error('无法准备主 API 请求，请检查酒馆中的模型设置');
                     }
@@ -111,7 +119,7 @@ export async function getMainClient(context) {
                     for (const key of ['user_name', 'char_name', 'group_names', 'stop', 'tools', 'tool_choice',
                         'logit_bias', 'logprobs', 'top_logprobs']) delete body[key];
                     body.stream = false;
-                    return request(context, '/api/backends/chat-completions/generate', body, signal);
+                    return request(context, '/api/backends/chat-completions/generate', body, signal, false, detailed);
                 },
             };
         }
@@ -129,7 +137,7 @@ export async function getMainClient(context) {
         });
         return {
             model,
-            async generate(messages, signal) {
+            async generate(messages, signal, requestedMaxTokens = maxTokens) {
                 try {
                     if (!['http:', 'https:'].includes(new URL(server).protocol)) throw new Error();
                 } catch {
@@ -139,7 +147,7 @@ export async function getMainClient(context) {
                 let body;
                 try {
                     const prompt = messages.map(message => `${message.role}:\n${message.content}`).join('\n\n');
-                    body = createTextGenGenerationData(structuredClone(settings), requestModel, prompt, 2048, false, false, null, 'quiet');
+                    body = createTextGenGenerationData(structuredClone(settings), requestModel, prompt, requestedMaxTokens, false, false, null, 'quiet');
                     body.api_type = settings.type;
                     body.api_server = server;
                     body.stream = false;
@@ -147,7 +155,7 @@ export async function getMainClient(context) {
                 } catch {
                     throw new Error('无法准备主 API 请求，请检查酒馆中的模型设置');
                 }
-                return request(context, '/api/backends/text-completions/generate', body, signal, true);
+                return request(context, '/api/backends/text-completions/generate', body, signal, true, detailed);
             },
         };
     } catch {
