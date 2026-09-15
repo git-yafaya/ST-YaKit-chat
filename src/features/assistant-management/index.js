@@ -1,4 +1,6 @@
 import { normalizeSampling } from '../../shared/assistant-sampling.js';
+
+const DEFAULT_TEMPERATURE = { regex: 0.8, polish: 0.95 };
 import { readSettings, updateSettings } from '../../shared/settings.js';
 
 const kinds = ['regex', 'polish'];
@@ -34,7 +36,9 @@ function readAssistant(settings, kind) {
     const saved = settings.assistants?.[kind];
     if (saved !== undefined && !isObject(saved)) throw new Error('助手配置内容不对，请重新设置');
     // 删除后的旧引用只在返回值中回到跟随，读取不保存。
-    return { sampling: normalizeSampling(saved?.sampling), ...Object.fromEntries(fields[kind].map(field => [field,
+    // 没保存过温度时用助手默认温度；用户清空后保存的 null 保持不设置。
+    const sampling = { temperature: DEFAULT_TEMPERATURE[kind] ?? null, ...(isObject(saved?.sampling) ? saved.sampling : {}) };
+    return { sampling: normalizeSampling(saved?.sampling === undefined || isObject(saved.sampling) ? sampling : saved.sampling), ...Object.fromEntries(fields[kind].map(field => [field,
         validChoice(settings, field, saved?.[field]) ? saved[field] : 'follow',
     ])) };
 }
