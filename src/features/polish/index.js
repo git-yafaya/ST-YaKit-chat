@@ -7,6 +7,7 @@ import { applyFloorText, syncSegment, planRedo } from './floors.js';
 import { loadSaved, saveSaved, deleteSaved } from './storage.js';
 import { chatKey, sourcePrefix, hasSourceChanges, newSegments, restoreRecord } from './records.js';
 import { runBatches } from './runner.js';
+import { emptyInputs, mergeInputs, restoreInputs } from './task-inputs.js';
 
 const entries = new Map();
 const listeners = new Set();
@@ -19,7 +20,7 @@ const settingsFor = record => record.settings;
 function entryFor(context = hostContext()) {
     const key = chatKey(context);
     if (!key) return null;
-    if (!entries.has(key)) entries.set(key, { key, record: null, loaded: false, loading: null, error: null, dirty: false });
+    if (!entries.has(key)) entries.set(key, { key, record: null, loaded: false, loading: null, error: null, dirty: false, inputs: null, inputsLoading: null });
     return entries.get(key);
 }
 
@@ -65,6 +66,20 @@ function loadEntry(entry) {
         }
     })();
     return entry.loading;
+}
+
+// 本次任务输入单独读取；读取失败时报错，不当成空值。
+function loadInputs(entry) {
+    if (entry.inputs) return Promise.resolve(entry.inputs);
+    entry.inputsLoading ??= (async () => {
+        try {
+            entry.inputs = restoreInputs(await loadSaved(entry.key, 'inputs'));
+            return entry.inputs;
+        } finally {
+            entry.inputsLoading = null;
+        }
+    })();
+    return entry.inputsLoading;
 }
 
 function watch() {
@@ -197,12 +212,39 @@ function launch(entry, batches, generate, options = {}) {
 
 const batchesFor = segments => segments.map(segment => ({ floors: segment.floors, segments: [segment] }));
 
+// 每轮开始前读回当前聊天已保存的本次任务输入，交给生成器固定。
+async function generatorFor(entry, context) {
+    const inputs = await loadInputs(entry);
+    if (chatKey(hostContext()) !== entry.key) throw new Error('当前聊天已切换，请在目标聊天重新操作');
+    return createGenerator(context, inputs);
+}
+
+async function getTaskInputs() {
+    watch();
+    const entry = entryFor();
+    if (!entry) throw new Error('请先打开已有聊天，等待聊天标识就绪后重试');
+    const inputs = await loadInputs(entry);
+    if (chatKey(hostContext()) !== entry.key) throw new Error('当前聊天已切换，请重新打开润色设置');
+    return structuredClone(inputs);
+}
+
+async function saveTaskInputs(patch) {
+    return change(async entry => {
+        const current = await loadInputs(entry);
+        const next = mergeInputs(current, patch);
+        if (!Object.keys(patch).length) return structuredClone(current);
+        await saveSaved(entry.key, next, 'inputs');
+        entry.inputs = next;
+        return structuredClone(next);
+    }, { allowUnread: true });
+}
+
 async function start(settings) {
     const normalized = normalizeSettings(settings);
     return change(async (entry, context) => {
         const { segments } = buildPlan(normalized, context);
         if (!segments.length) throw new Error('没有可润色的内容，请检查楼层、消息类型和清洗规则');
-        const generate = createGenerator(context);
+        const generate = await generatorFor(entry, context);
         const name = context.characters[context.characterId]?.name;
         const next = { settings: normalized, sourcePrefix: sourcePrefix(context), job: {
             id: createRecordId(), status: 'stopped', chatName: name?.trim() ? name : '润色结果',
@@ -226,8 +268,9 @@ async function resume() {
             emit();
             return snapshot(entry);
         }
+        const generate = await generatorFor(entry, context);
         await persist(entry);
-        return launch(entry, batchesFor(segments), createGenerator(context));
+        return launch(entry, batchesFor(segments), generate);
     });
 }
 
@@ -237,7 +280,7 @@ async function retrySegment(index) {
         if (!Number.isInteger(index) || index < 0 || index >= next.job.segments.length) {
             throw new Error('找不到这段润色内容，请重新打开润色页');
         }
-        const generate = createGenerator(context);
+        const generate = await generatorFor(entry, context);
         const segment = next.job.segments[index];
         for (const floor of segment.floors) Object.assign(floor, { polished: null, edited: false, short: false, status: 'pending' });
         syncSegment(segment);
@@ -278,7 +321,7 @@ async function redoFloors(floors) {
         const batches = planRedo(next.job, selected, settingsFor(next)).map(batch => ({ ...batch,
             segments: next.job.segments.filter(segment => segment.floors.some(floor => batch.floors.includes(floor))),
         }));
-        const generate = createGenerator(context);
+        const generate = await generatorFor(entry, context);
         await replace(entry, next);
         return launch(entry, batches, generate, { redo: true });
     });
@@ -291,7 +334,7 @@ async function appendNew() {
         const settings = normalizeSettings(settingsFor(next));
         const segments = newSegments(next, context, settings);
         if (!segments.length) throw new Error('没有符合当前润色设置的新增楼层');
-        const generate = createGenerator(context);
+        const generate = await generatorFor(entry, context);
         const offset = next.job.segments.length;
         segments.forEach((segment, index) => { segment.index = offset + index; });
         next.job.segments.push(...segments);
@@ -324,6 +367,9 @@ async function stop() {
 async function clearJob() {
     return change(async entry => {
         await deleteSaved(entry.key);
+        // 清空结果时一起清空本次任务输入，文风库和全局设置不受影响。
+        await deleteSaved(entry.key, 'inputs');
+        entry.inputs = emptyInputs();
         entry.record = null;
         entry.dirty = false;
         entry.error = null;
@@ -336,7 +382,7 @@ export const polishUI = Object.freeze({
     getChatInfo: exportUI.getChatInfo, onChatChanged: exportUI.onChatChanged,
     loadSettings, saveSettings, getContext, planSegments: async settings => planSegments(settings),
     start, resume, retrySegment, stop, clearJob, getJob, onJobChange,
-    editFloor, estimateRedo, redoFloors, appendNew,
+    editFloor, estimateRedo, redoFloors, appendNew, getTaskInputs, saveTaskInputs,
     exportFile: async (options = {}) => {
         let value = getJob();
         const entry = activeRun?.entry ?? entryFor();

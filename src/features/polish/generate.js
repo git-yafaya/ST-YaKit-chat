@@ -2,6 +2,7 @@ import { listCorePrompts } from '../api-ui/core-prompts.js';
 import { getAssistantSelection } from '../assistant-management/index.js';
 import { getMainClient, generateSecondary } from '../text-export/ai-client.js';
 import { buildAssistantTask } from '../../shared/assistant-prompts.js';
+import { buildInputsText } from './task-inputs.js';
 import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
 
 export async function getContext() {
@@ -70,9 +71,11 @@ async function waitForLimit(seconds, signal, onWait) {
     }
 }
 
-export function createGenerator(context) {
-    // 接口和请求参数固定；文风与固定提示词在每次请求前读取。
-    const { api, sampling } = structuredClone(getAssistantSelection('polish'));
+export function createGenerator(context, inputs = null) {
+    // 每轮操作开始时固定接口、采样、破限词、文风、润色提示词和本次任务输入，本轮续写与重试沿用。
+    const { api, sampling, jailbreak, prompt } = structuredClone(getAssistantSelection('polish'));
+    const promptText = listCorePrompts().find(item => item.id === 'polish').text;
+    const inputsText = buildInputsText(structuredClone(inputs));
     const { timeoutSeconds, retries } = getRequestSettings();
     const host = { ...context };
     let clientPromise;
@@ -85,7 +88,6 @@ export function createGenerator(context) {
         }
         floors = floors.map(({ floor, text }) => ({ floor, text }));
         const buildMessages = () => {
-            const { jailbreak, prompt } = getAssistantSelection('polish');
             const messages = [];
             if (jailbreak?.content?.trim()) messages.push({ role: 'system', content: jailbreak.content });
             const tail = typeof previousTail === 'string' ? Array.from(previousTail).slice(-300).join('') : '';
@@ -97,11 +99,12 @@ export function createGenerator(context) {
             }).join('\n\n');
             const original = floors.map(({ floor, text }) => `<floor n="${floor}">${text}</floor>`).join('\n');
             const task = (prompt?.content?.trim() ? `文风要求：\n<style>${prompt.content}</style>\n\n` : '')
+                + inputsText
                 + (tail ? `前一楼结尾（仅供衔接，不输出）：\n<previous>${tail}</previous>\n\n` : '')
                 + (referenceText ? `${referenceText}\n\n` : '')
                 + `请按编号逐楼润色以下原文：\n<original>${original}</original>`;
             // 文风和原文只插入一次，不展开其中的宏或替换标记。
-            messages.push({ role: 'user', content: buildAssistantTask('polish', listCorePrompts().find(item => item.id === 'polish').text, task) });
+            messages.push({ role: 'user', content: buildAssistantTask('polish', promptText, task) });
             return messages;
         };
         // 每次请求使用固定输出上限，不随原文字数调整。
