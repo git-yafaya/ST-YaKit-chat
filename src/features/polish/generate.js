@@ -71,7 +71,20 @@ async function waitForLimit(seconds, signal, onWait) {
     }
 }
 
-export function createGenerator(context, inputs = null) {
+// 按本次要润色的楼层原文扫描世界书（不触发宿主事件），返回激活条目拼成的文字。
+async function worldInfoFor(host, floors) {
+    if (typeof host.getWorldInfoPrompt !== 'function') return '';
+    try {
+        const scan = floors.map(({ text }) => text).reverse();
+        const maxContext = Number.isFinite(host.maxContext) && host.maxContext > 0 ? host.maxContext : 8192;
+        const { worldInfoString } = await host.getWorldInfoPrompt(scan, maxContext, true);
+        return typeof worldInfoString === 'string' ? worldInfoString.trim() : '';
+    } catch {
+        return '';
+    }
+}
+
+export function createGenerator(context, inputs = null, { worldInfo = false } = {}) {
     // 每轮操作开始时固定接口、采样、破限词、文风、润色提示词和本次任务输入，本轮续写与重试沿用。
     const { api, sampling, jailbreak, prompt } = structuredClone(getAssistantSelection('polish'));
     const promptText = listCorePrompts().find(item => item.id === 'polish').text;
@@ -87,6 +100,8 @@ export function createGenerator(context, inputs = null) {
             throw new Error('这一段没有可润色的正文');
         }
         floors = floors.map(({ floor, text }) => ({ floor, text }));
+        const worldInfoText = worldInfo ? await worldInfoFor(host, floors) : '';
+        checkCancelled(signal);
         const buildMessages = () => {
             const messages = [];
             if (jailbreak?.content?.trim()) messages.push({ role: 'system', content: jailbreak.content });
@@ -100,6 +115,7 @@ export function createGenerator(context, inputs = null) {
             const original = floors.map(({ floor, text }) => `<floor n="${floor}">${text}</floor>`).join('\n');
             const task = (prompt?.content?.trim() ? `文风要求：\n<style>${prompt.content}</style>\n\n` : '')
                 + inputsText
+                + (worldInfoText ? `世界书（仅供理解设定，不输出）：\n<world_info>${worldInfoText}</world_info>\n\n` : '')
                 + (tail ? `前一楼结尾（仅供衔接，不输出）：\n<previous>${tail}</previous>\n\n` : '')
                 + (referenceText ? `${referenceText}\n\n` : '')
                 + `请按编号逐楼润色以下原文：\n<original>${original}</original>`;

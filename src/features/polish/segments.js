@@ -15,11 +15,11 @@ export function normalizeSettings(value = {}) {
     const settings = {
         allFloors: true, start: '', end: '',
         presetId: 'export',
-        chunkMode: 'balanced', chunkFloors: 10, fileName: '',
+        chunkMode: 'balanced', chunkFloors: 10, fileName: '', worldInfo: false,
     };
     const labels = {
         allFloors: '全部楼层', start: '起始楼层', end: '结束楼层',
-        presetId: '导出预设', fileName: '文件名',
+        presetId: '导出预设', fileName: '文件名', worldInfo: '携带世界书',
     };
     for (const [key, label] of Object.entries(labels)) {
         if (!Object.hasOwn(value, key)) continue;

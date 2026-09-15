@@ -17,6 +17,7 @@
  *     chunkMode: 'fewer' | 'balanced' | 'quality' | 'custom',  每次发送：省次数 20 层 / 均衡 10 层 / 重质量 5 层 / 自定义，按楼层分，一层楼不拆开
  *     chunkFloors: number,           自定义时每次发送几层楼（用户自己填的正整数）
  *     fileName: string,              文件名，空字符串表示用默认名
+ *     worldInfo: boolean,            携带世界书：按每次要润色的楼层扫描酒馆世界书，把激活的条目一起发送；不锁定，下次开始、继续或重做时生效
  *   }
  *
  * segment 的形状：
@@ -92,6 +93,7 @@
     chunkMode: 'balanced',
     chunkFloors: 10,
     fileName: '',
+    worldInfo: false,
   };
 
   function loadState() {
@@ -686,6 +688,7 @@
     $('polish-chunk-row').hidden = state.chunkMode !== 'custom';
     $('polish-chunk').value = String(state.chunkFloors ?? '');
     $('polish-file-name').value = state.fileName;
+    $('polish-world-info').checked = state.worldInfo === true;
     renderPresetSelect();
   }
 
@@ -749,6 +752,11 @@
 
     $('polish-file-name').addEventListener('input', (event) => {
       state.fileName = event.currentTarget.value;
+      save();
+    });
+
+    $('polish-world-info').addEventListener('change', (event) => {
+      state.worldInfo = event.detail.checked;
       save();
     });
 

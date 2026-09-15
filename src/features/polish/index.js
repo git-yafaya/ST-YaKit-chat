@@ -216,7 +216,8 @@ const batchesFor = segments => segments.map(segment => ({ floors: segment.floors
 async function generatorFor(entry, context) {
     const inputs = await loadInputs(entry);
     if (chatKey(hostContext()) !== entry.key) throw new Error('当前聊天已切换，请在目标聊天重新操作');
-    return createGenerator(context, inputs);
+    // 世界书开关不锁定，按操作开始时保存的润色设置决定。
+    return createGenerator(context, inputs, { worldInfo: loadSettings()?.worldInfo === true });
 }
 
 async function getTaskInputs() {
