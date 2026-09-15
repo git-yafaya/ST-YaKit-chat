@@ -1,0 +1,25 @@
+/* 设置页「更新公告」抽屉：一个版本一块，从新到旧 */
+.notice-loading { margin: 0 0 12px; }
+#notice-list > .notice { margin: 0 0 12px; }
+
+.notice-entry + .notice-entry { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--divider); }
+.notice-entry-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 8px; }
+.notice-entry-head h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-title); }
+.notice-entry-date { font-size: 12px; color: var(--text-muted); }
+/* 「当前版本 / 还没更新」：浅色小标签，不用点睛色和状态色 */
+.notice-entry-tag {
+  align-self: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--text-body);
+  background: color-mix(in srgb, var(--text-title) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-title) 8%, transparent);
+}
+.notice-entry ul { margin: 0; padding-left: 20px; }
+.notice-entry li { color: var(--text-body); }
+.notice-entry li + li { margin-top: 4px; }
+.notice-entry p { margin: 8px 0 0; color: var(--text-body); }
+.notice-entry-head + p { margin-top: 0; }
+.notice-entry strong { font-weight: 600; color: var(--text-title); }

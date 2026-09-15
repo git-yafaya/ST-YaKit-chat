@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="export.css">
   <link rel="stylesheet" href="polish.css">
   <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="notice.css">
   <link rel="stylesheet" href="preset.css">
   <link rel="stylesheet" href="api.css">
   <link rel="stylesheet" href="demo.css">
@@ -133,6 +134,7 @@
             <span></span>
           </div>
         </yakit-collapse>
+        <yakit-collapse id="set-notice" title="更新公告" icon="../icons/sparkle.svg" link hidden></yakit-collapse>
         <yakit-collapse id="set-theme" title="主题">
           <div class="setting-field">
             <span class="setting-label">切换方式</span>
@@ -508,6 +510,12 @@
     </div>
   </yakit-drawer>
 
+  <!-- 设置：更新公告 -->
+  <yakit-drawer id="notice-drawer" title="更新公告">
+    <div id="notice-list"></div>
+    <yakit-button slot="footer" id="notice-drawer-done" variant="primary">完成</yakit-button>
+  </yakit-drawer>
+
   <!-- 组件示例：收在设置里的宽抽屉 -->
   <yakit-drawer id="demo-drawer" title="组件示例" width="760">
       <section class="section">
@@ -734,6 +742,7 @@
 
   <script src="main.js"></script>
   <script src="settings.js"></script>
+  <script src="notice.js"></script>
   <script src="export.js"></script>
   <script src="ai-rules.js"></script>
   <script src="polish.js"></script>
