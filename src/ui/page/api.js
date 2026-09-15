@@ -19,10 +19,11 @@
  * 10. apiUI.fetchModels(draft) → string[]
  *
  * 固定提示词（三条，顺序固定，不能新建、删除）
- *   corePrompt 的形状：{ id: 'jailbreak' | 'regex' | 'polish', name, target: 'system' | 'user', text, modified: boolean }
+ *   corePrompt 的形状：{ id: 'jailbreak' | 'regex' | 'polish', name, target: 'system' | 'user', text, defaultText, modified: boolean }
  *   jailbreak = 通用破限词（单独一条 system，正文为空时不发送）；
  *   regex / polish = 正则提示词 / 润色提示词（user 消息开头的规则和要求，后面由程序接上本次任务材料和输出格式）
- *   modified = 正文和默认内容不同
+ *   defaultText = 默认正文；编辑抽屉里边输入边和它比较，决定「恢复默认」能不能点（没提供时按 modified 判断）
+ *   modified = 已保存的正文和默认内容不同
  *
  * 11. apiUI.listCorePrompts() → [corePrompt]，按 通用破限词 / 正则提示词 / 润色提示词 排列
  * 12. apiUI.saveCorePrompt(id, text) → 保存后的 corePrompt   正则、润色提示词正文为空时 reject
@@ -419,11 +420,24 @@
     $('prompt-target-note').innerHTML = PROMPT_NOTES[prompt.id] || '';
     $('prompt-text').value = prompt.text ?? '';
     $('prompt-text').removeAttribute('error');
-    $('prompt-drawer-reset').toggleAttribute('disabled', !prompt.modified);
+    syncResetButton();
     $('prompt-drawer').show();
   }
 
-  $('prompt-text').addEventListener('input', () => $('prompt-text').removeAttribute('error'));
+  // 「恢复默认」：输入框里的内容和默认正文一样时不能点，边输入边判断
+  function syncResetButton() {
+    const prompt = editingPrompt;
+    if (!prompt) return;
+    const same = typeof prompt.defaultText === 'string'
+      ? $('prompt-text').value === prompt.defaultText
+      : !prompt.modified;
+    $('prompt-drawer-reset').toggleAttribute('disabled', same);
+  }
+
+  $('prompt-text').addEventListener('input', () => {
+    $('prompt-text').removeAttribute('error');
+    syncResetButton();
+  });
   $('prompt-drawer-cancel').addEventListener('click', () => $('prompt-drawer').close());
 
   $('prompt-drawer-save').addEventListener('click', async (event) => {
@@ -457,7 +471,7 @@
         editingPrompt = saved || prompt;
         $('prompt-text').value = saved?.text ?? '';
         $('prompt-text').removeAttribute('error');
-        $('prompt-drawer-reset').setAttribute('disabled', '');
+        syncResetButton();
         YaKitToast.show(`已恢复默认${prompt.name}`, 'success');
       } catch (error) {
         showError(error, '恢复默认失败');
