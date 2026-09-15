@@ -107,12 +107,15 @@
   const hasJob = () => Boolean(job);
   const running = () => job?.status === 'running';
   const formatNumber = (value) => Number(value || 0).toLocaleString('zh-CN');
+  // 总字数随档位分段略有出入（段内楼层之间的换行也算字数），过万时按万字取一位小数，切换档位时不跳
+  const formatTotal = (value) => (value >= 10000 ? `${(value / 10000).toFixed(1)} 万字` : `${formatNumber(value)} 字`);
 
   const save = () => {
     try {
       service()?.saveSettings?.(structuredClone(state));
     } catch (error) {
-      YaKitErrorLog.warn('保存润色设置失败', error);
+      // 字数填错由分段预览在输入框下方提示，不算报错
+      if (error?.field !== 'chunkSize') YaKitErrorLog.warn('保存润色设置失败', error);
     }
   };
 
@@ -345,7 +348,7 @@
       exportButton.setAttribute('disabled', '');
       track.hidden = true;
       const total = plan.reduce((sum, segment) => sum + (Number(segment.chars) || 0), 0);
-      text.textContent = canStart ? `${formatNumber(total)} 字 · 约 ${plan.length} 次请求${state.chunkMode === 'fewer' ? '起' : ''}，先润色第 1 段看效果` : '';
+      text.textContent = canStart ? `${formatTotal(total)} · 约 ${plan.length} 次请求${state.chunkMode === 'fewer' ? '起' : ''}，先润色第 1 段看效果` : '';
       return;
     }
 
