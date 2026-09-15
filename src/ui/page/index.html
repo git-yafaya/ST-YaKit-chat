@@ -229,10 +229,24 @@
           <span class="setting-label">正则助手</span>
           <yakit-select size="sm" data-kind="regex" aria-label="正则助手用的接口"></yakit-select>
         </div>
+        <div class="sampling-grid" data-kind="regex">
+          <label class="sampling-cell"><span class="setting-label">温度</span><yakit-input type="number" size="sm" data-param="temperature" placeholder="不设置" aria-label="正则助手温度"></yakit-input></label>
+          <label class="sampling-cell"><span class="setting-label">Top P</span><yakit-input type="number" size="sm" data-param="topP" placeholder="不设置" aria-label="正则助手Top P"></yakit-input></label>
+          <label class="sampling-cell"><span class="setting-label">Top K</span><yakit-input type="number" size="sm" data-param="topK" placeholder="不设置" aria-label="正则助手Top K"></yakit-input></label>
+          <label class="sampling-cell"><span class="setting-label">频率惩罚</span><yakit-input type="number" size="sm" data-param="frequencyPenalty" placeholder="不设置" aria-label="正则助手频率惩罚"></yakit-input></label>
+          <label class="sampling-cell"><span class="setting-label">存在惩罚</span><yakit-input type="number" size="sm" data-param="presencePenalty" placeholder="不设置" aria-label="正则助手存在惩罚"></yakit-input></label>
+        </div>
         <p class="field-note">文本导出页「AI 辅助」生成规则时用。</p>
         <div class="setting-field request-gap">
           <span class="setting-label">润色助手</span>
           <yakit-select size="sm" data-kind="polish" aria-label="润色助手用的接口"></yakit-select>
+        </div>
+        <div class="sampling-grid" data-kind="polish">
+          <label class="sampling-cell"><span class="setting-label">温度</span><yakit-input type="number" size="sm" data-param="temperature" placeholder="不设置" aria-label="润色助手温度"></yakit-input></label>
+          <label class="sampling-cell"><span class="setting-label">Top P</span><yakit-input type="number" size="sm" data-param="topP" placeholder="不设置" aria-label="润色助手Top P"></yakit-input></label>
+          <label class="sampling-cell"><span class="setting-label">Top K</span><yakit-input type="number" size="sm" data-param="topK" placeholder="不设置" aria-label="润色助手Top K"></yakit-input></label>
+          <label class="sampling-cell"><span class="setting-label">频率惩罚</span><yakit-input type="number" size="sm" data-param="frequencyPenalty" placeholder="不设置" aria-label="润色助手频率惩罚"></yakit-input></label>
+          <label class="sampling-cell"><span class="setting-label">存在惩罚</span><yakit-input type="number" size="sm" data-param="presencePenalty" placeholder="不设置" aria-label="润色助手存在惩罚"></yakit-input></label>
         </div>
         <p class="field-note">润色页改写文字时用。<br>选「跟随使用中」时，跟着上面列表里正在用的配置走。</p>
       </yakit-card>

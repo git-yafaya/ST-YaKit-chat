@@ -32,8 +32,11 @@
  *
  * 助手（kind 为 'regex' 正则助手 | 'polish' 润色助手）：只选接口，profile 取值 'follow' 跟随使用中 / 'main' 主 API / 具体配置 id
  *
- * 18. apiUI.getAssistant(kind) → { profile }
- * 19. apiUI.setAssistant(kind, { profile }) → 保存后的完整对象
+ *   sampling 的形状：{ temperature, topP, topK, frequencyPenalty, presencePenalty }，每项是数字或 null（null = 不设置，请求里不带）
+ *
+ * 18. apiUI.getAssistant(kind) → { profile, sampling }
+ * 19. apiUI.setAssistant(kind, patch) → 保存后的完整对象   patch 为 { profile } 或 { sampling: { 某一项: 数字 | null } }
+ *      数值不合法时 reject，message 是中文原因，界面显示在对应输入框下方
  *      两个函数都提供时才显示助手卡片；「跟随使用中（…）」的名字由界面用 listProfiles / getActiveProfileId 自己算
  *
  * 参数（所有 AI 请求共用）
@@ -512,6 +515,15 @@
       ['main', '主 API（跟随ST）'],
       ...data.profileList.map((item) => [item.id, item.name]),
     ];
+    // 采样参数：空着就是不设置；正在输入的框不覆盖
+    document.querySelectorAll('#assistant-card .sampling-grid').forEach((gridEl) => {
+      const sampling = data.current[gridEl.dataset.kind]?.sampling || {};
+      gridEl.querySelectorAll('yakit-input').forEach((input) => {
+        if (input.matches(':focus-within')) return;
+        const value = sampling[input.dataset.param];
+        input.value = value === null || value === undefined ? '' : String(value);
+      });
+    });
     document.querySelectorAll('#assistant-card yakit-select').forEach((select) => {
       const value = data.current[select.dataset.kind]?.profile;
       select.replaceChildren(...options.map(([optionValue, label]) => new Option(label, optionValue)));
@@ -519,6 +531,27 @@
       select.value = options.some(([optionValue]) => optionValue === value) ? value : 'follow';
     });
   }
+
+  // 采样参数：输完离开输入框保存，清空就是不设置
+  document.querySelectorAll('#assistant-card .sampling-grid yakit-input').forEach((input) => {
+    input.addEventListener('input', () => input.removeAttribute('error'));
+    input.addEventListener('change', async () => {
+      const kind = input.closest('.sampling-grid').dataset.kind;
+      const text = input.value.trim();
+      const value = text === '' ? null : Number(text);
+      if (value !== null && !Number.isFinite(value)) {
+        input.setAttribute('error', '请填写数字');
+        return;
+      }
+      try {
+        await service().setAssistant(kind, { sampling: { [input.dataset.param]: value } });
+        input.removeAttribute('error');
+        YaKitToast.show(`已保存${ASSISTANT_NAMES[kind]}`, 'success');
+      } catch (error) {
+        input.setAttribute('error', error?.message || '保存失败');
+      }
+    });
+  });
 
   document.querySelectorAll('#assistant-card yakit-select').forEach((select) => {
     select.addEventListener('change', async (event) => {
