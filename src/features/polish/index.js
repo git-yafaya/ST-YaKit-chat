@@ -1,220 +1,347 @@
 import { exportUI } from '../text-export/export-ui.js';
 import { createRecordId } from '../../shared/validation.js';
-import { loadSettings, saveSettings, planSegments, buildPlan } from './segments.js';
+import { loadSettings, saveSettings, planSegments, buildPlan, normalizeSettings } from './segments.js';
 import { getContext, createGenerator } from './generate.js';
 import { exportPolish } from './export.js';
+import { applyFloorText, syncSegment, planRedo } from './floors.js';
+import { loadSaved, saveSaved, deleteSaved } from './storage.js';
+import { chatKey, sourcePrefix, hasSourceChanges, newSegments, restoreRecord } from './records.js';
+import { runBatches } from './runner.js';
 
-let job = null;
-let sourceChat = null;
-let sourceFloors = [];
-let completedFloors = [];
-let activeRun = null;
-let offChat = null;
+const entries = new Map();
 const listeners = new Set();
+let activeRun = null;
+let busy = false;
+let watching = false;
+const hostContext = () => globalThis.SillyTavern?.getContext?.();
+const settingsFor = record => loadSettings() ?? record.settings;
 
-function chatKey(context) {
-    if (context?.characterId == null || !Array.isArray(context.chat)) return null;
-    const character = context.characters?.[context.characterId];
-    return JSON.stringify([context.groupId ?? null, character?.avatar ?? context.characterId,
-        context.chatId ?? character?.chat ?? null]);
+function entryFor(context = hostContext()) {
+    const key = chatKey(context);
+    if (!key) return null;
+    if (!entries.has(key)) entries.set(key, { key, record: null, loaded: false, loading: null, error: null, dirty: false });
+    return entries.get(key);
 }
 
-function getJob() {
-    if (!job) return null;
-    return structuredClone({ ...job, isCurrentChat: sourceChat === chatKey(globalThis.SillyTavern?.getContext?.()) });
+function snapshot(entry) {
+    if (!entry?.record) return null;
+    const context = hostContext();
+    const job = structuredClone(entry.record.job);
+    job.isCurrentChat = entry.key === chatKey(context);
+    job.newFloors = null;
+    if (job.isCurrentChat) {
+        try {
+            const floors = newSegments(entry.record, context, settingsFor(entry.record)).flatMap(segment => segment.floors);
+            if (floors.length) job.newFloors = { count: floors.length, from: floors[0].floor, to: floors.at(-1).floor };
+        } catch { /* 追加时显示具体原因，旧结果始终可查看。 */ }
+    }
+    return job;
 }
 
 function emit() {
-    const snapshot = getJob();
+    const value = snapshot(activeRun?.entry ?? entryFor());
     for (const listener of listeners) {
-        // 界面回调独立执行，关掉面板不影响任务。
         Promise.resolve().then(() => {
-            if (listeners.has(listener)) return listener(structuredClone(snapshot));
+            if (listeners.has(listener)) return listener(structuredClone(value));
         }).catch(() => console.error('[YaKitChat] 润色任务回调失败'));
     }
+}
+
+function loadEntry(entry) {
+    if (entry.loading) return entry.loading;
+    if (entry.loaded) return Promise.resolve();
+    entry.loading = (async () => {
+        try {
+            const saved = await loadSaved(entry.key);
+            entry.record = saved === null ? null : restoreRecord(saved);
+            entry.loaded = true;
+            entry.error = null;
+        } catch (error) {
+            entry.error = error;
+            throw error;
+        } finally {
+            entry.loading = null;
+            emit();
+        }
+    })();
+    return entry.loading;
+}
+
+function watch() {
+    if (watching) return;
+    watching = true;
+    exportUI.onChatChanged(() => {
+        const entry = entryFor();
+        if (entry && !entry.loaded && !entry.loading) void loadEntry(entry).catch(() => {});
+        emit();
+    });
+}
+
+function getJob() {
+    watch();
+    const entry = entryFor();
+    if (entry && !entry.loaded && !entry.loading && !entry.error) void loadEntry(entry).catch(() => {});
+    if (activeRun) return snapshot(activeRun.entry);
+    if (entry?.error && !entry.record) throw entry.error;
+    return snapshot(entry);
 }
 
 function onJobChange(callback) {
     if (typeof callback !== 'function') throw new Error('润色任务回调必须是函数');
     listeners.add(callback);
+    watch();
+    const entry = entryFor();
+    if (entry && !entry.loaded && !entry.error) void loadEntry(entry).catch(() => {});
     return () => listeners.delete(callback);
 }
 
 function requireIdle() {
-    if (activeRun) throw new Error('正在润色，请先停止当前任务');
+    if (activeRun || busy) throw new Error('正在润色或保存，请先停止当前任务并等待保存完成');
 }
 
-function requireJob() {
-    if (!job) throw new Error('还没有润色任务，请先开始润色');
+async function change(operation, { allowUnread = false } = {}) {
+    requireIdle();
+    busy = true;
+    try {
+        watch();
+        const context = hostContext();
+        const entry = entryFor(context);
+        if (!entry) throw new Error('请先打开已有聊天，等待聊天标识就绪后重试');
+        try { await loadEntry(entry); } catch (error) { if (!allowUnread) throw error; }
+        if (chatKey(hostContext()) !== entry.key) throw new Error('当前聊天已切换，请在目标聊天重新操作');
+        return await operation(entry, context);
+    } finally {
+        busy = false;
+    }
 }
 
-function previousTail(index) {
-    const completed = completedFloors[index];
-    if (completed.length) return Array.from(completed.at(-1).text).slice(-300).join('');
-    if (!index) return '';
-    const previous = sourceFloors[index - 1].at(-1);
-    const polished = completedFloors[index - 1].find(item => item.floor === previous.floor);
-    return Array.from((polished ?? previous).text).slice(-300).join('');
+function requireRecord(entry) {
+    if (!entry?.record) throw new Error('还没有润色任务，请先开始润色');
+    return entry.record;
 }
 
-async function processSegments(run, indexes, generate, review) {
-    let failures = 0;
-    for (const index of indexes) {
-        if (activeRun !== run) return;
-        const segment = job.segments[index];
-        const limitBudget = { waitedSeconds: 0 };
-        Object.assign(segment, { status: 'running', error: null });
-        emit();
-        try {
-            while (true) {
-                // 每次续写至少完成一楼才继续，避免同一超长楼层反复请求。
-                const remaining = sourceFloors[index].slice(completedFloors[index].length);
-                const result = await generate(remaining, previousTail(index), run.signal, waitUntil => {
-                    if (activeRun !== run) return;
-                    job.waitUntil = waitUntil;
-                    emit();
-                }, limitBudget);
-                if (activeRun !== run) return;
-                const length = text => Array.from(text.replace(/\s/gu, '')).length;
-                segment.shortFloors.push(...result.completed.filter((item, offset) =>
-                    length(item.text) < length(remaining[offset].text) / 2).map(item => item.floor));
-                completedFloors[index].push(...result.completed);
-                segment.polished = completedFloors[index].map(item => item.text).join('\n\n') || null;
-                segment.resumeFloor = result.resumeFloor;
-                if (result.resumeFloor === null) break;
-                emit();
-                if (!result.completed.length) {
-                    throw new Error(`第 ${result.resumeFloor} 楼未能完整生成，已保留此前结果，请检查模型输出额度后继续润色`);
-                }
-            }
-            Object.assign(segment, { status: 'done', error: null });
-            failures = 0;
-        } catch (error) {
-            if (activeRun !== run) return;
-            Object.assign(segment, { status: 'failed', error: error?.message || '这段润色失败，请重试' });
-            failures++;
+async function persist(entry) {
+    entry.dirty = true;
+    await saveSaved(entry.key, entry.record);
+    entry.dirty = false;
+}
+
+async function replace(entry, next) {
+    // 先确认服务器保存，再替换内存；编辑和重做准备失败时保留旧结果。
+    await saveSaved(entry.key, next);
+    entry.record = next;
+    entry.loaded = true;
+    entry.error = null;
+    entry.dirty = false;
+}
+
+function settleRunning(job) {
+    for (const segment of job.segments) {
+        for (const floor of segment.floors) {
+            if (floor.status === 'running') floor.status = floor.polished === null ? 'pending' : 'done';
         }
-        job.waitUntil = null;
-        emit();
-        if (failures >= 2) {
-            activeRun = null;
-            job.status = 'stopped';
-            job.stopReason = '连续 2 段润色失败，请检查 API 和提示词后继续';
-            emit();
-            return;
+        syncSegment(segment);
+        if (segment.status === 'running') {
+            segment.status = segment.floors.every(floor => floor.status === 'done') ? 'done' : 'pending';
+            segment.error = null;
         }
     }
-    if (activeRun !== run) return;
-    activeRun = null;
-    const pending = job.segments.some(segment => segment.status === 'pending');
-    job.status = review ? (job.segments[0].status === 'done' ? 'review' : 'stopped')
-        : pending ? 'stopped' : 'finished';
-    job.stopReason = review && job.segments[0].status !== 'done' ? '第 1 段润色失败，请检查提示后继续'
-        : !review && pending ? '还有等待中的段落，请继续润色' : null;
-    emit();
+    job.status = 'stopped';
+    job.waitUntil = null;
 }
 
-function launch(indexes, generate, review = false) {
-    const run = new AbortController();
+function markSaveFailure(run, error) {
+    // 结果已生成但尚未落盘时，“继续”只补保存，不必整段重新请求。
+    for (const segment of run.savingSegments ?? []) Object.assign(segment, { status: 'failed', error: error.message });
+    run.entry.record.job.stopReason = error.message;
+}
+
+function launch(entry, batches, generate, options = {}) {
+    const run = { entry, controller: new AbortController() };
     activeRun = run;
-    job.status = 'running';
-    job.stopReason = null;
-    job.waitUntil = null;
+    const job = entry.record.job;
+    Object.assign(job, { status: 'running', waitUntil: null, stopReason: null });
     emit();
-    // 立即返回任务，后续状态由订阅推送；旧请求迟到时不再写入结果。
-    void processSegments(run, indexes, generate, review).catch(() => {
+    void runBatches({
+        job, batches, generate, signal: run.controller.signal, isActive: () => activeRun === run,
+        checkpoint: async segments => {
+            if (segments) run.savingSegments = segments;
+            await persist(entry);
+            if (activeRun === run && job.status === 'running') emit();
+        },
+        onWait: waitUntil => {
+            if (activeRun !== run) return;
+            job.waitUntil = waitUntil;
+            emit();
+        },
+        ...options,
+    }).catch(async error => {
         if (activeRun !== run) return;
-        run.abort();
-        activeRun = null;
-        for (const segment of job.segments) {
-            if (segment.status === 'running') Object.assign(segment, { status: 'pending', error: null });
+        run.controller.abort();
+        settleRunning(job);
+        job.stopReason = error?.message || '润色任务中断，请继续润色';
+        if (error?.code === 'POLISH_SAVE') markSaveFailure(run, error);
+        // 保存失败时保留内存并停止发请求，下一次继续先重新保存。
+        if (error?.code !== 'POLISH_SAVE') {
+            try { await persist(entry); } catch (saveError) { job.stopReason = saveError.message; }
         }
-        job.status = 'stopped';
-        job.waitUntil = null;
-        job.stopReason = '润色任务中断，请继续润色';
+    }).finally(() => {
+        if (activeRun !== run) return;
+        activeRun = null;
+        const current = entryFor();
+        if (current && !current.loaded) void loadEntry(current).catch(() => {});
         emit();
     });
-    return getJob();
+    return snapshot(entry);
 }
 
+const batchesFor = segments => segments.map(segment => ({ floors: segment.floors, segments: [segment] }));
+
 async function start(settings) {
-    requireIdle();
-    const context = globalThis.SillyTavern?.getContext?.();
-    if (exportUI.getChatInfo().status !== 'ok') throw new Error('请先在酒馆里打开一个聊天');
-    const { segments, floors } = buildPlan(settings, context);
-    if (!segments.length) throw new Error('没有可润色的内容，请检查楼层、消息类型和清洗规则');
-    const generate = createGenerator(context);
-    const key = chatKey(context);
-    const name = context.characters?.[context.characterId]?.name;
-    const next = {
-        id: createRecordId(), status: 'running',
-        chatName: typeof name === 'string' && name.trim() ? name : '润色结果',
-        isCurrentChat: true, stopReason: null, waitUntil: null, segments,
-    };
-    // 全部准备成功后才替换旧任务，设置错误不会丢掉已有结果。
-    offChat ??= exportUI.onChatChanged(() => emit());
-    job = next;
-    sourceChat = key;
-    sourceFloors = floors;
-    completedFloors = segments.map(() => []);
-    return launch([0], generate, true);
+    const normalized = normalizeSettings(settings);
+    return change(async (entry, context) => {
+        const { segments } = buildPlan(normalized, context);
+        if (!segments.length) throw new Error('没有可润色的内容，请检查楼层、消息类型和清洗规则');
+        const generate = createGenerator(context);
+        const name = context.characters[context.characterId]?.name;
+        const next = { settings: normalized, sourcePrefix: sourcePrefix(context), job: {
+            id: createRecordId(), status: 'stopped', chatName: name?.trim() ? name : '润色结果',
+            isCurrentChat: true, stopReason: null, waitUntil: null, newFloors: null, segments,
+        } };
+        await replace(entry, next);
+        return launch(entry, batchesFor([next.job.segments[0]]), generate, { review: true });
+    });
 }
 
 async function resume() {
-    requireIdle();
-    requireJob();
-    const indexes = job.segments.filter(segment => segment.status !== 'done').map(segment => segment.index);
-    if (!indexes.length) {
-        job.status = 'finished';
-        job.stopReason = null;
-        emit();
-        return getJob();
-    }
-    return launch(indexes, createGenerator(globalThis.SillyTavern?.getContext?.()));
+    return change(async (entry, context) => {
+        const record = requireRecord(entry);
+        const segments = record.job.segments.filter(segment => segment.floors.some(floor => floor.status !== 'done'));
+        if (!segments.length) {
+            const next = structuredClone(record);
+            next.job.status = 'finished';
+            next.job.stopReason = null;
+            for (const segment of next.job.segments) Object.assign(segment, { status: 'done', error: null });
+            await replace(entry, next);
+            emit();
+            return snapshot(entry);
+        }
+        await persist(entry);
+        return launch(entry, batchesFor(segments), createGenerator(context));
+    });
 }
 
 async function retrySegment(index) {
+    return change(async (entry, context) => {
+        const next = structuredClone(requireRecord(entry));
+        if (!Number.isInteger(index) || index < 0 || index >= next.job.segments.length) {
+            throw new Error('找不到这段润色内容，请重新打开润色页');
+        }
+        const generate = createGenerator(context);
+        const segment = next.job.segments[index];
+        for (const floor of segment.floors) Object.assign(floor, { polished: null, edited: false, short: false, status: 'pending' });
+        syncSegment(segment);
+        segment.status = 'pending';
+        segment.error = null;
+        await replace(entry, next);
+        return launch(entry, batchesFor([segment]), generate);
+    });
+}
+
+async function editFloor(number, text) {
+    return change(async entry => {
+        const next = structuredClone(requireRecord(entry));
+        const selected = planRedo(next.job, [number], settingsFor(next))[0].floors[0];
+        applyFloorText(selected, text, { edited: true });
+        const segment = next.job.segments.find(item => item.floors.includes(selected));
+        syncSegment(segment);
+        if (segment.floors.every(floor => floor.status === 'done')) { segment.status = 'done'; segment.error = null; }
+        if (next.job.status !== 'review' && next.job.segments.every(item => item.status === 'done')) next.job.status = 'finished';
+        next.job.stopReason = null;
+        await replace(entry, next);
+        emit();
+        return snapshot(entry);
+    });
+}
+
+function estimateRedo(floors) {
     requireIdle();
-    requireJob();
-    if (!Number.isInteger(index) || index < 0 || index >= job.segments.length) {
-        throw new Error('找不到这段润色内容，请重新打开润色页');
-    }
-    const generate = createGenerator(globalThis.SillyTavern?.getContext?.());
-    completedFloors[index] = [];
-    Object.assign(job.segments[index], { polished: null, resumeFloor: null, error: null, shortFloors: [] });
-    return launch([index], generate);
+    getJob();
+    const record = requireRecord(entryFor());
+    return planRedo(record.job, floors, settingsFor(record)).length;
+}
+
+async function redoFloors(floors) {
+    const selected = Array.isArray(floors) ? [...floors] : floors;
+    return change(async (entry, context) => {
+        const next = structuredClone(requireRecord(entry));
+        const batches = planRedo(next.job, selected, settingsFor(next)).map(batch => ({ ...batch,
+            segments: next.job.segments.filter(segment => segment.floors.some(floor => batch.floors.includes(floor))),
+        }));
+        const generate = createGenerator(context);
+        await replace(entry, next);
+        return launch(entry, batches, generate, { redo: true });
+    });
+}
+
+async function appendNew() {
+    return change(async (entry, context) => {
+        const next = structuredClone(requireRecord(entry));
+        if (hasSourceChanges(next, context)) throw new Error('原聊天已有楼层被修改或删除，旧结果已保留，请清空结果后重新分段');
+        const settings = normalizeSettings(settingsFor(next));
+        const segments = newSegments(next, context, settings);
+        if (!segments.length) throw new Error('没有符合当前润色设置的新增楼层');
+        const generate = createGenerator(context);
+        const offset = next.job.segments.length;
+        segments.forEach((segment, index) => { segment.index = offset + index; });
+        next.job.segments.push(...segments);
+        next.sourcePrefix = sourcePrefix(context);
+        next.settings = settings;
+        await replace(entry, next);
+        return launch(entry, batchesFor(segments), generate);
+    });
 }
 
 async function stop() {
     if (!activeRun) return;
+    if (busy) throw new Error('正在保存润色结果，请稍后再停止');
+    busy = true;
     const run = activeRun;
     activeRun = null;
-    run.abort();
-    for (const segment of job.segments) {
-        if (segment.status === 'running') Object.assign(segment, { status: 'pending', error: null });
-    }
-    job.status = 'stopped';
-    job.stopReason = null;
-    job.waitUntil = null;
+    run.controller.abort();
+    settleRunning(run.entry.record.job);
+    run.entry.record.job.stopReason = null;
     emit();
+    try {
+        await persist(run.entry);
+    } catch (error) {
+        markSaveFailure(run, error);
+        emit();
+        throw error;
+    } finally { busy = false; }
 }
 
 async function clearJob() {
-    requireIdle();
-    job = null;
-    sourceChat = null;
-    sourceFloors = [];
-    completedFloors = [];
-    offChat?.();
-    offChat = null;
-    emit();
+    return change(async entry => {
+        await deleteSaved(entry.key);
+        entry.record = null;
+        entry.dirty = false;
+        entry.error = null;
+        entry.loaded = true;
+        emit();
+    }, { allowUnread: true });
 }
 
 export const polishUI = Object.freeze({
-    getChatInfo: exportUI.getChatInfo,
-    onChatChanged: exportUI.onChatChanged,
-    loadSettings, saveSettings, getContext,
-    planSegments: async settings => planSegments(settings),
+    getChatInfo: exportUI.getChatInfo, onChatChanged: exportUI.onChatChanged,
+    loadSettings, saveSettings, getContext, planSegments: async settings => planSegments(settings),
     start, resume, retrySegment, stop, clearJob, getJob, onJobChange,
-    exportFile: async options => exportPolish(getJob(), options),
+    editFloor, estimateRedo, redoFloors, appendNew,
+    exportFile: async options => {
+        const value = getJob();
+        if (value) return exportPolish(value, options);
+        const entry = entryFor();
+        if (entry) await loadEntry(entry);
+        return exportPolish(getJob(), options);
+    },
 });

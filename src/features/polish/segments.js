@@ -76,10 +76,15 @@ export function saveSettings(value) {
     }
 }
 
-// 楼层快照仅给业务请求使用，不混入界面的段落数据。
+export function getChunkSize(value = {}) {
+    const settings = normalizeSettings(value);
+    return settings.chunkMode === 'custom' ? settings.chunkSize : CHUNK_SIZES[settings.chunkMode];
+}
+
+// 界面和任务共用段内楼层，保留旧的请求快照返回值。
 export function buildPlan(value = {}, context = globalThis.SillyTavern?.getContext?.()) {
     const settings = normalizeSettings(value);
-    const chunkSize = settings.chunkMode === 'custom' ? settings.chunkSize : CHUNK_SIZES[settings.chunkMode];
+    const chunkSize = getChunkSize(settings);
     if (context?.characterId == null || !Array.isArray(context.chat) || !context.chat.length
         || !Object.values(settings.types).some(Boolean)) return { segments: [], floors: [] };
 
@@ -129,10 +134,14 @@ export function buildPlan(value = {}, context = globalThis.SillyTavern?.getConte
             segments.push({
                 index: segments.length, startFloor: message.floor - 1, endFloor: message.floor - 1,
                 chars, original: message.mes, polished: null, status: 'pending', error: null,
-                resumeFloor: null, shortFloors: [],
+                resumeFloor: null, shortFloors: [], floors: [],
             });
             floors.push([]);
         }
+        segments.at(-1).floors.push({
+            floor: message.floor - 1, original: message.mes, polished: null,
+            status: 'pending', edited: false, short: false,
+        });
         floors.at(-1).push({ floor: message.floor - 1, text: message.mes });
     }
     return { segments, floors };
