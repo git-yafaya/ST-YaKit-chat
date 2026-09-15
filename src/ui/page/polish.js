@@ -15,7 +15,8 @@
  *     includeHidden: boolean,        包含在酒馆里隐藏过的楼层
  *     clean: boolean,                先按正则规则清洗
  *     cleanSource: 'export' | 预设 id，'export' = 导出页当前的规则和匹配方式；预设只取其中的规则和匹配方式
- *     chunkSize: number,             每段字数
+ *     chunkMode: 'fewer' | 'balanced' | 'quality' | 'custom',  每次发送：省次数 / 均衡 / 重质量 / 自定义
+ *     chunkSize: number,             自定义时每次发送的字数（其他档位的字数由业务决定）
  *     format: 'txt' | 'md' | 'epub', 导出文件格式
  *     fileName: string,              文件名，空字符串表示用默认名
  *   }
@@ -23,9 +24,10 @@
  * segment 的形状：
  *   { index, startFloor, endFloor, chars, original, polished: string | null,
  *     status: 'pending' | 'running' | 'done' | 'failed', error: string | null,
- *     resumeFloor: number | null }
+ *     resumeFloor: number | null, shortFloors: number[] }
  *   回复按楼层标记读取：被截断或中途停止时，已完整的楼层留在 polished 里，
  *   resumeFloor 是下次从哪一楼接着润色（这一段还没开始或已完成时为 null）
+ *   shortFloors 是润色后字数明显比原文少的楼层（只提醒，不自动重发），没有时为 []
  *
  * job 的形状（一次润色任务，存在业务层内存里，关掉抽屉或弹窗、切页签都不影响）：
  *   { id, status: 'running' | 'review' | 'stopped' | 'finished', chatName, isCurrentChat: boolean,
@@ -41,7 +43,8 @@
  *       按润色助手解析出的实际接口和提示词；名字为 null 表示不使用
  *  5. polishUI.planSegments(settings) → segment[]（Promise，status 均为 pending、polished 为 null）
  *       按当前设置读取、过滤、清洗并分段，还没开始润色时给界面预览；没有内容返回 []
- *       设置不合法时 reject 中文原因，每段字数不合法时 error.field = 'chunkSize'
+ *       设置不合法时 reject 中文原因，自定义字数不合法时 error.field = 'chunkSize'
+ *       段数就是预计的请求次数；省次数一次写不完会自动接着写，实际可能多几次
  *  6. polishUI.start(settings) → job      按设置分段，先只润色第 1 段，完成后 status 为 review；已有未在进行的任务时替换它
  *  7. polishUI.resume() → job             按顺序继续润色等待中和失败的段，有 resumeFloor 的从那一楼接着润色
  *  8. polishUI.retrySegment(index) → job  这一段整段重新润色（清掉原结果，任务不在进行时）
@@ -65,6 +68,8 @@
   const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB' };
   const MODE_LABELS = { delete: '删除匹配', keep: '只保留匹配' };
   const ALERT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>';
+  const WARNING_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4M12 17h.01"/></svg>';
+  const CHUNK_LABELS = { fewer: '省次数', balanced: '均衡', quality: '重质量' };
   const CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
 
   const defaults = {
@@ -75,7 +80,8 @@
     includeHidden: true,
     clean: true,
     cleanSource: 'export',
-    chunkSize: 3000,
+    chunkMode: 'balanced',
+    chunkSize: 8000,
     format: 'txt',
     fileName: '',
   };
@@ -229,11 +235,20 @@
 
     row.querySelector('yakit-button').hidden = !hasJob() || running() || !['done', 'failed'].includes(segment.status);
 
-    const error = segment.status === 'failed' ? (segment.error || '润色失败') : '';
-    if (cache.error !== error) {
+    // 失败原因用危险提示框；字数明显变少只用提醒提示框，由用户决定要不要重新润色
+    const shortFloors = hasJob() && segment.status === 'done' && Array.isArray(segment.shortFloors) ? segment.shortFloors : [];
+    const error = segment.status === 'failed' ? (segment.error || '润色失败')
+      : shortFloors.length ? `第 ${shortFloors.join('、')} 楼润色后字数明显变少，可以重新润色这段` : '';
+    const noticeKey = `${segment.status}|${error}`;
+    if (cache.error !== noticeKey) {
       const notice = row.querySelector('.notice');
+      const warning = segment.status !== 'failed';
       notice.hidden = !error;
-      notice.querySelector('span').textContent = cache.error = error;
+      notice.classList.toggle('is-warning', warning);
+      notice.setAttribute('role', warning ? 'status' : 'alert');
+      notice.innerHTML = `${warning ? WARNING_ICON : ALERT_ICON}<span></span>`;
+      notice.querySelector('span').textContent = error;
+      cache.error = noticeKey;
     }
 
     // 还没润色的段在「润色后」里显示灰字占位
@@ -242,7 +257,7 @@
     const placeholder = showPolished && !segment.polished
       ? (segment.status === 'running' ? '（正在润色…）' : '（还没润色）')
       : (!text ? '（清洗后为空）' : '');
-    const key = `${placeholder} ${text || ''}`;
+    const key = `${placeholder}\u0000${text || ''}`;
     if (cache.text !== key) {
       const box = row.querySelector('.preview-text');
       box.classList.toggle('is-empty', Boolean(placeholder));
@@ -330,7 +345,7 @@
       exportButton.setAttribute('disabled', '');
       track.hidden = true;
       const total = plan.reduce((sum, segment) => sum + (Number(segment.chars) || 0), 0);
-      text.textContent = canStart ? `共 ${plan.length} 段 · ${formatNumber(total)} 字 · 约 ${plan.length} 次请求，先润色第 1 段看效果` : '';
+      text.textContent = canStart ? `${formatNumber(total)} 字 · 约 ${plan.length} 次请求${state.chunkMode === 'fewer' ? '起' : ''}，先润色第 1 段看效果` : '';
       return;
     }
 
@@ -388,7 +403,7 @@
       ? Object.keys(TYPE_LABELS).filter((key) => state.types[key]).map((key) => TYPE_LABELS[key]).join('/')
       : '未选择消息类型';
     const clean = state.clean ? `清洗：${cleanSourceName()}` : '不清洗';
-    $('polish-summary').textContent = `${range} · ${types}${state.includeHidden === false ? '（不含隐藏）' : ''} · ${clean} · 每段 ${state.chunkSize || '—'} 字 · ${FORMAT_LABELS[state.format]}`;
+    $('polish-summary').textContent = `${range} · ${types}${state.includeHidden === false ? '（不含隐藏）' : ''} · ${clean} · ${state.chunkMode === 'custom' ? `每次 ${state.chunkSize || '—'} 字` : (CHUNK_LABELS[state.chunkMode] || CHUNK_LABELS.balanced)} · ${FORMAT_LABELS[state.format]}`;
     $('polish-floor-hint').textContent = floorCount ? `当前聊天共 ${floorCount} 条，楼层 0–${last}` : '当前聊天没有消息';
   }
 
@@ -433,10 +448,11 @@
   function renderLock() {
     const locked = hasJob();
     document.querySelectorAll('#polish-drawer [data-lock]').forEach((control) => control.toggleAttribute('disabled', locked));
+    document.querySelectorAll('#polish-drawer [data-lock-inert]').forEach((control) => control.toggleAttribute('inert', locked));
     $('polish-lock').hidden = !locked;
     $('polish-lock-note').innerHTML = running()
-      ? '正在润色，楼层、清洗和分段已锁住。<br>停止后才能清空结果。'
-      : '已有润色结果，楼层、清洗和分段已锁住。<br>要按新设置润色，先清空结果。';
+      ? '正在润色，只能改导出格式和文件名。<br>停止后才能清空结果。'
+      : '已有润色结果，只能改导出格式和文件名。<br>要按新设置润色，先清空结果。';
     $('polish-clear').toggleAttribute('disabled', running());
   }
 
@@ -448,6 +464,8 @@
     Object.keys(TYPE_LABELS).forEach((key) => { $(`polish-type-${key}`).checked = state.types[key]; });
     $('polish-include-hidden').checked = state.includeHidden !== false;
     $('polish-clean').checked = state.clean;
+    $('polish-chunk-mode').value = state.chunkMode;
+    $('polish-chunk-row').hidden = state.chunkMode !== 'custom';
     $('polish-chunk').value = String(state.chunkSize ?? '');
     $('polish-format').value = state.format;
     $('polish-file-name').value = state.fileName;
@@ -516,7 +534,13 @@
       changed();
     });
 
-    // 每段字数：输完离开输入框保存；是否合法由业务判断，出错提示显示在输入框下方
+    $('polish-chunk-mode').addEventListener('change', (event) => {
+      state.chunkMode = event.detail.value;
+      $('polish-chunk-row').hidden = state.chunkMode !== 'custom';
+      changed();
+    });
+
+    // 自定义字数：输完离开输入框保存；是否合法由业务判断，出错提示显示在输入框下方
     $('polish-chunk').addEventListener('change', (event) => {
       const value = event.currentTarget.value.trim();
       state.chunkSize = value === '' ? defaults.chunkSize : Number(value);

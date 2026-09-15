@@ -76,6 +76,9 @@
 }
 .polish-lock .field-note { margin: 0; }
 .polish-clean-source { margin-top: 8px; }
+.polish-chunk-custom { margin-top: 10px; }
+/* 分段选择器没有禁用属性：锁住时整块不可操作并变淡 */
+[data-lock-inert][inert] { opacity: 0.45; }
 .polish-clean-source yakit-select { width: 200px; max-width: 60%; }
 
 @media (prefers-reduced-motion: reduce) {
