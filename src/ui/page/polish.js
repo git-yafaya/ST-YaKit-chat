@@ -14,8 +14,8 @@
  *     presetId: 'export' | 预设 id,  用哪套设置：'export' = 文本导出页当前设置；预设 id = 这套预设
  *                                    消息类型、匹配方式、正则规则、导出格式都取自它；「带类别标注 / 仅正文」不生效，润色导出只含正文
  *                                    包含隐藏的楼层始终跟随文本导出页当前设置（预设里不存这一项）
- *     chunkMode: 'fewer' | 'balanced' | 'quality' | 'custom',  每次发送：省次数 / 均衡 / 重质量 / 自定义
- *     chunkSize: number,             自定义时每次发送的字数（其他档位的字数由业务决定）
+ *     chunkMode: 'fewer' | 'balanced' | 'quality' | 'custom',  每次发送：省次数 20 层 / 均衡 10 层 / 重质量 5 层 / 自定义，按楼层分，一层楼不拆开
+ *     chunkFloors: number,           自定义时每次发送几层楼（用户自己填的正整数）
  *     fileName: string,              文件名，空字符串表示用默认名
  *   }
  *
@@ -48,7 +48,7 @@
  *       按润色助手解析出的实际接口和提示词；名字为 null 表示不使用
  *  5. polishUI.planSegments(settings) → segment[]（Promise，status 均为 pending、polished 为 null）
  *       按当前设置读取、过滤、清洗并分段，还没开始润色时给界面预览；没有内容返回 []
- *       设置不合法时 reject 中文原因，自定义字数不合法时 error.field = 'chunkSize'
+ *       设置不合法时 reject 中文原因，自定义楼层数不合法时 error.field = 'chunkFloors'
  *       段数就是预计的请求次数；省次数一次写不完会自动接着写，实际可能多几次
  *  6. polishUI.start(settings) → job      按设置分段，先只润色第 1 段，完成后 status 为 review；已有未在进行的任务时替换它
  *  7. polishUI.resume() → job             按顺序继续润色等待中和失败的段，有 resumeFloor 的从那一楼接着润色
@@ -90,7 +90,7 @@
     end: '',
     presetId: 'export',
     chunkMode: 'balanced',
-    chunkSize: 8000,
+    chunkFloors: 10,
     fileName: '',
   };
 
@@ -134,7 +134,7 @@
       service()?.saveSettings?.(structuredClone(state));
     } catch (error) {
       // 字数填错由分段预览在输入框下方提示，不算报错
-      if (error?.field !== 'chunkSize') YaKitErrorLog.warn('保存润色设置失败', error);
+      if (error?.field !== 'chunkFloors') YaKitErrorLog.warn('保存润色设置失败', error);
     }
   };
 
@@ -576,7 +576,7 @@
     const { floorCount } = chatInfo();
     const last = Math.max((floorCount || 0) - 1, 0);
     const range = state.allFloors ? '全部楼层' : `第 ${state.start || 0}–${state.end || last} 楼`;
-    const chunk = state.chunkMode === 'custom' ? `每次 ${state.chunkSize || '—'} 字` : (CHUNK_LABELS[state.chunkMode] || CHUNK_LABELS.balanced);
+    const chunk = state.chunkMode === 'custom' ? `每次 ${state.chunkFloors || '—'} 层` : (CHUNK_LABELS[state.chunkMode] || CHUNK_LABELS.balanced);
     const format = FORMAT_LABELS[presetContent()?.format] || '';
     $('polish-summary').textContent = [presetName(), range, chunk, format].filter(Boolean).join(' · ');
     $('polish-floor-hint').textContent = floorCount ? `当前聊天共 ${floorCount} 条，楼层 0–${last}` : '当前聊天没有消息';
@@ -684,7 +684,7 @@
     $('polish-end').value = state.end;
     $('polish-chunk-mode').value = state.chunkMode;
     $('polish-chunk-row').hidden = state.chunkMode !== 'custom';
-    $('polish-chunk').value = String(state.chunkSize ?? '');
+    $('polish-chunk').value = String(state.chunkFloors ?? '');
     $('polish-file-name').value = state.fileName;
     renderPresetSelect();
   }
@@ -742,8 +742,8 @@
     // 自定义字数：输完离开输入框保存；是否合法由业务判断，出错提示显示在输入框下方
     $('polish-chunk').addEventListener('change', (event) => {
       const value = event.currentTarget.value.trim();
-      state.chunkSize = value === '' ? defaults.chunkSize : Number(value);
-      event.currentTarget.value = String(state.chunkSize);
+      state.chunkFloors = value === '' ? defaults.chunkFloors : Number(value);
+      event.currentTarget.value = String(state.chunkFloors);
       changed();
     });
 
@@ -810,7 +810,7 @@
       if (token !== planToken) return;
       plan = [];
       planError = error?.message || '分段失败';
-      if (error?.field === 'chunkSize') {
+      if (error?.field === 'chunkFloors') {
         // 输入框很窄，出错提示放在说明小字下面
         $('polish-chunk-error').querySelector('span').textContent = planError;
         $('polish-chunk-error').hidden = false;

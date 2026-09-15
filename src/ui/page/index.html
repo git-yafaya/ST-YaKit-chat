@@ -390,20 +390,20 @@
 
     <section class="drawer-section">
       <h3>每次发送</h3>
-      <yakit-segmented id="polish-chunk-mode" block aria-label="每次发送多少字" value="balanced" data-lock-inert>
+      <yakit-segmented id="polish-chunk-mode" block aria-label="每次发送几层楼" value="balanced" data-lock-inert>
         <option value="fewer">省次数</option>
         <option value="balanced">均衡</option>
         <option value="quality">重质量</option>
         <option value="custom">自定义</option>
       </yakit-segmented>
       <div class="setting-field polish-chunk-custom" id="polish-chunk-row" hidden>
-        <span class="setting-label">每次字数</span>
+        <span class="setting-label">每次楼层</span>
         <div class="request-timeout">
-          <yakit-input id="polish-chunk" type="number" size="sm" aria-label="每次字数" placeholder="8000" data-lock></yakit-input>
-          <span class="request-unit">字</span>
+          <yakit-input id="polish-chunk" type="number" size="sm" aria-label="每次楼层" placeholder="10" data-lock></yakit-input>
+          <span class="request-unit">层</span>
         </div>
       </div>
-      <p class="field-note">按次计费选省次数，按量计费选重质量。<br>一次字越多越容易被截断，截断后会自动接着写。</p>
+      <p class="field-note">按次计费选省次数，按量计费选重质量。<br>一次楼层越多越容易被截断，截断后会自动接着写。</p>
       <div class="notice" id="polish-chunk-error" role="alert" hidden>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
         <span></span>
