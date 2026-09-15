@@ -22,11 +22,17 @@
  *
  * segment 的形状：
  *   { index, startFloor, endFloor, chars, original, polished: string | null,
- *     status: 'pending' | 'running' | 'done' | 'failed', error: string | null }
+ *     status: 'pending' | 'running' | 'done' | 'failed', error: string | null,
+ *     resumeFloor: number | null }
+ *   回复按楼层标记读取：被截断或中途停止时，已完整的楼层留在 polished 里，
+ *   resumeFloor 是下次从哪一楼接着润色（这一段还没开始或已完成时为 null）
  *
  * job 的形状（一次润色任务，存在业务层内存里，关掉抽屉或弹窗、切页签都不影响）：
- *   { id, status: 'running' | 'stopped' | 'finished', chatName, isCurrentChat: boolean,
- *     stopReason: string | null, segments: segment[] }
+ *   { id, status: 'running' | 'review' | 'stopped' | 'finished', chatName, isCurrentChat: boolean,
+ *     stopReason: string | null, waitUntil: number | null, segments: segment[] }
+ *   review    = 开始润色后只润色第 1 段，等用户看过效果点「继续润色」
+ *   waitUntil = 接口限速时，等到这个时间（毫秒时间戳）再发下一次请求；不在等待时为 null
+ *   stopReason = 自动停止的原因（如连续 2 段失败），用户点停止时为 null
  *
  *  1. polishUI.getChatInfo() → { status: 'ok' | 'none', floorCount }       同 exportUI.getChatInfo
  *  2. polishUI.onChatChanged(callback) → unsubscribe()
@@ -36,10 +42,10 @@
  *  5. polishUI.planSegments(settings) → segment[]（Promise，status 均为 pending、polished 为 null）
  *       按当前设置读取、过滤、清洗并分段，还没开始润色时给界面预览；没有内容返回 []
  *       设置不合法时 reject 中文原因，每段字数不合法时 error.field = 'chunkSize'
- *  6. polishUI.start(settings) → job      按设置分段并开始逐段润色；已有未在进行的任务时替换它
- *  7. polishUI.resume() → job             继续润色当前任务里等待中和失败的段
- *  8. polishUI.retrySegment(index) → job  只重新润色这一段（任务不在进行时）
- *  9. polishUI.stop()                     停止；正在润色的段回到等待中
+ *  6. polishUI.start(settings) → job      按设置分段，先只润色第 1 段，完成后 status 为 review；已有未在进行的任务时替换它
+ *  7. polishUI.resume() → job             按顺序继续润色等待中和失败的段，有 resumeFloor 的从那一楼接着润色
+ *  8. polishUI.retrySegment(index) → job  这一段整段重新润色（清掉原结果，任务不在进行时）
+ *  9. polishUI.stop()                     停止；正在请求的那次作废，这一段已完整的楼层保留，回到等待中
  * 10. polishUI.clearJob()                 清空当前任务（任务在进行时 reject）
  * 11. polishUI.getJob() → job | null；polishUI.onJobChange(callback) → unsubscribe()
  *       任务或任一段状态变化时调用 callback(job)
@@ -209,14 +215,16 @@
     if (cache.meta !== meta) row.querySelector('.polish-seg-meta').textContent = cache.meta = meta;
 
     const status = hasJob() ? segment.status : '';
-    if (cache.status !== status) {
+    const resumeKey = hasJob() && segment.status !== 'done' && Number.isFinite(segment.resumeFloor)
+      ? `从第 ${segment.resumeFloor} 楼接着润色` : '';
+    if (cache.status !== `${status}|${resumeKey}`) {
       const el = row.querySelector('.polish-state');
       el.className = `polish-state${status ? ` is-${status}` : ''}`;
       el.innerHTML = status === 'running' ? '<span class="polish-spinner" aria-hidden="true"></span><span></span>'
         : status === 'done' ? `${CHECK_ICON}<span></span>`
           : status === 'failed' ? `${ALERT_ICON}<span></span>` : '<span></span>';
-      el.lastChild.textContent = STATE_TEXT[status] || '';
-      cache.status = status;
+      el.lastChild.textContent = [STATE_TEXT[status], resumeKey].filter(Boolean).join(' · ');
+      cache.status = `${status}|${resumeKey}`;
     }
 
     row.querySelector('yakit-button').hidden = !hasJob() || running() || !['done', 'failed'].includes(segment.status);
@@ -322,7 +330,7 @@
       exportButton.setAttribute('disabled', '');
       track.hidden = true;
       const total = plan.reduce((sum, segment) => sum + (Number(segment.chars) || 0), 0);
-      text.textContent = canStart ? `共 ${plan.length} 段 · ${formatNumber(total)} 字，每段单独发给润色助手` : '';
+      text.textContent = canStart ? `共 ${plan.length} 段 · ${formatNumber(total)} 字 · 约 ${plan.length} 次请求，先润色第 1 段看效果` : '';
       return;
     }
 
@@ -334,7 +342,9 @@
     const failedText = failed ? ` · 失败 ${failed} 段` : '';
     if (running()) {
       const current = segments.find((segment) => segment.status === 'running');
-      text.textContent = `${current ? `正在润色第 ${current.index + 1} 段 · ` : ''}已完成 ${done} / ${segments.length} 段${failedText}`;
+      const wait = waitSeconds();
+      const doing = wait ? `接口限速，${wait} 秒后继续 · ` : (current ? `正在润色第 ${current.index + 1} 段 · ` : '');
+      text.textContent = `${doing}已完成 ${done} / ${segments.length} 段${failedText}`;
       run.textContent = '停止';
       run.setAttribute('icon', '../icons/close.svg');
       run.removeAttribute('disabled');
@@ -344,6 +354,11 @@
       run.textContent = '全部重新润色';
       run.removeAttribute('disabled');
       primary(run, false);
+    } else if (job.status === 'review') {
+      text.textContent = `第 1 段已润色好，看过效果再继续 · 还剩 ${segments.length - done} 段`;
+      run.textContent = '继续润色';
+      run.removeAttribute('disabled');
+      primary(run, true);
     } else {
       text.textContent = `${job.status === 'stopped' ? '已停止 · ' : ''}已完成 ${done} / ${segments.length} 段${failedText}`;
       run.textContent = '继续润色';
@@ -352,6 +367,15 @@
     }
     primary(exportButton, allDone && !running());
     exportButton.toggleAttribute('disabled', !allDone || running());
+  }
+
+  // 限速等待倒计时：每秒刷新一次进度小字
+  let waitTimer = null;
+  function waitSeconds() {
+    const left = job?.waitUntil ? Math.ceil((job.waitUntil - Date.now()) / 1000) : 0;
+    clearTimeout(waitTimer);
+    if (left > 0) waitTimer = setTimeout(renderBar, 1000);
+    return Math.max(left, 0);
   }
 
   /* ---------- 润色设置抽屉 ---------- */
@@ -661,6 +685,7 @@
     if (!wasRunning || running() || !job) return;
     const failed = job.segments.filter((segment) => segment.status === 'failed').length;
     if (job.stopReason) notify(`润色已停止：${job.stopReason}`, 'warning');
+    else if (job.status === 'review') notify('第 1 段已润色好，打开润色页看看效果', 'success');
     else if (job.status === 'finished' && !failed) notify('润色完成，打开润色页导出', 'success');
     else if (job.status === 'finished') notify(`润色结束，有 ${failed} 段失败`, 'warning');
   }
