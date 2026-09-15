@@ -19,7 +19,7 @@
  * 10. apiUI.fetchModels(draft) → string[]
  *
  * prompt 的形状：{ id, name, target: 'system' | 'user', text, builtin }；kind 为 'jailbreak'（破限词，固定 system）| 'style'（文风提示词，固定 user）
- *   builtin 为 true 的是内置破限词（Gemini、DeepSeek）：不能删除，正文可以为空（空的不加入请求）
+ *   builtin 为 true 的是内置的「通用破限词」：不能删除，正文可以为空（空的不加入请求）
  *
  * 11. apiUI.listPrompts(kind) → [prompt]
  * 12. apiUI.getActivePromptId(kind) → id | null         null 表示这一类不使用
@@ -55,8 +55,8 @@
     { action: 'delete', label: '删除', icon: '../icons/trash.svg' },
   ];
   const KINDS = {
-    jailbreak: { label: '破限词', note: '放在 system 最前面，固定不可改。' },
-    style: { label: '文风提示词', note: '写你对文字风格的要求，固定放在 user 消息里。' },
+    jailbreak: { label: '破限词', note: '单独作为 system 消息发送，固定不可改。' },
+    style: { label: '文风提示词', note: '写你对文字风格的要求，固定合进 user 消息里。' },
   };
 
   let profiles = [];
@@ -498,10 +498,10 @@
     $('prompt-text').toggleAttribute('required', !prompt?.builtin);
     if (prompt?.builtin) $('prompt-text').setAttribute('hint', '内置破限词，可以先空着；空着时不会加入请求。');
     else $('prompt-text').removeAttribute('hint');
-    // 注入位置固定：破限词放 system 最前面，文风提示词放 user
+    // 发送位置固定：破限词单独作为 system，文风提示词合进 user
     $('prompt-target-note').textContent = promptKind === 'jailbreak'
-      ? '破限词固定放在 system 最前面。'
-      : '文风提示词固定放在 user 消息里。';
+      ? '破限词固定单独作为 system 消息发送。'
+      : '文风提示词固定合进 user 消息里，和本次任务一起发送。';
     $('prompt-drawer').show();
   }
 
