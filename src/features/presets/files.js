@@ -1,3 +1,5 @@
+import { styles, normalizeStyles } from '../styles/index.js';
+import { listCorePrompts } from '../api-ui/core-prompts.js';
 import { readSettings, updateSettings } from '../../shared/settings.js';
 import { createExportFilename } from '../text-export/export-common.js';
 import { normalizeSettings } from '../text-export/export-ui-settings.js';
@@ -57,6 +59,8 @@ export async function exportBackup(uiPrefs) {
         presets: normalizeCollection(settings.presets),
         exportSettings: normalizeSettings(settings.exportUI),
         uiPrefs: cloneUiPrefs(uiPrefs),
+        styles: { items: styles.list(), activeId: styles.getActiveId() },
+        corePrompts: Object.fromEntries(listCorePrompts().map(item => [item.id, item.text])),
     }, createExportFilename('纪实备份', 'yakit-backup.json'));
 }
 
@@ -64,6 +68,8 @@ export function restoreBackup(text) {
     let presets;
     let exportSettings;
     let uiPrefs;
+    let stylePresets;
+    let corePrompts;
     try {
         const value = parseFile(text, 'backup');
         if (!['presets', 'exportSettings', 'uiPrefs'].every(key => Object.hasOwn(value, key))) throw new Error();
@@ -77,13 +83,31 @@ export function restoreBackup(text) {
         presets = normalizeCollection(value.presets);
         exportSettings = normalizeSettings(saved);
         uiPrefs = cloneUiPrefs(value.uiPrefs);
+        if (Object.hasOwn(value, 'styles')) stylePresets = normalizeStyles(value.styles);
+        if (Object.hasOwn(value, 'corePrompts')) {
+            const prompts = value.corePrompts;
+            if (!prompts || !['jailbreak', 'regex', 'polish'].every(id => typeof prompts[id] === 'string'
+                && (id === 'jailbreak' || prompts[id].trim()))) throw new Error();
+            corePrompts = Object.fromEntries(['jailbreak', 'regex', 'polish'].map(id => [id, prompts[id]]));
+        }
     } catch {
         throw new Error('这不是纪实的备份文件');
     }
-    // 只替换备份约定的两组业务设置；共享保存失败时会回滚。
+    // 旧备份缺少新字段时保留本机数据；全部校验后在同一事务恢复。
     return updateSettings(settings => {
         settings.presets = presets;
         settings.exportUI = exportSettings;
+        if (stylePresets) {
+            settings.prompts.style = { activeId: stylePresets.activeId,
+                items: stylePresets.items.map(({ id, name, text }) => ({ id, name, content: text, target: 'user' })) };
+            settings.styleSelectionMigrated = true;
+        }
+        if (corePrompts) {
+            settings.corePrompts = { regex: corePrompts.regex, polish: corePrompts.polish };
+            const universal = settings.prompts.jailbreak.items.find(item => item.id === 'builtin-jailbreak-universal');
+            universal.content = corePrompts.jailbreak;
+            universal.contentEdited = true;
+        }
         return { presetCount: presets.items.length, uiPrefs };
     });
 }

@@ -37,6 +37,16 @@ function snapshot(context) {
         settings.prompts[category] = readGroup(settings.prompts[category]);
     }
     ensureBuiltinJailbreaks(settings);
+    // 原文风库直接复用；助手的独立选择只迁移一次，避免取消使用后又被旧字段恢复。
+    if (settings.styleSelectionMigrated !== true) {
+        const group = settings.prompts.style;
+        const selected = settings.assistants?.polish?.prompt;
+        if (selected === 'none') group.activeId = null;
+        else if (typeof selected === 'string' && selected !== 'follow') {
+            group.activeId = group.items.some(item => item.id === selected) ? selected : group.activeId;
+        }
+        settings.styleSelectionMigrated = true;
+    }
     return settings;
 }
 

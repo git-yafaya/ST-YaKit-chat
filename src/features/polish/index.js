@@ -1,6 +1,6 @@
 import { exportUI } from '../text-export/export-ui.js';
 import { createRecordId } from '../../shared/validation.js';
-import { loadSettings, saveSettings, planSegments, buildPlan, normalizeSettings } from './segments.js';
+import { loadSettings, saveSettings, planSegments, buildPlan, normalizeSettings, resolveSettings } from './segments.js';
 import { getContext, createGenerator } from './generate.js';
 import { exportPolish } from './export.js';
 import { applyFloorText, syncSegment, planRedo } from './floors.js';
@@ -14,7 +14,7 @@ let activeRun = null;
 let busy = false;
 let watching = false;
 const hostContext = () => globalThis.SillyTavern?.getContext?.();
-const settingsFor = record => loadSettings() ?? record.settings;
+const settingsFor = record => record.settings;
 
 function entryFor(context = hostContext()) {
     const key = chatKey(context);
@@ -337,11 +337,12 @@ export const polishUI = Object.freeze({
     loadSettings, saveSettings, getContext, planSegments: async settings => planSegments(settings),
     start, resume, retrySegment, stop, clearJob, getJob, onJobChange,
     editFloor, estimateRedo, redoFloors, appendNew,
-    exportFile: async options => {
-        const value = getJob();
-        if (value) return exportPolish(value, options);
-        const entry = entryFor();
-        if (entry) await loadEntry(entry);
-        return exportPolish(getJob(), options);
+    exportFile: async (options = {}) => {
+        let value = getJob();
+        const entry = activeRun?.entry ?? entryFor();
+        if (!value && entry) { await loadEntry(entry); value = getJob(); }
+        if (!options || typeof options !== 'object' || Array.isArray(options)) throw new Error('导出选项必须是对象');
+        const { settings, source } = resolveSettings(entry?.record?.settings);
+        return exportPolish(value, { fileName: options.fileName ?? settings.fileName, format: source.format });
     },
 });

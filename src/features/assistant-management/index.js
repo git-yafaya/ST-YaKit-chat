@@ -1,7 +1,7 @@
 import { readSettings, updateSettings } from '../../shared/settings.js';
 
 const kinds = ['regex', 'polish'];
-const fields = { regex: ['profile', 'jailbreak'], polish: ['profile', 'jailbreak', 'prompt'] };
+const fields = { regex: ['profile'], polish: ['profile'] };
 const promptDefaults = {
     jailbreak: { target: 'system', anchor: 'start', priority: 100 },
     style: { target: 'user', anchor: 'end', priority: 50 },
@@ -93,14 +93,14 @@ export function getAssistantSelection(kind) {
     const config = resolveRecord(settings.apiProfiles, selection.profile);
     return {
         api: config ? { source: 'secondary', config } : { source: 'main' },
-        jailbreak: resolvePrompt(settings, 'jailbreak', selection.jailbreak),
-        ...(kind === 'polish' ? { prompt: resolvePrompt(settings, 'prompt', selection.prompt) } : {}),
+        jailbreak: resolvePrompt(settings, 'jailbreak', 'builtin-jailbreak-universal'),
+        ...(kind === 'polish' ? { prompt: resolvePrompt(settings, 'prompt', 'follow') } : {}),
     };
 }
 
 // 删除事务只清理现有助手的匹配项，不补建助手配置。
 export function resetAssistantReferences(settings, field, id, kind) {
-    if (!fields.polish.includes(field) || (field === 'prompt' && kind !== 'polish')) {
+    if (!['profile', 'jailbreak', 'prompt'].includes(field) || (field === 'prompt' && kind !== 'polish')) {
         throw new Error('这项助手设置不能修改');
     }
     for (const target of field === 'prompt' ? [kind] : kinds) {

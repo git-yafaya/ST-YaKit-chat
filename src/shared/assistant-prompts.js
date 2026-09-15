@@ -29,3 +29,10 @@ mode=delete 表示删除匹配内容；mode=keep 表示只保留匹配内容。�
 正文直接输出普通文本，保留段落、自然换行和文字中的反斜杠，不做 JSON 或 HTML 转义。楼层标签之间只留空白。
 不输出 original、previous、next 等输入容器或衔接参考，不添加前言、说明、Markdown 代码围栏或额外标题，不用“略”“同上”代替正文。`,
 };
+
+// 编辑范围只含规则；材料标题和输出协议由程序追加。
+export const ASSISTANT_RULES = Object.fromEntries(Object.entries(ASSISTANT_PROMPTS)
+    .map(([kind, text]) => [kind, text.split('\n\n本次任务与材料：')[0]]));
+export function buildAssistantTask(kind, rules, task) {
+    return rules + '\n\n本次任务与材料：\n' + task + ASSISTANT_PROMPTS[kind].split('{{task}}')[1];
+}

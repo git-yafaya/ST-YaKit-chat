@@ -1,3 +1,4 @@
+import { listCorePrompts } from '../api-ui/core-prompts.js';
 import { getAssistantSelection } from '../assistant-management/index.js';
 import { getMainClient, generateSecondary } from './ai-client.js';
 import { buildRuleMessages, parseRuleSuggestions } from './ai-rules.js';
@@ -55,7 +56,7 @@ export async function suggestRules(options) {
     const { api, jailbreak } = getAssistantSelection('regex');
     const rules = [...options.rules];
     const sample = { floor, text: context.chat[floor].mes };
-    const messages = buildRuleMessages({ request: options.request.trim(), mode: options.mode, rules, sample, jailbreak });
+    const messages = buildRuleMessages({ request: options.request.trim(), mode: options.mode, rules, sample, jailbreak, promptText: listCorePrompts().find(item => item.id === 'regex').text });
     const { timeoutSeconds, retries } = getRequestSettings();
     const timeoutMessage = `等了 ${timeoutSeconds} 秒还没生成规则，请检查当前 API 后重试`;
     // 新请求校验成功后才替换旧请求，一个父信号覆盖准备和全部格式重试。

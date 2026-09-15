@@ -1,6 +1,7 @@
+import { listCorePrompts } from '../api-ui/core-prompts.js';
 import { getAssistantSelection } from '../assistant-management/index.js';
 import { getMainClient, generateSecondary } from '../text-export/ai-client.js';
-import { ASSISTANT_PROMPTS } from '../../shared/assistant-prompts.js';
+import { buildAssistantTask } from '../../shared/assistant-prompts.js';
 import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
 
 export async function getContext() {
@@ -70,8 +71,8 @@ async function waitForLimit(seconds, signal, onWait) {
 }
 
 export function createGenerator(context) {
-    // 一轮开始时固定助手和请求参数，所有段及格式重试共用这份快照。
-    const { api, jailbreak, prompt } = structuredClone(getAssistantSelection('polish'));
+    // 接口和请求参数固定；文风与固定提示词在每次请求前读取。
+    const { api } = structuredClone(getAssistantSelection('polish'));
     const { timeoutSeconds, retries } = getRequestSettings();
     const host = { ...context };
     let clientPromise;
@@ -83,27 +84,32 @@ export function createGenerator(context) {
             throw new Error('这一段没有可润色的正文');
         }
         floors = floors.map(({ floor, text }) => ({ floor, text }));
-        const messages = [];
-        if (jailbreak?.content?.trim()) messages.push({ role: 'system', content: jailbreak.content });
-        const tail = typeof previousTail === 'string' ? Array.from(previousTail).slice(-300).join('') : '';
-        const referenceText = references.map(({ startFloor, endFloor, previous, next }) => {
-            const before = Array.from(previous || '').slice(-300).join('');
-            const after = Array.from(next || '').slice(0, 300).join('');
-            return `第 ${startFloor} 至 ${endFloor} 楼衔接参考（仅供参考，不输出）：\n`
-                + `<previous>${before}</previous>\n<next>${after}</next>`;
-        }).join('\n\n');
-        const original = floors.map(({ floor, text }) => `<floor n="${floor}">${text}</floor>`).join('\n');
-        const task = (prompt?.content?.trim() ? `文风要求：\n<style>${prompt.content}</style>\n\n` : '')
-            + (tail ? `前一楼结尾（仅供衔接，不输出）：\n<previous>${tail}</previous>\n\n` : '')
-            + (referenceText ? `${referenceText}\n\n` : '')
-            + `请按编号逐楼润色以下原文：\n<original>${original}</original>`;
-        // 文风和原文只插入一次，不展开其中的宏或替换标记。
-        messages.push({ role: 'user', content: ASSISTANT_PROMPTS.polish.replace('{{task}}', () => task) });
+        const buildMessages = () => {
+            const { jailbreak, prompt } = getAssistantSelection('polish');
+            const messages = [];
+            if (jailbreak?.content?.trim()) messages.push({ role: 'system', content: jailbreak.content });
+            const tail = typeof previousTail === 'string' ? Array.from(previousTail).slice(-300).join('') : '';
+            const referenceText = references.map(({ startFloor, endFloor, previous, next }) => {
+                const before = Array.from(previous || '').slice(-300).join('');
+                const after = Array.from(next || '').slice(0, 300).join('');
+                return `第 ${startFloor} 至 ${endFloor} 楼衔接参考（仅供参考，不输出）：\n`
+                    + `<previous>${before}</previous>\n<next>${after}</next>`;
+            }).join('\n\n');
+            const original = floors.map(({ floor, text }) => `<floor n="${floor}">${text}</floor>`).join('\n');
+            const task = (prompt?.content?.trim() ? `文风要求：\n<style>${prompt.content}</style>\n\n` : '')
+                + (tail ? `前一楼结尾（仅供衔接，不输出）：\n<previous>${tail}</previous>\n\n` : '')
+                + (referenceText ? `${referenceText}\n\n` : '')
+                + `请按编号逐楼润色以下原文：\n<original>${original}</original>`;
+            // 文风和原文只插入一次，不展开其中的宏或替换标记。
+            messages.push({ role: 'user', content: buildAssistantTask('polish', listCorePrompts().find(item => item.id === 'polish').text, task) });
+            return messages;
+        };
         // ponytail: 按码点估算输出额度，最高 32768；需要精确预算时再接分词器。
         const chars = floors.reduce((sum, item) => sum + Array.from(item.text).length, 0);
         const maxTokens = Math.min(32768, Math.max(8192, chars * 2 + 2048));
         for (let attempt = 0; attempt <= retries;) {
             checkCancelled(signal);
+            const messages = buildMessages();
             let response;
             try {
                 response = await withRequestTimeout(async requestSignal => {

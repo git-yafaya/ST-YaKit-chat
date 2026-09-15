@@ -7,6 +7,7 @@ import * as apiManagement from './features/api-management/index.js';
 import * as promptManagement from './features/prompt-management/index.js';
 import { exportUI } from './features/text-export/export-ui.js';
 import { updater } from './features/updater/index.js';
+import { styles } from './features/styles/index.js';
 import { presets } from './features/presets/index.js';
 import { apiUI } from './features/api-ui/index.js';
 import { polishUI } from './features/polish/index.js';
@@ -44,6 +45,7 @@ globalThis.YaKitChat = Object.freeze({
     exportUI,
     updater,
     presets,
+    styles,
     apiUI,
     polishUI,
     notice,

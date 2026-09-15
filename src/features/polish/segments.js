@@ -2,7 +2,7 @@ import { readSettings, updateSettings } from '../../shared/settings.js';
 import { readChat } from '../text-export/read-chat.js';
 import { filterMessages } from '../text-export/filter-messages.js';
 import { cleanMessages } from '../text-export/clean-messages.js';
-import { loadSettings as loadExportSettings, parseRule } from '../text-export/export-ui-settings.js';
+import { loadSettings as loadExportSettings, normalizeSettings as normalizeExportSettings, parseRule } from '../text-export/export-ui-settings.js';
 import { list as listPresets } from '../presets/store.js';
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -13,13 +13,12 @@ export function normalizeSettings(value = {}) {
     if (!isObject(value)) throw new TypeError('润色设置必须是对象');
     const settings = {
         allFloors: true, start: '', end: '',
-        types: { ai: true, user: true, system: true },
-        includeHidden: true, clean: true, cleanSource: 'export',
-        chunkMode: 'balanced', chunkSize: 8000, format: 'txt', fileName: '',
+        presetId: 'export',
+        chunkMode: 'balanced', chunkSize: 8000, fileName: '',
     };
     const labels = {
         allFloors: '全部楼层', start: '起始楼层', end: '结束楼层',
-        includeHidden: '包含隐藏楼层', clean: '清洗开关', cleanSource: '清洗规则来源', fileName: '文件名',
+        presetId: '导出预设', fileName: '文件名',
     };
     for (const [key, label] of Object.entries(labels)) {
         if (!Object.hasOwn(value, key)) continue;
@@ -43,24 +42,16 @@ export function normalizeSettings(value = {}) {
         }
         if (valid) settings.chunkSize = value.chunkSize;
     }
-    if (Object.hasOwn(value, 'format')) {
-        if (!['txt', 'md', 'epub'].includes(value.format)) throw new TypeError('润色导出格式只能选 TXT、Markdown 或 EPUB');
-        settings.format = value.format;
-    }
-    if (Object.hasOwn(value, 'types')) {
-        if (!isObject(value.types)) throw new TypeError('润色消息类型设置必须是对象');
-        for (const [type, label] of Object.entries({ ai: 'AI', user: '用户', system: '系统' })) {
-            if (!Object.hasOwn(value.types, type)) continue;
-            if (typeof value.types[type] !== 'boolean') throw new TypeError(`润色消息类型中的${label}开关必须是布尔值`);
-            settings.types[type] = value.types[type];
-        }
+    // 旧清洗来源沿用为导出预设；其余旧筛选字段由预设统一接管。
+    if (!Object.hasOwn(value, 'presetId') && typeof value.cleanSource === 'string' && value.clean !== false) {
+        settings.presetId = value.cleanSource;
     }
     return settings;
 }
 
 export function loadSettings() {
     const settings = readSettings();
-    return Object.hasOwn(settings, 'polishUI') ? normalizeSettings(settings.polishUI) : null;
+    return Object.hasOwn(settings, 'polishUI') ? resolveSettings(settings.polishUI).settings : null;
 }
 
 export function saveSettings(value) {
@@ -76,6 +67,15 @@ export function saveSettings(value) {
     }
 }
 
+// 删除的引用回到导出页；隐藏开关始终取导出页当前保存值。
+export function resolveSettings(value = {}) {
+    const settings = normalizeSettings(value);
+    const current = loadExportSettings() ?? normalizeExportSettings();
+    const preset = settings.presetId === 'export' ? null : listPresets().find(item => item.id === settings.presetId);
+    if (!preset) settings.presetId = 'export';
+    return { settings, source: { ...(preset?.content ?? current), includeHidden: current.includeHidden } };
+}
+
 export function getChunkSize(value = {}) {
     const settings = normalizeSettings(value);
     return settings.chunkMode === 'custom' ? settings.chunkSize : CHUNK_SIZES[settings.chunkMode];
@@ -83,10 +83,10 @@ export function getChunkSize(value = {}) {
 
 // 界面和任务共用段内楼层，保留旧的请求快照返回值。
 export function buildPlan(value = {}, context = globalThis.SillyTavern?.getContext?.()) {
-    const settings = normalizeSettings(value);
+    const { settings, source } = resolveSettings(value);
     const chunkSize = getChunkSize(settings);
     if (context?.characterId == null || !Array.isArray(context.chat) || !context.chat.length
-        || !Object.values(settings.types).some(Boolean)) return { segments: [], floors: [] };
+        || !Object.values(source.types).some(Boolean)) return { segments: [], floors: [] };
 
     const last = context.chat.length - 1;
     let start = 0;
@@ -105,19 +105,13 @@ export function buildPlan(value = {}, context = globalThis.SillyTavern?.getConte
         if (!isObject(context.chat[floor])) throw new TypeError(`第 ${floor} 楼消息格式不正确，无法润色`);
     }
     const included = readChat(context, { start: start + 1, end: end + 1 })
-        .filter(message => settings.includeHidden || !message.is_system);
-    let messages = filterMessages(included, settings.types);
+        .filter(message => source.includeHidden || !message.is_system);
+    let messages = filterMessages(included, source.types);
     for (const message of messages) {
         if (typeof message.mes !== 'string') throw new TypeError(`第 ${message.floor - 1} 楼正文不是文字，无法润色`);
     }
-    if (settings.clean) {
-        const source = settings.cleanSource === 'export'
-            ? loadExportSettings() ?? { rules: [], mode: 'delete' }
-            : listPresets().find(preset => preset.id === settings.cleanSource)?.content;
-        if (!source) throw new Error('所选清洗预设已不存在，请重新选择');
-        const rules = source.rules.map(parseRule).filter(rule => rule !== null);
-        messages = cleanMessages(messages, rules, source.mode === 'keep' ? 'keep' : 'remove');
-    }
+    const rules = source.rules.map(parseRule).filter(rule => rule !== null);
+    if (rules.length) messages = cleanMessages(messages, rules, source.mode === 'keep' ? 'keep' : 'remove');
 
     const segments = [];
     const floors = [];
