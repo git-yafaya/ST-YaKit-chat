@@ -75,9 +75,9 @@ export async function fetchHostRegex() {
             const count = rules.length + replaceRules.length;
             if (!group.name || !count) continue;
             const existing = collection.items.find(item => item.name === group.name);
-            // 覆盖时只换删除组和替换组，保留这套预设原来的保留组、消息类型和格式；新建时沿用导出页当前设置。
+            // 这三套预设完全由酒馆的正则决定：三组规则整套覆盖（保留组恒为空），只沿用原来的消息类型和格式。
             const base = existing?.content ?? current;
-            const content = normalizeContent({ ...base, mode: 'delete', rules, replaceRules, keepRules: existing?.content.keepRules ?? [] });
+            const content = normalizeContent({ ...base, mode: 'delete', rules, replaceRules, keepRules: [] });
             if (existing) existing.content = content;
             else collection.items.push({ id: createRecordId(), name: group.name, content });
             saved.push({ kind: group.kind, name: group.name, count, counts, skipped: group.found.skipped, updated: Boolean(existing) });
