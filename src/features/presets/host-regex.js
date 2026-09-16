@@ -3,15 +3,18 @@ import { normalizeSettings } from '../text-export/export-ui-settings.js';
 import { normalizeContent, normalizeCollection } from './schema.js';
 import { createRecordId } from '../../shared/validation.js';
 
-// 替换成 HTML、CSS 或多行内容的是美化规则：导出只要正文，这类整块删掉，不进替换组。
+// 替换内容里有 HTML、CSS、代码块或多行，就是显示用的美化规则。
 function isMarkup(to) {
     return /[<>{}]|```|\n/.test(to) || Array.from(to).length > 100;
 }
 
 // 按酒馆里的替换内容分流：
-// 空替换或美化类（HTML/CSS/多行）= 删除组；纯文字替换 = 替换组；
-// 只写 $1 / {{match}} 的「只保留某段」规则多是清空历史用的，套到导出会把正文删光，跳过不导入；
-// 只影响发给模型的内容（promptOnly）和不作用于消息正文的（斜杠命令、世界书、思考）也跳过。
+// - 空替换 → 删除组
+// - 纯文字替换（如「比哭还难看」→「艰涩」）→ 替换组，原样保留
+// - 美化规则里带 $1 / {{match}}（把正文塞进 HTML 里显示）→ 替换组，替换成这一组本身，等于剥掉外壳只留正文
+// - 美化规则不引用原文（整块换成状态栏、样式）→ 删除组
+// - 只写 $1 / {{match}} 的「只保留某段」规则多是清空历史用的，套到导出会删光正文 → 跳过
+// - promptOnly（只影响发给模型的内容）和不作用于消息正文的（斜杠命令、世界书、思考）→ 跳过
 export function classify(script) {
     const find = typeof script?.findRegex === 'string' ? script.findRegex.trim() : '';
     if (!find) return null;
@@ -21,7 +24,11 @@ export function classify(script) {
     const to = typeof script?.replaceString === 'string' ? script.replaceString : '';
     if (!to.trim()) return { group: 'delete', rule: find };
     if (/^(\$\d+|\{\{match\}\})$/.test(to.trim())) return { group: 'skip', reason: 'keep' };
-    return isMarkup(to) ? { group: 'delete', rule: find } : { group: 'replace', rule: { find, to } };
+    if (!isMarkup(to)) return { group: 'replace', rule: { find, to } };
+    const reference = /\$\d+|\{\{match\}\}/.exec(to);
+    return reference
+        ? { group: 'replace', rule: { find, to: reference[0] } }
+        : { group: 'delete', rule: find };
 }
 
 // 从酒馆正则扩展读取全部规则（含已关闭的），按类别存成导出预设，同名覆盖。
