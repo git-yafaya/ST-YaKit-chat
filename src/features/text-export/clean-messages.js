@@ -105,12 +105,23 @@ export function replaceMessages(messages, replacements = []) {
     });
 }
 
+// 清洗后收尾：删掉的地方留下的空行并成一个，正文首尾的空行去掉，段落之间不粘连也不空一大片。
+function tidyBlankLines(messages) {
+    return messages.map(message => ({
+        ...message,
+        mes: message.mes
+            .replace(/[^\S\n]*\n(?:[^\S\n]*\n)+[^\S\n]*/g, '\n\n')
+            .replace(/^\s+|\s+$/g, ''),
+    }));
+}
+
 // 三组规则：先按保留组只留下匹配到的内容，再按替换组依次替换，最后删除删除组匹配到的内容。
 export function cleanByGroups(messages, deleteRules = [], keepRules = [], replaceRules = []) {
     let result = keepRules.length ? cleanMessages(messages, keepRules, 'keep') : messages;
     if (replaceRules.length) result = replaceMessages(result, replaceRules);
     if (deleteRules.length) result = cleanMessages(result, deleteRules, 'remove');
-    return result;
+    // 没有任何规则时是原文导出，不动格式。
+    return result === messages ? result : tidyBlankLines(result);
 }
 
 // 返回消息浅拷贝，仅清洗正文，保留其他字段及嵌套引用。

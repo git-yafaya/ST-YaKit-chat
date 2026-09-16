@@ -48,20 +48,9 @@
 .tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }
 /* 收起时只显示一行；展开时在原位变成多行，把下面的规则列表往下推 */
 .tag-chips-wrap { flex: 1; min-width: 0; }
-#tag-scan-all { flex: none; }
+#tag-open { flex: none; }
 .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 24px; overflow: hidden; }
 .tag-scan.is-expanded .tag-chips { max-height: none; }
-
-/* 电脑上展开时锁住「正则匹配」卡片高度（由脚本写入），多出的标签行从规则列表借空间，导出预览高度始终不变 */
-.rule-card.is-locked { display: flex; flex-direction: column; }
-.rule-card.is-locked::part(body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.rule-card.is-locked .rule-list { flex: 1 1 auto; flex-shrink: 1000; min-height: 0; max-height: none; }
-.rule-card.is-locked .tag-scan { flex: 0 1 auto; min-height: 24px; max-height: 55%; }
-.rule-card.is-locked .tag-chips-wrap { align-self: stretch; min-height: 24px; max-height: 100%; overflow-y: auto; }
-/* 展开时规则列表至少留出两行的高度，输入框仍点得到、滑得动 */
-.rule-card.is-locked .rule-list { min-height: 72px; }
-/* 规则很少时把「还没有规则」这行也让给标签；放不下的标签在标签区里上下滑动，导出预览高度始终不变 */
-.rule-card.is-locked .rule-empty { display: none; }
 
 .tag-toggle {
   flex: none;
@@ -218,4 +207,71 @@
   .export-page { height: auto; min-height: 0; }
   .export-page > .preview-card { flex: none; }
   .preview-card::part(body) { max-height: 280px; }
+}
+
+/* 标签抽屉：识别楼层 + 嵌套结构 + 每个标签怎么处理 */
+.tag-range { display: flex; align-items: center; gap: 8px; }
+.tag-range yakit-input { flex: 1 1 80px; min-width: 0; }
+.tag-range-to { flex: none; font-size: 13px; color: var(--text-muted); }
+.tag-range yakit-button { flex: none; }
+
+.tag-tree { display: flex; flex-direction: column; margin: 4px 0 12px; }
+.tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding-left: calc(var(--depth, 0) * 18px);
+}
+.tag-row + .tag-row { border-top: 1px solid var(--divider); }
+.tag-row-fold {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.tag-row-fold::before {
+  content: '';
+  display: block;
+  margin: 0 auto;
+  width: 6px;
+  height: 6px;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform .2s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.tag-row-fold[aria-expanded="false"]::before { transform: rotate(-45deg); }
+.tag-row-fold.is-empty { cursor: default; }
+.tag-row-fold.is-empty::before { content: none; }
+.tag-row-fold:not(.is-empty):hover { background: color-mix(in srgb, var(--text-title) 6%, transparent); color: var(--text-title); }
+.tag-row-fold:focus { outline: none; }
+.tag-row-fold:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.tag-row-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-title);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tag-row-meta { flex: none; margin-right: auto; font-size: 12px; color: var(--text-muted); }
+.tag-row-action { flex: none; width: 116px; }
+
+.tag-manual { display: flex; align-items: center; gap: 8px; }
+.tag-manual yakit-input { flex: 1; min-width: 0; }
+.tag-manual yakit-button { flex: none; }
+.tag-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+@media (max-width: 600px) {
+  /* 手机上放不下一行，处理方式换到名字下一行 */
+  .tag-row { flex-wrap: wrap; gap: 4px 8px; min-height: 0; padding-top: 6px; padding-bottom: 6px; }
+  .tag-row-action { width: 100%; }
 }

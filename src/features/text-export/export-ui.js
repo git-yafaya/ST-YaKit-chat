@@ -2,7 +2,7 @@ import { readChat } from './read-chat.js';
 import { filterMessages, getMessageType } from './filter-messages.js';
 import { cleanByGroups } from './clean-messages.js';
 import { saveExport } from './save-export.js';
-import { scanTags } from './scan-recent-tags.js';
+import { scanTags, scanTagTree as buildTagTree, tagRules } from './scan-recent-tags.js';
 import { getAiContext, suggestRules, cancelSuggestRules } from './ai-assist.js';
 import { normalizeSettings, parseRule, parseReplaceRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
 import { replaceImageTags, loadIllustrations, TOKEN_PATTERN } from './illustrations.js';
@@ -25,24 +25,27 @@ function scanRecentTags() {
     return scanTags(context.chat.slice(-2).map(message => message?.mes));
 }
 
-// 扫描全部楼层（含隐藏）：按标签第一次出现的楼层排序，并统计出现在多少层。
-async function scanAllTags() {
-    const context = globalThis.SillyTavern?.getContext?.();
-    if (chatInfo(context).status !== 'ok') return [];
-    const found = new Map();
-    for (const [index, message] of context.chat.entries()) {
-        for (const tag of scanTags([message?.mes])) {
-            const item = found.get(tag.rule);
-            if (item) item.floors++;
-            else found.set(tag.rule, { ...tag, floors: 1, first: index });
-            // 同一标签在某层有成对写法时，按钮文字用成对写法。
-            if (item && !tag.label.endsWith('/>')) item.label = tag.label;
-        }
-        // 楼层很多时分批让出主线程，界面不卡住。
-        if (index % 200 === 199) await new Promise(resolve => setTimeout(resolve, 0));
+// 指定楼层识别标签（含隐藏消息），不填就是全部楼层；返回标签的嵌套结构和实际识别到的楼层范围。
+async function scanTagTree(range = {}) {
+    if (range === null || typeof range !== 'object' || Array.isArray(range)) {
+        throw new TypeError('识别楼层必须是对象');
     }
-    return [...found.values()].sort((a, b) => a.first - b.first)
-        .map(({ label, rule, innerRule, floors }) => ({ label, rule, innerRule, floors }));
+    const context = globalThis.SillyTavern?.getContext?.();
+    if (chatInfo(context).status !== 'ok') return { from: 0, to: 0, tags: [] };
+    const last = context.chat.length - 1;
+    const floor = (value, fallback) => {
+        const text = typeof value === 'number' ? String(value) : value;
+        return typeof text === 'string' && text.trim() && Number.isFinite(Number(text))
+            ? Math.trunc(Number(text)) : fallback;
+    };
+    // 界面从 0 起算；填颠倒了自动交换，超出范围夹到首尾楼层。
+    let from = floor(range.start, 0);
+    let to = floor(range.end, last);
+    if (from > to) [from, to] = [to, from];
+    from = Math.min(last, Math.max(0, from));
+    to = Math.min(last, Math.max(0, to));
+    const tags = await buildTagTree(context.chat.slice(from, to + 1).map(message => message?.mes));
+    return { from, to, tags };
 }
 
 // 插画小说只对 EPUB 生效：清洗前把生图标签换成占位符，refs 记录每张图的来源。
@@ -135,6 +138,6 @@ function onChatChanged(callback) {
 }
 
 export const exportUI = Object.freeze({
-    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags, scanAllTags,
+    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags, scanTagTree,
     getAiContext, suggestRules, cancelSuggestRules,
 });

@@ -58,7 +58,7 @@
             <div class="tag-chips" id="tag-chips" role="group" aria-labelledby="tag-scan-label"></div>
           </div>
           <button type="button" class="tag-toggle" id="tag-toggle" aria-controls="tag-chips" aria-expanded="false" hidden>展开</button>
-          <yakit-button id="tag-scan-all" size="sm" variant="ghost" hidden>扫描全部楼层</yakit-button>
+          <yakit-button id="tag-open" size="sm" variant="ghost" hidden>整理标签</yakit-button>
         </div>
         <p class="rule-empty" id="rule-empty">还没有规则，导出原文。</p>
         <div class="rule-list" id="rule-list"></div>
@@ -345,6 +345,32 @@
     </section>
 
     <yakit-button slot="footer" id="export-drawer-done" variant="primary">完成</yakit-button>
+  </yakit-drawer>
+
+  <!-- 文本导出：标签（识别楼层 + 嵌套结构 + 每个标签怎么处理） -->
+  <yakit-drawer id="tag-drawer" title="标签" width="440">
+    <section class="drawer-section">
+      <div class="tag-range">
+        <yakit-input id="tag-from" type="number" size="sm" placeholder="第一层" aria-label="识别起始楼层"></yakit-input>
+        <span class="tag-range-to">到</span>
+        <yakit-input id="tag-to" type="number" size="sm" placeholder="最后一层" aria-label="识别结束楼层"></yakit-input>
+        <yakit-button id="tag-rescan" size="sm">重新识别</yakit-button>
+      </div>
+      <p class="field-note">不填就识别全部楼层。<br>楼层多时识别要等一会儿。</p>
+    </section>
+    <div class="tag-tree" id="tag-tree" role="list"></div>
+    <p class="list-empty" id="tag-tree-empty" hidden>这些楼层里没有识别到标签。</p>
+    <section class="drawer-section">
+      <div class="tag-manual">
+        <yakit-input id="tag-manual" size="sm" placeholder="输入标签名" aria-label="手动添加标签"></yakit-input>
+        <yakit-button id="tag-manual-add" size="sm" icon="../icons/plus.svg">加到列表</yakit-button>
+      </div>
+      <p class="field-note">没识别到的标签可以自己加。<br>加进来后和识别到的一样选怎么处理。</p>
+    </section>
+    <div slot="footer" class="tag-footer">
+      <span class="card-extra" id="tag-plan-count"></span>
+      <yakit-button id="tag-apply" variant="primary">应用到规则</yakit-button>
+    </div>
   </yakit-drawer>
 
   <!-- 文本导出：放大查看导出预览 -->

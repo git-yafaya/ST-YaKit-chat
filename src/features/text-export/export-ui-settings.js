@@ -21,6 +21,8 @@ export function normalizeSettings(value = {}) {
         rules: [],
         keepRules: [],
         replaceRules: [],
+        tagPlan: [],
+        tagScan: { start: '', end: '' },
     };
     for (const key of ['allFloors', 'includeHidden', 'illustrated', 'start', 'end', 'fileName']) {
         if (!Object.hasOwn(value, key)) continue;
@@ -63,6 +65,22 @@ export function normalizeSettings(value = {}) {
             throw new TypeError('导出设置 replaceRules 必须是 { find, to } 组成的数组');
         }
         settings.replaceRules = list.map(({ find, to }) => ({ find, to }));
+    }
+    // 标签抽屉：tagPlan 记每个标签选了怎么处理，tagScan 记上次识别的楼层范围。
+    if (Object.hasOwn(value, 'tagPlan')) {
+        const list = Array.isArray(value.tagPlan) ? Array.from(value.tagPlan) : null;
+        if (!list || list.some(item => !isObject(item) || typeof item.name !== 'string'
+            || !['keep', 'delete', 'strip'].includes(item.action))) {
+            throw new TypeError('导出设置 tagPlan 必须是 { name, action } 组成的数组');
+        }
+        settings.tagPlan = list.map(({ name, action }) => ({ name, action }));
+    }
+    if (Object.hasOwn(value, 'tagScan')) {
+        const scan = value.tagScan;
+        if (!isObject(scan) || typeof scan.start !== 'string' || typeof scan.end !== 'string') {
+            throw new TypeError('导出设置 tagScan 必须是 { start, end } 字符串');
+        }
+        settings.tagScan = { start: scan.start, end: scan.end };
     }
     // 旧设置没有保留组：原来选「只保留匹配」的规则整组迁到保留组。
     if (!Object.hasOwn(value, 'keepRules') && settings.mode === 'keep') {

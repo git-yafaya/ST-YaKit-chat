@@ -46,6 +46,8 @@
       font-size: 14px;
       line-height: 1.6;
       box-shadow: 0 0 48px -12px rgba(0, 0, 0, 0.3);
+      /* 手机上点抽屉不闪蓝框 */
+      -webkit-tap-highlight-color: transparent;
     }
     dialog:not([open]) { display: none; }
     dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
@@ -114,6 +116,8 @@
       padding: 0 10px 0 20px;
       border-bottom: 1px solid var(--divider, #DFE2E5);
     }
+    /* 头部和底部是操作区，点一下不选中文字 */
+    .header, .footer { user-select: none; -webkit-user-select: none; }
     .title {
       flex: 1;
       margin: 0;
