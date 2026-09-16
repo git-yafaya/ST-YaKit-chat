@@ -24,7 +24,7 @@ export function normalizeContent(value) {
 }
 
 export function normalizeCollection(value) {
-    if (value === undefined) return { items: [], activeId: null };
+    if (value === undefined) return { items: [], activeIds: [] };
     if (!isObject(value) || !Array.isArray(value.items)) throw new Error('预设库格式不正确');
     const ids = new Set();
     const names = new Set();
@@ -39,10 +39,35 @@ export function normalizeCollection(value) {
         names.add(name);
         return { id: item.id, name, content: normalizeContent(item.content) };
     });
-    if (value.activeId !== null && (typeof value.activeId !== 'string' || !ids.has(value.activeId))) {
-        throw new Error('当前预设不存在');
+    // 可以同时用多套预设；旧数据里的单个 activeId 自动变成一套。
+    const active = Array.isArray(value.activeIds) ? value.activeIds
+        : (value.activeId === null || value.activeId === undefined ? [] : [value.activeId]);
+    if (active.some(id => typeof id !== 'string' || !ids.has(id))) throw new Error('当前预设不存在');
+    const chosen = new Set(active);
+    return { items, activeIds: items.filter(item => chosen.has(item.id)).map(item => item.id) };
+}
+
+// 多套叠加：规则按预设在列表里的先后拼起来，单选项和同名标签由靠后的一套说了算。
+export function mergeContents(contents) {
+    if (!contents.length) return null;
+    const merged = { ...contents[0], types: { ...contents[0].types } };
+    for (const content of contents.slice(1)) {
+        Object.assign(merged, content, { types: { ...merged.types, ...content.types } });
     }
-    return { items, activeId: value.activeId };
+    for (const key of ['rules', 'keepRules']) {
+        merged[key] = [...new Set(contents.flatMap(content => content[key] || []))];
+    }
+    const replaces = new Map();
+    for (const content of contents) {
+        for (const rule of content.replaceRules || []) replaces.set(`${rule.find}\u0000${rule.to}`, rule);
+    }
+    merged.replaceRules = [...replaces.values()];
+    const plan = new Map();
+    for (const content of contents) {
+        for (const item of content.tagPlan || []) plan.set(item.name, item);
+    }
+    merged.tagPlan = [...plan.values()];
+    return merged;
 }
 
 // 只接受 JSON 能完整表达的界面偏好，避免导出时悄悄丢字段。

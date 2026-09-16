@@ -10,9 +10,10 @@
  * 函数都可以返回 Promise；失败时 reject Error，message 是给用户看的中文原因，界面直接显示。
  *
  *  1. presets.list() → [{ id, name, content }]，按创建顺序
- *  2. presets.getActiveId() → id | null
- *  3. presets.activate(id | null) → 写入后的完整导出 settings
- *       设置当前预设，并把该预设的 content 写进已保存的导出设置（楼层范围、文件名不变）；null 只清空当前预设
+ *  2. presets.getActiveIds() → id[]，可能是多套（叠加）
+ *  3. presets.activate(id | id[] | null) → 写入后的完整导出 settings
+ *       设置正在用的预设，并把内容写进已保存的导出设置（楼层范围、文件名不变）；null 或空数组表示不使用预设
+ *       多套时按预设在列表里的先后叠加：规则拼起来，单选项和同名标签由靠后的一套说了算
  *  4. presets.create(name, content) → { id, name, content }，重名自动加序号，不改变当前预设
  *  5. presets.update(id, content)            用 content 覆盖该预设
  *  6. presets.rename(id, name)               重名时 reject「已有同名预设」
@@ -38,11 +39,13 @@
   const ACTION_ICONS = { rename: '../icons/edit.svg', duplicate: '../icons/copy.svg', export: '../icons/ouput.svg', delete: '../icons/trash.svg' };
 
   let presets = [];
-  let activeId = null;
+  let activeIds = [];
   let busy = false;
 
   const exportPage = () => window.YaKitExportPage;
-  const active = () => presets.find((preset) => preset.id === activeId) || null;
+  // 只用一套时才谈得上「改了没保存」，叠加时导出页的规则是只读的
+  const active = () => (activeIds.length === 1 ? presets.find((preset) => preset.id === activeIds[0]) : null) || null;
+  const stacked = () => activeIds.length > 1;
 
   // 预设只关心这六项
   function pickContent(settings = {}) {
@@ -98,13 +101,14 @@
     const api = service();
     if (!api) return render();
     try {
-      const [list, id] = await Promise.all([api.list(), api.getActiveId()]);
+      const [list, ids] = await Promise.all([api.list(), api.getActiveIds()]);
       presets = Array.isArray(list) ? list : [];
-      activeId = presets.some((preset) => preset.id === id) ? id : null;
+      const known = new Set(presets.map((preset) => preset.id));
+      activeIds = (Array.isArray(ids) ? ids : []).filter((id) => known.has(id));
     } catch (error) {
       YaKitErrorLog.warn('读取预设失败', error);
       presets = [];
-      activeId = null;
+      activeIds = [];
     }
     render();
   }
@@ -133,12 +137,12 @@
     const modified = isModified();
 
     list.replaceChildren(...presets.map((preset) => {
-      const isActive = preset.id === activeId;
+      const isActive = activeIds.includes(preset.id);
       const item = YaKitChoice.row({
         name: preset.name,
         summary: summarize(preset.content),
         active: isActive,
-        onPick: () => switchTo(preset.id),
+        onPick: () => toggle(preset.id),
         actions: Object.entries(ACTION_LABELS).map(([action, label]) => ({ action, label, icon: ACTION_ICONS[action] })),
         onAction: (action) => onAction(preset, action),
       });
@@ -150,7 +154,8 @@
         <yakit-button class="preset-save" size="sm" hidden>保存</yakit-button>
         <yakit-button class="preset-revert" size="sm" variant="ghost" hidden>还原</yakit-button>
       `;
-      item.querySelector('.choice-state').textContent = isActive ? (modified ? '已修改' : '使用中') : '';
+      item.querySelector('.choice-state').textContent = isActive
+        ? (stacked() ? '叠加中' : (modified ? '已修改' : '使用中')) : '';
       item.querySelector('.preset-save').hidden = !showModified;
       item.querySelector('.preset-revert').hidden = !showModified;
       item.querySelector('.preset-save').addEventListener('click', (event) => saveActive(event.currentTarget));
@@ -164,11 +169,13 @@
     const select = $('export-preset-select');
     wrap.hidden = !service();
     if (wrap.hidden) return;
-    const options = [new Option('不使用预设', '')];
-    presets.forEach((preset) => options.push(new Option(preset.name, preset.id)));
-    select.replaceChildren(...options);
-    select.value = activeId ?? '';
-    $('export-preset-save').toggleAttribute('disabled', !isModified());
+    select.replaceChildren(...presets.map((preset) => new Option(preset.name, preset.id)));
+    select.values = activeIds;
+    // 叠加时规则是拼出来的，存不回某一套，只能存成新的一套
+    const save = $('export-preset-save');
+    save.textContent = stacked() ? '存为新预设' : '更新预设';
+    save.toggleAttribute('disabled', stacked() ? false : !isModified());
+    exportPage()?.setStacked?.(activeIds.length);
   }
 
   // 导出页改了设置：只刷新「已修改」相关的显示
@@ -181,26 +188,36 @@
 
   /* ---------- 操作 ---------- */
 
-  async function switchTo(id, button) {
-    if (busy || id === activeId) return;
+  // 点一下加进来或拿掉，选中多套就是叠加
+  function toggle(id, button) {
+    const next = activeIds.includes(id) ? activeIds.filter((item) => item !== id) : [...activeIds, id];
+    return usePresets(next, button);
+  }
+
+  async function usePresets(ids, button) {
+    if (busy) return;
+    const next = presets.filter((preset) => ids.includes(preset.id)).map((preset) => preset.id);
+    if (next.join() === activeIds.join()) return;
     const current = active();
-    if (id !== null && isModified()) {
+    // 只有单套且改动没保存时，换预设才会丢东西
+    if (current && !next.includes(current.id) && isModified()) {
       const ok = await YaKitModal.confirm({
-        title: '切换预设？',
-        message: `当前改动还没保存到「${current.name}」，切换后会丢失。`,
-        confirmText: '切换',
+        title: '换预设？',
+        message: `当前改动还没保存到「${current.name}」，换掉后会丢失。`,
+        confirmText: '换',
       });
       if (!ok) return renderExportSelect();
     }
     await run(button, async () => {
       try {
-        const settings = await service().activate(id);
-        activeId = id;
+        const settings = await service().activate(next.length ? next : null);
+        activeIds = next;
         if (settings) exportPage()?.replaceState(settings);
-        const next = active();
-        if (next) YaKitToast.show(`已切换到「${next.name}」`, 'success');
+        if (next.length > 1) YaKitToast.show(`已叠加 ${next.length} 套预设`, 'success');
+        else if (next.length === 1) YaKitToast.show(`已换到「${active()?.name}」`, 'success');
+        else YaKitToast.show('已改为不使用预设', 'success');
       } catch (error) {
-        showError(error, '切换预设失败');
+        showError(error, '换预设失败');
       }
     });
     await load();
@@ -313,7 +330,7 @@
     if (action === 'delete') {
       const ok = await YaKitModal.confirm({
         title: '删除预设？',
-        message: preset.id === activeId
+        message: activeIds.includes(preset.id)
           ? `「${preset.name}」正在使用，删除后导出页的设置保持不变。删除后不能找回。`
           : `删除「${preset.name}」后不能找回。`,
         confirmText: '删除',
@@ -432,9 +449,12 @@
   /* ---------- 导出页的预设下拉框 ---------- */
 
   $('export-preset-select').addEventListener('change', (event) => {
-    switchTo(event.detail.value || null);
+    usePresets(event.detail.values || []);
   });
-  $('export-preset-save').addEventListener('click', (event) => saveActive(event.currentTarget));
+
+  $('export-preset-save').addEventListener('click', (event) => (stacked()
+    ? createPreset(event.currentTarget)
+    : saveActive(event.currentTarget)));
 
   window.addEventListener('yakit-export-change', refreshModified);
   window.addEventListener('yakit-tab', (event) => {

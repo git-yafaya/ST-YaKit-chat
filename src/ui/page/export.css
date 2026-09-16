@@ -42,6 +42,9 @@
 /* 替换规则：查找和替换为两个输入框，窄屏上下排 */
 .rule-row.is-replace { flex-wrap: wrap; }
 .rule-row.is-replace yakit-input { flex: 1 1 200px; }
+/* 叠加多套预设时：规则只能看，卡片上写明原因 */
+.stack-note { margin: 0 0 10px; }
+
 /* 标签：卡片上只留一行入口，完整的处理方式在「整理标签」抽屉里 */
 .tag-scan { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .tag-scan-label { flex: none; font-size: 12px; color: var(--text-muted); }

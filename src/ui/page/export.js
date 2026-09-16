@@ -53,6 +53,7 @@
  *   window.YaKitExportPage.getState()        当前导出设置（副本）
  *   window.YaKitExportPage.replaceState(s)   换成另一份导出设置并刷新界面（切换预设、从备份恢复后调用）
  *   window.YaKitExportPage.addRules(rules, group)  把规则追加到某一组（'delete' / 'keep'，默认当前在看的一组）并保存（已有的不重复加），返回实际加了几条
+ *   window.YaKitExportPage.setStacked(count) 正在叠加几套预设；两套以上时规则列表只读（预设页切换时调用）
  *   window.YaKitExportPage.getChatStatus()   'ok' | 'none' | 'unavailable'
  *   window 事件 yakit-export-change          导出设置有任何改动时触发，event.detail 是改动后的设置副本
  */
@@ -107,6 +108,10 @@
   };
 
   const anyType = () => Object.values(state.types).some(Boolean);
+
+  // 叠加多套预设时规则是拼出来的，改哪一套都说不清，所以只看不改
+  let stackedCount = 0;
+  const isStacked = () => stackedCount > 1;
 
   function chatInfo() {
     if (!ready()) return { status: 'unavailable', floorCount: 0 };
@@ -388,9 +393,27 @@
     $('rule-empty').hidden = rules.length > 0;
     $('rule-empty').textContent = { keep: '还没有保留规则，保留全文。', replace: '还没有替换规则，正文照原样。' }[state.mode]
       || '还没有删除规则，导出原文。';
+    applyStackedLock();
     $('rule-count').textContent = rules.length ? `${rules.length} 条规则` : '';
     renderModeCounts();
     renderTagEntry();
+  }
+
+  // 叠加时：输入框只读、删不掉、也不能加新规则，卡片上写清楚为什么
+  function applyStackedLock() {
+    const locked = isStacked();
+    $('rule-card').classList.toggle('is-stacked', locked);
+    $('stack-note').hidden = !locked;
+    $('stack-note').textContent = locked ? `正在叠加 ${stackedCount} 套预设，规则只能看。要改就先只用一套。` : '';
+    for (const input of $('rule-list').querySelectorAll('yakit-input')) {
+      input.toggleAttribute('readonly', locked);
+    }
+    for (const button of $('rule-list').querySelectorAll('yakit-button')) {
+      button.toggleAttribute('disabled', locked);
+    }
+    for (const id of ['rule-add', 'ai-open', 'tag-apply']) {
+      $(id).toggleAttribute('disabled', locked);
+    }
   }
 
   /* ---------- 卡片上的标签入口：写当前处理了几个标签，点开抽屉整理 ---------- */
@@ -574,6 +597,7 @@
   }
 
   function applyTagPlan() {
+    if (isStacked()) return;
     // 先撤掉上次由标签写进去的规则，手写的和 AI 加的不动
     for (const item of state.tagPlan) {
       const made = rulesFor(nodeFor(item.name), item.action);
@@ -873,6 +897,10 @@
       renderRules();
       renderPreview();
       return fresh.length;
+    },
+    setStacked(count = 0) {
+      stackedCount = Number(count) || 0;
+      applyStackedLock();
     },
     getChatStatus: () => chatInfo().status,
   };

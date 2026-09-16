@@ -1,7 +1,7 @@
 import { readSettings, updateSettings } from '../../shared/settings.js';
 import { createRecordId } from '../../shared/validation.js';
 import { normalizeSettings } from '../text-export/export-ui-settings.js';
-import { normalizeContent, normalizeName, normalizeCollection } from './schema.js';
+import { normalizeContent, normalizeName, normalizeCollection, mergeContents } from './schema.js';
 
 function changeCollection(change) {
     return updateSettings(settings => {
@@ -37,21 +37,25 @@ export function list() {
     return normalizeCollection(readSettings().presets).items;
 }
 
-export function getActiveId() {
-    return normalizeCollection(readSettings().presets).activeId;
+export function getActiveIds() {
+    return normalizeCollection(readSettings().presets).activeIds;
 }
 
-export function activate(id) {
+// 传一个 id、一组 id 或 null；多套时按预设在列表里的先后叠加。
+export function activate(ids) {
+    const wanted = ids === null ? [] : (Array.isArray(ids) ? [...ids] : [ids]);
     return changeCollection((collection, settings) => {
         const current = normalizeSettings(settings.exportUI);
-        if (id === null) {
-            collection.activeId = null;
+        if (!wanted.length) {
+            collection.activeIds = [];
             return current;
         }
-        const record = findRecord(collection, id);
-        // 只覆盖预设的五项内容，楼层范围和文件名沿用当前设置。
-        settings.exportUI = normalizeSettings({ ...current, ...record.content });
-        collection.activeId = record.id;
+        for (const id of wanted) findRecord(collection, id);
+        const chosen = new Set(wanted);
+        const records = collection.items.filter(item => chosen.has(item.id));
+        // 只覆盖预设内容，楼层范围和文件名沿用当前设置。
+        settings.exportUI = normalizeSettings({ ...current, ...mergeContents(records.map(record => record.content)) });
+        collection.activeIds = records.map(record => record.id);
         return settings.exportUI;
     });
 }
@@ -91,7 +95,7 @@ export function remove(id) {
     return changeCollection(collection => {
         const record = findRecord(collection, id);
         collection.items.splice(collection.items.indexOf(record), 1);
-        if (collection.activeId === id) collection.activeId = null;
+        collection.activeIds = collection.activeIds.filter(active => active !== id);
         return true;
     });
 }

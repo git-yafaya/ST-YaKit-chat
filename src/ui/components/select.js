@@ -13,7 +13,9 @@
  * 可用属性：
  *   label        上方的名字
  *   placeholder  没选时显示的灰字（默认“请选择”）
- *   value        当前选中的值
+ *   value        当前选中的值；multiple 时是用逗号隔开的多个值
+ *   multiple     可以同时选多项：点选项只切换勾选，菜单不收起
+ *   multi-label  multiple 时按钮上的文字，{n} 换成选了几项（默认「已选 {n} 项」）
  *   hint         下方的说明小字
  *   error        出错提示（带图标，写上就显示）
  *   searchable   菜单顶部加搜索框，选项多时用
@@ -27,7 +29,7 @@
  *   <optgroup label="分组名"> 可以把选项分组
  *
  * 事件：
- *   change  选中变化时触发，event.detail.value 是新值
+ *   change  选中变化时触发，event.detail.value 是新值；multiple 时 event.detail.values 是选中的值数组
  *
  * 外框和输入框（yakit-input）长得一样；当前选中项右边是点睛色的小圆勾。
  *
@@ -249,7 +251,7 @@
   `;
 
   class YaKitSelect extends HTMLElement {
-    static observedAttributes = ['label', 'placeholder', 'value', 'hint', 'error', 'searchable', 'required', 'disabled', 'aria-label'];
+    static observedAttributes = ['label', 'placeholder', 'value', 'hint', 'error', 'searchable', 'required', 'disabled', 'aria-label', 'multiple', 'multi-label'];
 
     constructor() {
       super();
@@ -317,12 +319,27 @@
     }
 
     attributeChangedCallback(name) {
-      if (name === 'value') this.syncSelected();
+      if (name === 'value' || name === 'multiple') this.syncSelected();
+      if (name === 'multiple') this.list.setAttribute('aria-multiselectable', String(this.isMultiple));
       this.render();
     }
 
     get value() {
       return this.getAttribute('value') ?? '';
+    }
+
+    // multiple 时用得上：选中的值按选项顺序排好
+    get values() {
+      const chosen = new Set(this.value.split(',').filter(Boolean));
+      return this.items.filter((item) => chosen.has(item.value)).map((item) => item.value);
+    }
+
+    set values(list) {
+      this.value = (Array.isArray(list) ? list : []).filter(Boolean).join(',');
+    }
+
+    get isMultiple() {
+      return this.hasAttribute('multiple');
     }
 
     set value(v) {
@@ -380,7 +397,8 @@
     }
 
     syncSelected() {
-      this.items.forEach((item) => item.el.setAttribute('aria-selected', String(item.value === this.value)));
+      const chosen = new Set(this.isMultiple ? this.values : [this.value]);
+      this.items.forEach((item) => item.el.setAttribute('aria-selected', String(chosen.has(item.value))));
     }
 
     render() {
@@ -398,10 +416,14 @@
         if (ariaLabel) this.trigger.setAttribute('aria-label', ariaLabel);
       }
 
-      const selected = this.items.find((item) => item.value === this.value);
+      const chosen = this.isMultiple ? this.values : [this.value].filter(Boolean);
+      const selected = chosen.length === 1 ? this.items.find((item) => item.value === chosen[0]) : null;
       const valueEl = this.$('.value');
-      valueEl.textContent = selected ? selected.label : (attr('placeholder') || '请选择');
-      valueEl.classList.toggle('is-placeholder', !selected);
+      // 多选选了两项以上时，按钮上写一共选了几项
+      valueEl.textContent = chosen.length > 1
+        ? (attr('multi-label') || '已选 {n} 项').replaceAll('{n}', String(chosen.length))
+        : (selected ? selected.label : (attr('placeholder') || '请选择'));
+      valueEl.classList.toggle('is-placeholder', !chosen.length);
       const valueIcon = this.$('.value-icon');
       valueIcon.hidden = !selected?.icon;
       if (selected?.icon) valueIcon.setAttribute('src', new URL(selected.icon, document.baseURI).href);
@@ -470,6 +492,15 @@
 
     /* ---------- 选择 ---------- */
     choose(value) {
+      if (this.isMultiple) {
+        // 点一下切换这一项，菜单留着继续选
+        const chosen = new Set(this.values);
+        if (chosen.has(value)) chosen.delete(value);
+        else chosen.add(value);
+        this.values = [...chosen];
+        this.dispatchEvent(new CustomEvent('change', { detail: { value, values: this.values }, bubbles: true }));
+        return;
+      }
       const changed = value !== this.value;
       this.value = value;
       this.close({ focus: true });

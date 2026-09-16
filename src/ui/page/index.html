@@ -57,6 +57,7 @@
           <span class="tag-scan-state" id="tag-scan-state"></span>
           <yakit-button id="tag-open" size="sm" variant="ghost">整理标签</yakit-button>
         </div>
+        <p class="field-note stack-note" id="stack-note" hidden></p>
         <p class="rule-empty" id="rule-empty">还没有规则，导出原文。</p>
         <div class="rule-list" id="rule-list"></div>
         <div class="btn-row rule-add">
@@ -70,7 +71,7 @@
       <div class="export-bar">
         <!-- 预设：不切页签就能换；改了规则或设置后点「更新预设」存回当前预设 -->
         <div class="export-preset" id="export-preset" hidden>
-          <yakit-select id="export-preset-select" size="sm" aria-label="导出预设"></yakit-select>
+          <yakit-select id="export-preset-select" size="sm" multiple multi-label="{n} 套叠加" placeholder="不使用预设" aria-label="导出预设"></yakit-select>
           <yakit-button id="export-preset-save" size="sm" disabled>更新预设</yakit-button>
         </div>
         <yakit-button id="export-go" variant="primary" icon="../icons/ouput.svg">导出</yakit-button>
