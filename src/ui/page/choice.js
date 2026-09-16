@@ -7,6 +7,7 @@
  *     summary: '1 条规则 · TXT 带标注',     名字下面的小字，可省略
  *     active: true,                         正在使用：点睛色小圆点、浅底、名字加粗
  *     onPick: () => {},                     点这一行（正在使用的行点了不触发）
+ *     toggle: true,                         可以多选：正在使用的行点了也触发，用来取消
  *     actions: [                            行尾只有图标的按钮，可省略
  *       { action: 'edit', icon: '../icons/edit.svg', label: '编辑' },
  *     ],
@@ -19,7 +20,7 @@
 (() => {
   if (globalThis.YaKitChoice) return;
 
-  function row({ name, summary = '', active = false, onPick, actions = [], onAction }) {
+  function row({ name, summary = '', active = false, onPick, actions = [], onAction, toggle = false }) {
     const item = document.createElement('div');
     item.className = 'choice-item';
     item.setAttribute('role', 'listitem');
@@ -41,9 +42,9 @@
     summaryEl.textContent = summary;
     summaryEl.hidden = !summary;
     main.setAttribute('aria-current', String(active));
-    main.setAttribute('aria-label', `${name}${active ? '，正在使用' : '，点击切换'}`);
+    main.setAttribute('aria-label', `${name}${active ? (toggle ? '，正在使用，点击取消' : '，正在使用') : '，点击切换'}`);
     main.addEventListener('click', () => {
-      if (!active) onPick?.();
+      if (toggle || !active) onPick?.();
     });
 
     const ops = item.querySelector('.choice-ops');

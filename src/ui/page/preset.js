@@ -148,6 +148,7 @@
         name: preset.name,
         summary: summarize(preset.content),
         active: isActive,
+        toggle: true,
         onPick: () => toggle(preset.id),
         actions: Object.entries(ACTION_LABELS).map(([action, label]) => ({ action, label, icon: ACTION_ICONS[action] })),
         onAction: (action) => onAction(preset, action),
@@ -205,8 +206,8 @@
     const next = presets.filter((preset) => ids.includes(preset.id)).map((preset) => preset.id);
     if (next.join() === activeIds.join()) return;
     const current = active();
-    // 只有单套且改动没保存时，换预设才会丢东西
-    if (current && !next.includes(current.id) && isModified()) {
+    // 只有换到别的预设才会覆盖当前设置；改成不使用预设时设置原样留着，不用确认
+    if (next.length && current && !next.includes(current.id) && isModified()) {
       const ok = await YaKitModal.confirm({
         title: '换预设？',
         message: `当前改动还没保存到「${current.name}」，换掉后会丢失。`,
