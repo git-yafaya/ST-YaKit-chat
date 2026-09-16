@@ -4,8 +4,10 @@
 .backup-actions { flex: none; }
 
 /* 导出页底部的预设下拉框 */
-.export-preset { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 320px; }
+.export-preset { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; max-width: 340px; }
 .export-preset yakit-select { flex: 1; min-width: 0; }
+/* 按钮文字在「更新预设 / 存为新预设」之间变化时宽度不变，下拉框跟着一起变形 */
+.export-preset yakit-button { flex: none; min-width: 92px; }
 
 @media (max-width: 600px) {
   .export-preset { max-width: none; }
