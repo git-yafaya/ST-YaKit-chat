@@ -2,12 +2,12 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.6.2。「文本导出」页：导出预览（含全部楼层分批查看）、正则匹配（识别最近两楼标签、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、固定三条提示词；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.7.0。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、固定三条提示词；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。入口目前直接引用多个业务模块，尚未收敛为「UI 总文件 + 业务总文件」两个引用。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
-- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出与正则 AI 辅助，11 个）；`polishUI`（润色，20 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、固定提示词、助手、请求参数；旧提示词接口仍保留）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
-- **当前还没做什么**：润色功能仍在测试中，已知可能出现回复格式不对、被模型拒绝、字数变少或效果不理想，世界书开关与重写后的提示词未经真实 API 对照测试；插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
+- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出、标签识别与正则 AI 辅助，11 个）；`polishUI`（润色，20 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、固定提示词、助手、请求参数；旧提示词接口仍保留）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
+- **当前还没做什么**：v0.7.0 的整理标签、三组规则、酒馆聊天导出与预设叠加只有离线测试和真实页面的只读核对，写入规则、叠加切换与导出文件都没在真实环境跑过（这些不需要 AI 请求，小主复测即可）；润色功能仍在测试中，已知可能出现回复格式不对、被模型拒绝、字数变少或效果不理想，世界书开关与重写后的提示词未经真实 API 对照测试；插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
 
 ## 仓库结构
 
@@ -52,12 +52,13 @@ ST-YaKit-chat/
 ├── src/features/text-export/export-txt.js
 ├── src/features/text-export/export-markdown.js
 ├── src/features/text-export/export-epub.js
+├── src/features/text-export/export-jsonl.js        酒馆聊天文件：只保留每层当前显示的回复，其他字段原样
 ├── src/features/text-export/epub-chapters.js
 ├── src/features/text-export/epub-preferences.js
 ├── src/features/text-export/save-export.js
 ├── src/features/text-export/export-ui.js
 ├── src/features/text-export/export-ui-settings.js
-├── src/features/text-export/scan-recent-tags.js
+├── src/features/text-export/scan-recent-tags.js    标签识别：嵌套结构、同名合并、三套规则模板
 ├── src/features/text-export/ai-assist.js
 ├── src/features/text-export/ai-rules.js
 ├── src/features/text-export/ai-client.js
@@ -119,13 +120,15 @@ ST-YaKit-chat/
 4. 点击后创建居中 `<dialog>`，内容区用 iframe 加载 `src/ui/page/index.html`。
 5. 弹窗与 iframe 之间用消息通信：弹窗发 `yakit:tab`、`yakit:theme`、`yakit:nav`、`yakit:preload-font`、`yakit:closed`（弹窗关闭时，面板收起全部抽屉；面板加载完后直接调用面板的 `window.yakitReceive`，加载前用 `postMessage`）；面板用 `postMessage` 发 `yakit:set-theme`、`yakit:set-nav`。
 6. 文本导出页（`src/ui/page/export.js`）：
-   - 打开时 `loadSettings()` → `getChatInfo()` → `previewMessages(settings, 2)` → `scanRecentTags()`
+   - 打开时 `loadSettings()` → `getChatInfo()` → `previewMessages(settings, 2)`；标签入口行只按 `tagPlan` 写「已处理 N 个」，不做扫描
    - 设置或规则变化：`saveSettings(settings)`，200ms 防抖后重新 `previewMessages`
    - 起止楼层输入框 change：按 `floorCount` 收回越界值、颠倒时对调，写回输入框再保存
-   - 放大查看：`previewMessages(settings, floorCount)`，界面每批渲染 20 条，滑到底部附近加载下一批；设置变化时重新获取
+   - 放大查看：`previewMessages(settings, floorCount)`，界面每批渲染 20 条，滑到底部附近加载下一批；设置变化时重新获取；标题行「看第几楼」填了楼号时只显示该楼与前一条，放大预览自动滚到该楼
+   - 整理标签抽屉：打开时按 `tagScan` 调 `scanTagTree({start,end})`（首次打开才识别，之后留着上次结果），每行一个下拉选处理方式，选择先存进草稿；「应用到规则」按上一次 `tagPlan` 撤掉旧规则、写入新规则并 `saveSettings`；手动输入的标签名走 `tagRules(name)`，识别结果里已有的不重复加
    - AI 辅助（`src/ui/page/ai-rules.js`）：打开抽屉 `getAiContext()`；生成 `suggestRules({request, mode, rules})`，期间锁住需求输入框；候选用 `isValidRule` 标无效，`previewMessages({...settings, rules: [...rules, ...有效候选]}, 2)` 预览；「添加到规则」由界面去重后写入并保存。关闭抽屉或弹窗不调用 `cancelSuggestRules`，生成继续，结果留在抽屉；抽屉关着时结束会提示，弹窗开着用面板提示消息，弹窗关着用宿主 `toastr`
    - 点击导出：`exportFile(settings)` → 成功提示「已导出 N 条消息」
-   - `onChatChanged` 回调：刷新摘要、预览、标签
+   - `onChatChanged` 回调：刷新摘要、预览、标签入口行
+   - 叠加多套预设时（预设页调用 `window.YaKitExportPage.setStacked(n)`）：规则输入框只读、删不掉，「添加规则」「AI 辅助」「应用到规则」禁用，卡片上写明原因
 7. 润色页（`src/ui/page/polish.js`）：
    - 打开时 `loadSettings()`、`getContext()`、`presets.list()`、`styles.list()` + `getActiveId()`、`getJob()`；没有任务时 `planSegments(settings)` 显示按楼层的原文预览与「约 N 次请求」（段数），设置或导出页设置变化时重新分段
    - 首次 `getJob()` 可能同步返回 null 而服务器结果仍在读取，读回后由 `onJobChange` 推送；界面据此切换到结果视图
@@ -134,7 +137,8 @@ ST-YaKit-chat/
    - 进度、限速倒计时（`waitUntil`）、首段完成 / 结束 / 自动停止的提示由界面根据任务快照完成；弹窗关着时用宿主 `toastr`
 8. 预设（`src/ui/page/preset.js` 导出预设、`src/ui/page/style-preset.js` 文风预设）：
    - 卡片右上角分段切换「导出预设 / 文风预设」；「备份全部」「从备份恢复」在卡片上方
-   - 导出预设：打开面板和切到预设页时 `list()` + `getActiveId()`；选择预设时有未保存改动先确认 → `activate(id)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）；「已修改」由界面比对五项内容；「更新预设」→ `update(activeId, content)`；存为新预设：`suggestName()` 预填 → `create(name, content)` → `activate(新 id)`
+   - 导出预设：打开面板和切到预设页时 `list()` + `getActiveIds()`；点一行把这一套加进来或拿掉 → `activate(ids)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）；只用一套且有未保存改动时换预设先确认；「已修改」「保存」「还原」只在单套时显示，多套时行尾写「叠加中」；「更新预设」→ `update(activeId, content)`；叠加时底部按钮变成「存为新预设」；存为新预设：`suggestName()` 预填 → `create(name, content)` → `activate(新 id)`
+   - 导出页底部下拉是多选（`<yakit-select multiple>`），按钮上写「N 套叠加」，`change` 事件取 `detail.values`
    - 文风预设：`styles.list()` + `getActiveId()`；点一行 `activate(id|null)`；新建 / 编辑抽屉输入时 `check(draft)`，保存 `save(draft)`；复制 `duplicate`、导出 `exportStyle`、删除 `remove`、导入 `importStyle(text)`；变化后派发 `yakit-style-change`，润色页刷新文风下拉
    - 导入 / 从备份恢复：界面选文件读文字 → `importPreset(text)` / 确认后 `restoreBackup(text)`；恢复后 `exportUI.loadSettings()` 刷新导出页，并应用返回的 `uiPrefs`
    - 备份全部：界面读取 `yakit-theme`、`yakit-nav`、`yakit-theme-switch` 作为 `uiPrefs` → `exportBackup(uiPrefs)`
@@ -193,26 +197,40 @@ ST-YaKit-chat/
 | 文件名 | 自定义名去首尾空白、去掉末尾已有的 TXT/MD/EPUB 后缀（不分大小写），路径及控制字符替换为下划线，去掉末尾点和空格，再补目标后缀；结果为空时用角色名加本地毫秒时间戳 |
 | EPUB | 按最终非空消息顺序分章，复用已存 EPUB 偏好，默认每章 2 条、章节名为中文数字；书名与作者使用角色名；XML 不支持的正文字符会导致生成报错 |
 
-**标签扫描（`scanRecentTags`）**
+**标签识别（`scanTagTree` / `tagRules`）**
 
 | 情况 | 实际行为 |
 | --- | --- |
-| 范围 | 聊天最后两条原文，含隐藏楼层；不受保存的范围、类型和规则影响；只读 |
-| 识别 | 完整成对标签、显式自闭合标签、带属性的 HTML 块，支持属性引号中的 `>`；标签名支持 Unicode 字母、数字及 `_ : - .` |
+| 范围 | `scanTagTree({start,end})` 按界面楼层号（从 0 起算）识别，含隐藏楼层；不填或非数字为全部楼层；填颠倒自动交换，超出范围夹到首尾楼层；空聊天返回 `{from:0,to:0,tags:[]}`；每 200 层让出主线程；只读 |
+| 识别 | 完整成对标签、显式自闭合标签、带属性的 HTML 块，支持属性引号中的 `>`；标签名支持 Unicode 字母、数字及 `_ : - .`；注释与代码围栏里的标签同样算数（用户要靠规则把这些代码残留清出导出正文） |
 | 大小写 | 英文名称统一小写，开闭标签大小写混用可配对 |
-| 去重排序 | 同名去重，按第一次有效开始标签出现的位置排序 |
-| 按钮文字 | 有完整成对写法时为 `<name>`，只有自闭合写法时为 `<name/>`；不显示属性 |
-| 配对 | 每条消息独立配对，不跨楼层；孤立结束标签、未闭合开始标签不产生结果 |
-| 规则 | `/pattern/gi` 字符串，同一名称的规则同时支持成对块和自闭合；成对规则匹配标签连同内容；同名成对嵌套只匹配最内层完整块 |
-| 空结果 | 无聊天、空聊天或未识别到时返回 `[]`；非字符串正文跳过 |
+| 结构 | 每条消息独立用栈配对，不跨楼层；闭合时才计数，未闭合的开始标签不显示，它里面成对的子标签上提一层 |
+| 同名 | 一个标签名在整棵树里只出现一次：放在它出现次数最多的那个上级下面，`count`（出现次数）与 `floors`（出现在多少层）合并；自己套自己不计入上级选择，互相套在对方里面时按次数多的一边定位置 |
+| 排序 | 同一层按第一次有效开始标签出现的位置排序 |
+| 显示文字 | 有完整成对写法时为 `<name>`，只有自闭合写法时为 `<name/>`；不显示属性 |
+| 规则 | 每个节点给三套：`rule` 匹配整块（含标签），`innerRule` 只匹配标签里面的正文，`shellRules` 是开、闭、自闭合三条查找式（替换成空即去壳）；均为 `/pattern/gi` 字符串；同名成对嵌套只匹配最内层完整块 |
+| 手动加 | `tagRules(name)` 现算同样结构的一项（`count`、`floors` 为 0，`children` 为空）；名字自动去掉首尾的尖括号和空白；非字符串或不合法名称返回 `null` |
+| 空结果 | 无聊天、空聊天或未识别到时 `tags` 为 `[]`；非字符串正文跳过 |
+
+**标签处理方式写成规则（界面行为）**
+
+| 选择 | 写进哪一组 |
+| --- | --- |
+| 只要这段 | 保留组：`innerRule` |
+| 删掉整块 | 替换组：`{find: rule, to: 换行 + 换行}`，删掉的位置留一个空行 |
+| 只删标签 | 替换组：`shellRules` 每条替换成空 |
+
+界面把选择存进 `tagPlan`，「应用到规则」时先按上一次的 `tagPlan` 撤掉标签生成的规则，再写入这次的；手写和 AI 加的规则不受影响。
 
 **预设（`presets`）**
 
 | 情况 | 实际行为 |
 | --- | --- |
-| 内容 | `content` 必须完整包含 `types`（三个开关都要有）、`format`、`labels`、`mode`、`rules`；额外字段（含 `includeHidden`）不进入预设，切换预设保留当前 `includeHidden`；允许三类全关、空规则、语法无效的正则文字 |
-| 切换 | `activate(id)` 一次保存当前 ID 并把五项写入导出设置，保留 `allFloors/start/end/fileName`；尚无导出设置时先补默认值 |
-| 取消预设 | `activate(null)` 只清空当前 ID，返回当前导出设置副本，不创建或改写已保存的 `exportUI` |
+| 内容 | `content` 必须完整包含 `types`（三个开关都要有）、`format`、`labels`、`mode`、`rules`；可选 `illustrated`、`keepRules`、`replaceRules`、`tagPlan`（旧预设缺省补默认）；额外字段（含 `includeHidden`、`tagScan`）不进入预设，切换预设保留当前 `includeHidden`；允许三类全关、空规则、语法无效的正则文字 |
+| 切换 | `activate(id)` 或 `activate([id,…])` 保存正在用的几套并把内容写入导出设置，保留 `allFloors/start/end/fileName`；尚无导出设置时先补默认值；其中任一 id 不存在时整体 reject `找不到指定预设`，已保存的选择不变 |
+| 叠加 | 多套时按预设在 `list()` 里的先后合并（与传入顺序无关）：`rules`、`keepRules` 拼接去重，`replaceRules` 按 `find`+`to` 去重，`tagPlan` 按标签名后者覆盖，`types`/`format`/`labels`/`illustrated`/`mode` 由靠后的一套决定 |
+| 取消预设 | `activate(null)` 或 `activate([])` 只清空选择，返回当前导出设置副本，不创建或改写已保存的 `exportUI` |
+| 存储 | 预设库存 `{items, activeIds}`；旧数据里的单个 `activeId` 自动当成一套，备份文件同样兼容；`remove(id)` 只把这一套从 `activeIds` 里去掉，其余继续生效 |
 | 新建 / 导入 / 复制 | 都不自动激活（界面在新建后自己调用 `activate`）；`update` 覆盖当前预设时不再改写导出设置 |
 | 删除 | 删掉当前预设只清空当前 ID，导出设置不变；允许删光，没有默认预设 |
 | 名称 | 去首尾空白后不能为空；业务无长度上限，界面输入框限 30 字；重名按去空白后完全相同判断，区分英文大小写 |
@@ -380,11 +398,15 @@ ST-YaKit-chat/
 | `allFloors` | `true` | 导出全部楼层 |
 | `start` / `end` | `''` | 起止楼层（原字符串保存） |
 | `types` | `{ ai: true, user: true, system: true }` | 三种消息类型开关 |
-| `format` | `'txt'` | `txt` / `md` / `epub` |
+| `format` | `'txt'` | `txt` / `md` / `epub` / `jsonl`（酒馆聊天文件） |
 | `labels` | `'with'` | `with` 带类别标注 / `plain` 仅正文 |
 | `fileName` | `''` | 自定义文件名，空为默认名 |
-| `mode` | `'delete'` | `delete` 删除匹配 / `keep` 只保留匹配 |
-| `rules` | `[]` | 规则字符串数组（原样保存） |
+| `mode` | `'delete'` | 界面在看哪一组：`delete` 删除 / `keep` 只保留 / `replace` 替换；三组始终同时生效 |
+| `rules` | `[]` | 删除组，规则字符串数组（原样保存） |
+| `keepRules` | `[]` | 保留组；旧设置里 `mode` 为 `keep` 时整组迁入 |
+| `replaceRules` | `[]` | 替换组 `[{find,to}]`，`to` 里的 `{{match}}` 展开为整段匹配 |
+| `tagPlan` | `[]` | 标签处理方式 `[{name, action}]`，`action` 为 `keep` / `delete` / `strip`；进导出预设 |
+| `tagScan` | `{start:'', end:''}` | 「整理标签」上次填的识别楼层，只存界面状态，不进导出预设 |
 | `includeHidden` | `true` | 是否导出隐藏楼层；非布尔值报「导出设置 includeHidden 类型不正确」；旧设置缺项补 true |
 
 EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面。
@@ -394,7 +416,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 | 字段 | 默认值 | 含义 |
 | --- | --- | --- |
 | `items` | `[]` | `[{ id, name, content }]`，按创建顺序 |
-| `activeId` | `null` | 当前预设 ID |
+| `activeIds` | `[]` | 正在用的预设 ID，按列表顺序；多于一个即叠加。旧数据里的 `activeId` 自动当成一套 |
 
 **API 管理**（同一命名空间，读取返回副本不保存；写入先校验，经 `saveSettingsDebounced()` 排队，失败回滚）
 
@@ -457,7 +479,8 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 | `onChatChanged(callback)` | 同步返回幂等 `unsubscribe()`；非函数抛中文 `TypeError`。宿主未提供事件系统时返回空操作卸载函数。回调无参数，在微任务中执行；同步异常和 Promise 拒绝记入控制台，不阻塞宿主。 |
 | `loadSettings()` | 同步返回独立设置副本，尚未保存时返回 null。宿主设置未就绪、结构损坏或已存字段非法时抛错。 |
 | `saveSettings(settings)` | 同步返回保存后的独立副本。缺项补默认，已提供字段校验类型和枚举，忽略未知字段；错误抛出。整组写入 `extensionSettings['ST-YaKit-chat'].exportUI`，保留其他模块设置，调用 `saveSettingsDebounced()`；排队失败回滚原设置。成功表示已提交给宿主保存队列。 |
-| `scanRecentTags()` | 无参数，同步返回 `Array<{label:string,rule:string}>`。扫描最后两条原文，含隐藏楼层，不受保存的范围、类型与规则影响。无聊天、空聊天或未识别到时返回 `[]`，非字符串正文跳过；宿主读取异常抛出。只读，不保存设置或修改聊天。 |
+| `scanTagTree({start,end}={})` | 返回 `Promise<{from,to,tags}>`。`tags` 是嵌套结构 `[{name,label,count,floors,rule,innerRule,shellRules,children}]`，见上方标签识别边界。参数不是对象时 reject 中文 `TypeError`。只读，不保存设置或修改聊天。 |
+| `tagRules(name)` | 同步返回与 `tags` 节点同形状的一项，或 `null`（名字不合法）。只读。 |
 | `getAiContext()` | 返回 `Promise<{apiName, model, usingMainApi, jailbreakName}>`，见上方 AI 辅助边界。 |
 | `suggestRules({request, mode, rules})` | 返回 `Promise<{rules:[{rule, explanation}]}>`；失败 reject 中文 `Error`，识别码见下表。 |
 | `cancelSuggestRules()` | 同步返回 undefined；停止正在进行的生成，被停止的调用 reject `已停止生成`（`AI_CANCELLED`）。 |
@@ -514,35 +537,38 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 })();
 ```
 
-扫描标签并使用第一条生成规则检查删除和保留预览，不保存设置或触发下载：
+识别整个聊天的标签结构，并用第一个标签的三套规则各看一次预览，不保存设置或触发下载：
 
 ```js
-(() => {
+(async () => {
     const api = globalThis.YaKitChat.exportUI;
-    const tags = api.scanRecentTags();
-    console.table(tags);
+    const { from, to, tags } = await api.scanTagTree({});
+    console.log(`识别了第 ${from} 到 ${to} 楼`);
+    const flatten = (nodes) => nodes.flatMap((node) => [node, ...flatten(node.children)]);
+    console.table(flatten(tags).map(({ label, count, floors }) => ({ label, count, floors })));
     if (tags.length === 0) return;
-    const { label, rule } = tags[0];
-    console.log(label, api.isValidRule(rule));
-    const settings = {
-        allFloors: true,
-        types: { ai: true, user: true, system: true },
-        rules: [rule],
-    };
-    console.table(api.previewMessages({ ...settings, mode: 'delete' }, 2));
-    console.table(api.previewMessages({ ...settings, mode: 'keep' }, 2));
+    const tag = tags[0];
+    const base = { allFloors: true, types: { ai: true, user: true, system: true } };
+    // 只要这段：保留组用 innerRule
+    console.table(api.previewMessages({ ...base, keepRules: [tag.innerRule] }, 2));
+    // 删掉整块：替换成一个空行，正文不会粘连
+    console.table(api.previewMessages({ ...base, replaceRules: [{ find: tag.rule, to: '\n\n' }] }, 2));
+    // 只删标签：三条壳规则替换成空
+    console.table(api.previewMessages({ ...base, replaceRules: tag.shellRules.map((find) => ({ find, to: '' })) }, 2));
+    // 没识别到的标签可以现算一份同样的规则
+    console.log(api.tagRules('thinking')?.rule);
 })();
 ```
 
-例如原文 `<thinking>内容</thinking><br/>` 返回两个条目，`label` 依次为 `<thinking>`、`<br/>`。
+例如原文 `<game><think>甲</think><text>一</text><think>乙</think></game>` 识别出 `<game>`，它的 `children` 是 `<think>`（count 2）和 `<text>`（count 1）。
 
 `presets` 的参数与返回（全部返回 Promise，包括 `suggestName`；顶层用 `globalThis.YaKitChat.presets`，iframe 用 `parent.YaKitChat.presets`；失败 reject 中文 `Error`）：
 
 | 调用 | Promise 成功值 |
 | --- | --- |
 | `list()` | `Array<{id,name,content}>`，按创建顺序 |
-| `getActiveId()` | `string\|null` |
-| `activate(id\|null)` | 完整导出 settings |
+| `getActiveIds()` | `string[]`，按预设列表顺序，未使用预设时为 `[]` |
+| `activate(id\|id[]\|null)` | 完整导出 settings；多套时按列表先后叠加 |
 | `create(name, content)` | 新预设 `{id,name,content}` |
 | `update(id, content)` | 覆盖后的预设 |
 | `rename(id, name)` | 改名后的预设 |
@@ -1193,10 +1219,18 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 ## 当前接入状态
 
 **已实现（含界面，已通过整体复测）**
-- 文本导出页：导出预览、正则匹配、识别到的标签、导出设置抽屉（楼层范围、消息类型、格式、文件名）、TXT / Markdown / EPUB 导出
+- 文本导出页：导出预览、正则匹配、导出设置抽屉（楼层范围、消息类型、格式、文件名）、TXT / Markdown / EPUB 导出
 - 弹窗外壳：魔法棒入口、上方文字页签 / 下方图标导航、九套主题、设置页（更新、主题、导航栏位置；组件示例默认隐藏）
 - 插件更新：`updater` 两个接口
-- 导出预设：列表、切换、重命名、复制、导出、删除、导入、备份全部、从备份恢复，导出页底部下拉框与「更新预设」
+- 导出预设：列表、切换、重命名、复制、导出、删除、导入、备份全部、从备份恢复，导出页底部下拉框与「更新预设」（单套切换部分已复测，叠加为 v0.7.0 新增）
+
+**已实现并接入界面，未经整体复测（v0.7.0 新增，不需要 AI 请求）**
+- 整理标签抽屉：指定楼层识别、嵌套结构、四种处理方式、手动加标签、应用到规则。真实页面只读核对通过（210 层聊天识别出 20 项、无重复、嵌套正确，下拉与折叠正常）；「应用到规则」会写用户设置，未在真实环境执行，导出结果未验证
+- 三组规则（保留 → 替换 → 删除）与删块留空行、多余空行合并：只有离线测试与预览核对，真实导出文件未验证
+- 酒馆聊天（JSONL）导出：只有离线测试，导出文件能否被酒馆导入未验证；润色导出不支持这个格式，会给中文错误提示
+- 导出预览「看第几楼」：真实页面核对过渲染，放大预览跳转未逐项验证
+- 预设叠加：多套合并、叠加时规则只读、「存为新预设」只有离线测试；小主账户当前没有导出预设，且切换预设会写用户设置，未在真实环境点过
+- AI 辅助只判断删除组与保留组，替换组要用户自己写
 
 **已实现并接入界面，未经真实 API 与整体复测**
 - 润色页：`polishUI` 18 个接口已装配；已接真实业务核对无结果状态、按楼层分段预览（104 层在 5 / 10 / 20 / 自定义 7 层下为 21 / 11 / 6 / 15 段）与自定义 0 层错误；首段 review→继续、65535 额度是否被服务接受、超长单楼、截断续写、429 倒计时、停止、格式重试、短文提醒与真实内容质量均未验证
@@ -1207,13 +1241,14 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 - 正则 / 润色标签说明：已加入实际请求组装；界面在提示词编辑页展示标签表
 - 更新公告：本地三版公告读取与失败提示已核对；远端读取在本机因 SSH 远端 HTTP 500 未测通，待 push 后用 HTTPS 安装验证；更新后自动弹出一次需真实版本变化验证
 - API 管理（API 配置、参数）、正则 AI 辅助、包含隐藏楼层、全部楼层分批预览、报错记录：沿用 v0.5.0 状态
-- 验收情况：业务离线回归 45 项通过（网络、存储、宿主为替身）；公开 API 示例完成静态语法核对，未在用户账户上执行生成、保存或下载
+- 验收情况：业务离线回归 49 项通过（网络、存储、宿主为替身）；公开 API 示例完成静态语法核对，未在用户账户上执行生成、保存或下载
 
 **已实现但无界面**
 - 底层副 API 配置管理与提示词管理函数（`src/features/api-management/`、`src/features/prompt-management/`，已在 `YaKitChat` 上）；旧提示词接口
 - EPUB 分章偏好（`getEpubPreferences` / `saveEpubPreferences`）：文本导出时读取已存偏好，无设置界面；润色 EPUB 固定每段一章，不用这项偏好
 
 **未实现**
+- 注释符号 `<!--` `-->` 本身不在标签列表里（注释内的标签算数、能点），要清掉注释符号需要自己写规则
 - assistant 预填充消息与预填充开关
 - 群聊润色
 - 「备份全部」覆盖 API 配置与密钥、助手接口与采样、请求参数、润色设置与服务器润色结果
@@ -1221,7 +1256,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.6.2 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.7.0 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 
 ## 开发与验证
 
