@@ -1,14 +1,14 @@
 import { getMessageLabel, validateMessages } from './export-common.js';
 
-// XML 不能容纳的字符直接报错，保留原文中的回车而不让解析器归一化。
+// XML 不能容纳的字符直接报错；回车统一成换行，交给下面按空行分段。
 function escapeXml(value, location) {
     const invalid = /[^\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u.exec(value);
     if (invalid) {
         const code = invalid[0].codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
         throw new TypeError(`${location}位置 ${invalid.index + 1} 包含 XML 1.0 不支持的字符 U+${code}`);
     }
-    return value.replace(/[&<>"'\r]/g, character => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;', '\r': '&#13;',
+    return value.replace(/\r\n?/g, '\n').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
     })[character]);
 }
 
@@ -63,7 +63,10 @@ export async function buildEpub(chapters, {
         const content = chapter.messages.map((message, messageIndex) => {
             const body = placeImages(escapeXml(message.mes, `第 ${index + 1} 章第 ${messageIndex + 1} 条消息正文`));
             const label = labelMode === 'speaker' ? `<strong>${escapeXml(getMessageLabel(message), '类别标注')}</strong>` : '';
-            return `<p>${label}${body}</p>`;
+            // 空行分段：一段一个 <p>，阅读器才能正常排版；段落里的单换行由 pre-wrap 保留
+            const parts = body.split(/\n{2,}/).filter(part => part.trim());
+            if (!parts.length) return `<p>${label}</p>`;
+            return parts.map((part, partIndex) => `<p>${partIndex === 0 ? label : ''}${part}</p>`).join('\n');
         }).join('\n');
         return { name, href: `chapters/${index + 1}.xhtml`, id: `chapter-${index + 1}`, content: xhtml(name, `<h1>${name}</h1>\n${content}`) };
     });
