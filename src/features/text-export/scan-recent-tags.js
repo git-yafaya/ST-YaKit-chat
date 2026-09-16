@@ -45,41 +45,6 @@ function tokenInfo(raw) {
     };
 }
 
-// 每层分别配对，按第一次有效开始标签的位置去重排序。
-export function scanTags(texts = []) {
-    if (!Array.isArray(texts)) throw new TypeError('标签扫描原文必须是数组');
-    const found = new Map();
-    let offset = 0;
-    function record(name, position, paired) {
-        const previous = found.get(name);
-        found.set(name, {
-            position: Math.min(previous?.position ?? position, position),
-            paired: Boolean(previous?.paired || paired),
-        });
-    }
-    for (const text of texts) {
-        if (typeof text !== 'string') continue;
-        const openings = new Map();
-        for (const token of text.matchAll(new RegExp(TOKEN, 'g'))) {
-            const info = tokenInfo(token[0]);
-            if (!info) continue;
-            if (info.closing) {
-                if (info.tail !== '>') continue;
-                const position = openings.get(info.name)?.pop();
-                if (position !== undefined) record(info.name, position, true);
-            } else if (info.selfClose) {
-                record(info.name, offset + token.index, false);
-            } else {
-                if (!openings.has(info.name)) openings.set(info.name, []);
-                openings.get(info.name).push(offset + token.index);
-            }
-        }
-        offset += text.length + 1;
-    }
-    return [...found.entries()].sort((a, b) => a[1].position - b[1].position)
-        .map(([name, { paired }]) => ({ label: `<${name}${paired ? '' : '/'}>`, rule: tagRule(name), innerRule: innerTagRule(name) }));
-}
-
 // 手动输入标签名时用：给出和识别结果一样的三套规则，名字不合法返回 null。
 export function tagRules(name) {
     if (typeof name !== 'string') return null;

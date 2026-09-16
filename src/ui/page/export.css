@@ -42,56 +42,11 @@
 /* 替换规则：查找和替换为两个输入框，窄屏上下排 */
 .rule-row.is-replace { flex-wrap: wrap; }
 .rule-row.is-replace yakit-input { flex: 1 1 200px; }
-/* 识别到的标签：点一下加对应规则，再点取消 */
-.tag-scan { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
-.tag-scan.is-other-group { display: none; }
-.tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }
-/* 收起时只显示一行；展开时在原位变成多行，把下面的规则列表往下推 */
-.tag-chips-wrap { flex: 1; min-width: 0; }
+/* 标签：卡片上只留一行入口，完整的处理方式在「整理标签」抽屉里 */
+.tag-scan { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.tag-scan-label { flex: none; font-size: 12px; color: var(--text-muted); }
+.tag-scan-state { flex: 1; min-width: 0; font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #tag-open { flex: none; }
-.tag-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 24px; overflow: hidden; }
-.tag-scan.is-expanded .tag-chips { max-height: none; }
-
-.tag-toggle {
-  flex: none;
-  height: 24px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-muted);
-  font: inherit;
-  font-size: 12px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.tag-toggle:hover { background: color-mix(in srgb, var(--text-title) 6%, transparent); color: var(--text-title); }
-.tag-toggle:focus { outline: none; }
-.tag-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-.tag-chips-empty { font-size: 12px; line-height: 24px; color: var(--text-muted); }
-.tag-chip {
-  height: 24px;
-  max-width: 100%;
-  padding: 0 10px;
-  overflow: hidden;
-  border: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text-title) 6%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-title) 8%, transparent);
-  color: var(--text-body);
-  font: inherit;
-  font-size: 12px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-.tag-chip:hover { background: color-mix(in srgb, var(--text-title) 11%, transparent); color: var(--text-title); }
-.tag-chip:focus { outline: none; }
-.tag-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-/* 选中：点睛色底 */
-.tag-chip[aria-pressed="true"] { background: var(--accent); box-shadow: none; color: var(--on-accent); font-weight: 500; }
-@media (prefers-reduced-motion: reduce) { .tag-chip { transition: none; } }
 
 .rule-empty { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
 .rule-add { margin-top: 8px; }
@@ -188,16 +143,6 @@
 
 /* 手机：不强求一屏，内容自然往下排 */
 @media (max-width: 600px) {
-  /* 识别到的标签：名字和展开按钮一行，标签占下面一整行 */
-  .tag-scan { flex-wrap: wrap; row-gap: 6px; }
-  .tag-scan-label { flex: 1; }
-  .tag-toggle { order: 1; }
-  .tag-chips-wrap { order: 2; flex-basis: 100%; }
-  /* 手机上标签按钮做大，手指好点 */
-  .tag-chips { gap: 8px; max-height: 34px; }
-  .tag-chip { height: 34px; padding: 0 14px; font-size: 13px; }
-  .tag-toggle { height: 34px; padding: 0 12px; font-size: 13px; }
-  .tag-scan-label { line-height: 34px; }
   /* 预览标题行放不下摘要：「导出设置」按钮留在标题右边，摘要小字换到标题下面一整行 */
   .preview-card::part(header) { flex-wrap: wrap; row-gap: 4px; }
   .preview-extra { display: contents; }

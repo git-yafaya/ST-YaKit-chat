@@ -37,17 +37,13 @@
  *      酒馆里聊天切换或消息变化时调用 callback
  * 6. exportUI.loadSettings() → settings 或 null；exportUI.saveSettings(settings)
  *      记住用户的导出设置和规则
- * 7. exportUI.scanRecentTags() → [{ label, rule, innerRule }]，可以是 Promise
- *      rule 匹配整块（含标签本身），删除组用；innerRule 只匹配标签里面的内容，保留组用
- *      扫描最近两层楼原文里的标签；label 是按钮上显示的文字，rule 是点击后加入规则列表的正则
- *      没提供这个函数时，界面不显示「识别到的标签」这一行
- *    exportUI.scanTagTree({ start, end }) → { from, to, tags }（Promise）
+ * 7. exportUI.scanTagTree({ start, end }) → { from, to, tags }（Promise）
  *      按指定楼层识别标签（含隐藏楼层），start / end 是界面楼层号（从 0 起算），不填就是全部楼层；
  *      填颠倒了自动交换，超出范围夹到首尾楼层，from / to 是实际识别的楼层
  *      tags 是嵌套结构：[{ name, label, count, floors, rule, innerRule, shellRules, children }]
  *      同名兄弟合并成一项，count 是出现次数，floors 是出现在多少层；
  *      shellRules 是「只删标签本身、正文留着」用的三条查找式（开、闭、自闭合），替换成空即可
- *      没提供这个函数时，不显示「整理标签」按钮
+ *      没提供这个函数时，不显示「标签」这一行
  *    exportUI.tagRules(name) → 同上单个节点，名字不合法时返回 null
  *      手动输入标签名时用，拿到和识别结果一样的三套规则
  *
@@ -377,7 +373,6 @@
         groupRules()[index] = input.value;
         check();
         save();
-        renderTagChips();
         schedulePreview();
       });
       const remove = row.querySelector('yakit-button');
@@ -394,110 +389,20 @@
     $('rule-empty').textContent = { keep: '还没有保留规则，保留全文。', replace: '还没有替换规则，正文照原样。' }[state.mode]
       || '还没有删除规则，导出原文。';
     $('rule-count').textContent = rules.length ? `${rules.length} 条规则` : '';
-    // 替换组要自己写查找和替换内容，标签按钮只对删除组、保留组有用
-    $('tag-scan').classList.toggle('is-other-group', state.mode === 'replace');
-    $('tag-scan-label').textContent = state.mode === 'keep' ? '只保留这些标签里的正文' : '识别到的标签';
     renderModeCounts();
-    renderTagChips();
+    renderTagEntry();
   }
 
-  /* ---------- 识别到的标签：点一下加对应规则，再点取消 ---------- */
+  /* ---------- 卡片上的标签入口：写当前处理了几个标签，点开抽屉整理 ---------- */
 
-  let scannedTags = [];            // 卡片上一行标签按钮（树平铺后按标签名去重）
   const canOpenTags = () => typeof service()?.scanTagTree === 'function';
 
-  function renderTagChips() {
+  function renderTagEntry() {
     const row = $('tag-scan');
-    const chips = $('tag-chips');
-    const canScan = ready() && typeof service().scanRecentTags === 'function' && chatInfo().status === 'ok';
-    row.hidden = !canScan;
-    if (!canScan) return;
-
-    $('tag-open').hidden = !canOpenTags();
-    if (!scannedTags.length) {
-      chips.innerHTML = '<span class="tag-chips-empty">没有识别到标签</span>';
-      updateTagToggle();
-      return;
-    }
-    chips.replaceChildren(...scannedTags.map((tag) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'tag-chip';
-      chip.textContent = tag.floors > 1 ? `${tag.label} ${tag.floors} 层` : tag.label;
-      // 删除组点一下删掉整块；保留组点一下只保留这个标签里的正文
-      const rule = state.mode === 'keep' ? (tag.innerRule || tag.rule) : tag.rule;
-      chip.title = rule;
-      chip.setAttribute('aria-pressed', String(groupRules().includes(rule)));
-      chip.addEventListener('click', () => toggleTagRule(rule));
-      return chip;
-    }));
-    updateTagToggle();
-  }
-
-  // 收起时只显示一行，放不下的数量写在「展开 +N」上；一行放得下时不显示按钮
-  let tagsExpanded = false;
-  function updateTagToggle() {
-    const row = $('tag-scan');
-    const toggle = $('tag-toggle');
-    const items = [...$('tag-chips').querySelectorAll('.tag-chip')];
-    const firstTop = items[0]?.offsetTop ?? 0;
-    const hiddenCount = items.filter((item) => item.offsetTop > firstTop).length;
-    row.classList.toggle('is-expanded', tagsExpanded);
-    toggle.hidden = hiddenCount === 0;
-    toggle.textContent = tagsExpanded ? '收起' : `展开 +${hiddenCount}`;
-    toggle.setAttribute('aria-expanded', String(tagsExpanded));
-    if (hiddenCount === 0 && tagsExpanded) {
-      tagsExpanded = false;
-      row.classList.remove('is-expanded');
-    }
-  }
-
-  function setTagsExpanded(expanded) {
-    if (expanded === tagsExpanded) return;
-    tagsExpanded = expanded;
-    updateTagToggle();
-  }
-
-  // 鼠标或手指点击时不抢焦点，避免出现焦点框；键盘操作不受影响
-  $('tag-toggle').addEventListener('mousedown', (event) => event.preventDefault());
-  $('tag-toggle').addEventListener('click', () => setTagsExpanded(!tagsExpanded));
-  document.addEventListener('keydown', (event) => {
-    if (tagsExpanded && event.key === 'Escape') {
-      event.stopPropagation();
-      setTagsExpanded(false);
-      $('tag-toggle').focus();
-    }
-  });
-  // 宽度变了（窗口缩放、切页签回来）时重新计算藏了几个
-  new ResizeObserver(() => updateTagToggle()).observe($('tag-chips'));
-
-  function toggleTagRule(rule) {
-    const key = groupKey();
-    if (state[key].includes(rule)) state[key] = state[key].filter((item) => item !== rule);
-    else state[key].push(rule);
-    save();
-    renderRules();
-    renderPreview();
-  }
-
-  let scanToken = 0;
-  async function scanTags() {
-    if (!ready() || typeof service().scanRecentTags !== 'function' || chatInfo().status !== 'ok') {
-      scannedTags = [];
-      renderTagChips();
-      return;
-    }
-    const token = ++scanToken;
-    try {
-      const result = await service().scanRecentTags();
-      if (token !== scanToken) return;
-      scannedTags = Array.isArray(result) ? result.filter((tag) => tag?.label && tag?.rule) : [];
-    } catch (error) {
-      if (token !== scanToken) return;
-      YaKitErrorLog.warn('扫描标签失败', error);
-      scannedTags = [];
-    }
-    renderTagChips();
+    row.hidden = !(ready() && canOpenTags() && chatInfo().status === 'ok');
+    if (row.hidden) return;
+    const count = state.tagPlan.length;
+    $('tag-scan-state').textContent = count ? `已处理 ${count} 个` : '还没处理';
   }
 
   /* ---------- 标签抽屉：识别楼层 + 嵌套结构 + 每个标签怎么处理 ---------- */
@@ -641,9 +546,6 @@
       // 识别结果里已有的标签，从「自己加的」里去掉，避免重复两行
       const known = new Set(flattenTree(tagTree).map((node) => node.name));
       manualTags = manualTags.filter((node) => !known.has(node.name));
-      // 卡片上那行按钮跟着最近一次识别的结果走
-      scannedTags = [...manualTags, ...flattenTree(tagTree)];
-      renderTagChips();
     } catch (error) {
       if (token !== treeToken) return;
       YaKitErrorLog.warn('识别标签失败', error);
@@ -698,6 +600,7 @@
     save();
     renderRules();
     renderPreview();
+    renderTagEntry();
     $('tag-drawer').close();
     YaKitToast.show(plan.length ? `已按 ${plan.length} 个标签更新规则` : '已清掉标签生成的规则', 'success');
   }
@@ -723,9 +626,7 @@
       return;
     }
     manualTags.unshift(node);
-    scannedTags = [...manualTags, ...flattenTree(tagTree)];
     renderTagTree();
-    renderTagChips();
   });
   $('tag-manual').addEventListener('input', () => $('tag-manual').removeAttribute('error'));
   $('tag-apply').addEventListener('click', () => applyTagPlan());
@@ -946,7 +847,7 @@
     const unsubscribe = service().onChatChanged(() => {
       renderSummary();
       schedulePreview();
-      scanTags();
+      renderTagEntry();
     });
     if (typeof unsubscribe === 'function') window.addEventListener('pagehide', unsubscribe);
   }
@@ -981,6 +882,6 @@
   renderRules();
   renderSummary();
   renderPreview();
-  scanTags();
+  renderTagEntry();
   watchChat();
 })();

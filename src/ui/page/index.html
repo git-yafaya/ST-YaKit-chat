@@ -53,12 +53,9 @@
           <option value="replace">替换</option>
         </yakit-segmented>
         <div class="tag-scan" id="tag-scan" hidden>
-          <span class="tag-scan-label" id="tag-scan-label">识别到的标签</span>
-          <div class="tag-chips-wrap">
-            <div class="tag-chips" id="tag-chips" role="group" aria-labelledby="tag-scan-label"></div>
-          </div>
-          <button type="button" class="tag-toggle" id="tag-toggle" aria-controls="tag-chips" aria-expanded="false" hidden>展开</button>
-          <yakit-button id="tag-open" size="sm" variant="ghost" hidden>整理标签</yakit-button>
+          <span class="tag-scan-label">标签</span>
+          <span class="tag-scan-state" id="tag-scan-state"></span>
+          <yakit-button id="tag-open" size="sm" variant="ghost">整理标签</yakit-button>
         </div>
         <p class="rule-empty" id="rule-empty">还没有规则，导出原文。</p>
         <div class="rule-list" id="rule-list"></div>

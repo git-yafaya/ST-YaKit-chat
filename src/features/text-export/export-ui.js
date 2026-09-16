@@ -2,7 +2,7 @@ import { readChat } from './read-chat.js';
 import { filterMessages, getMessageType } from './filter-messages.js';
 import { cleanByGroups } from './clean-messages.js';
 import { saveExport } from './save-export.js';
-import { scanTags, scanTagTree as buildTagTree, tagRules } from './scan-recent-tags.js';
+import { scanTagTree as buildTagTree, tagRules } from './scan-recent-tags.js';
 import { getAiContext, suggestRules, cancelSuggestRules } from './ai-assist.js';
 import { normalizeSettings, parseRule, parseReplaceRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
 import { replaceImageTags, loadIllustrations, TOKEN_PATTERN } from './illustrations.js';
@@ -18,20 +18,13 @@ function getChatInfo() {
     return chatInfo(globalThis.SillyTavern?.getContext?.());
 }
 
-function scanRecentTags() {
-    const context = globalThis.SillyTavern?.getContext?.();
-    if (chatInfo(context).status !== 'ok') return [];
-    // 直接扫描最后两楼原文，包含隐藏消息，不应用导出筛选。
-    return scanTags(context.chat.slice(-2).map(message => message?.mes));
-}
-
 // 指定楼层识别标签（含隐藏消息），不填就是全部楼层；返回标签的嵌套结构和实际识别到的楼层范围。
 async function scanTagTree(range = {}) {
     if (range === null || typeof range !== 'object' || Array.isArray(range)) {
         throw new TypeError('识别楼层必须是对象');
     }
     const context = globalThis.SillyTavern?.getContext?.();
-    if (chatInfo(context).status !== 'ok') return { from: 0, to: 0, tags: [] };
+    if (chatInfo(context).status !== 'ok' || !context.chat.length) return { from: 0, to: 0, tags: [] };
     const last = context.chat.length - 1;
     const floor = (value, fallback) => {
         const text = typeof value === 'number' ? String(value) : value;
@@ -138,6 +131,6 @@ function onChatChanged(callback) {
 }
 
 export const exportUI = Object.freeze({
-    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanRecentTags, scanTagTree,
+    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanTagTree, tagRules,
     getAiContext, suggestRules, cancelSuggestRules,
 });
