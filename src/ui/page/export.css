@@ -52,8 +52,10 @@
 .rule-card.is-locked { display: flex; flex-direction: column; }
 .rule-card.is-locked::part(body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .rule-card.is-locked .rule-list { flex: 1 1 auto; flex-shrink: 1000; min-height: 0; max-height: none; }
-.rule-card.is-locked .tag-scan { flex: 0 1 auto; min-height: 24px; }
-.rule-card.is-locked .tag-chips-wrap { align-self: stretch; min-height: 24px; overflow-y: auto; }
+.rule-card.is-locked .tag-scan { flex: 0 1 auto; min-height: 24px; max-height: 55%; }
+.rule-card.is-locked .tag-chips-wrap { align-self: stretch; min-height: 24px; max-height: 100%; overflow-y: auto; }
+/* 展开时规则列表至少留出两行的高度，输入框仍点得到、滑得动 */
+.rule-card.is-locked .rule-list { min-height: 72px; }
 /* 规则很少时把「还没有规则」这行也让给标签；放不下的标签在标签区里上下滑动，导出预览高度始终不变 */
 .rule-card.is-locked .rule-empty { display: none; }
 
