@@ -39,13 +39,21 @@ export function firstGroupRange(pattern) {
     return null;
 }
 
-// 按酒馆里的替换内容分流：空替换 = 删除组；只写 $1 或 {{match}} = 保留组（取捕获组）；其他 = 替换组。
+// 替换成 HTML、CSS 或多行内容的是美化规则：导出只要正文，这类整块删掉，不进替换组。
+function isMarkup(to) {
+    return /[<>{}]|```|\n/.test(to) || Array.from(to).length > 100;
+}
+
+// 按酒馆里的替换内容分流：
+// 空替换 = 删除组；只写 $1 或 {{match}} = 保留组（取捕获组）；美化类（HTML/CSS/多行）= 删除组；纯文字替换 = 替换组。
 export function classify(script) {
     const find = typeof script?.findRegex === 'string' ? script.findRegex.trim() : '';
     if (!find) return null;
     const to = typeof script?.replaceString === 'string' ? script.replaceString : '';
     if (!to.trim()) return { group: 'delete', rule: find };
-    if (!/^(\$\d+|\{\{match\}\})$/.test(to.trim())) return { group: 'replace', rule: { find, to } };
+    if (!/^(\$\d+|\{\{match\}\})$/.test(to.trim())) {
+        return isMarkup(to) ? { group: 'delete', rule: find } : { group: 'replace', rule: { find, to } };
+    }
     const slash = find.startsWith('/') && find.lastIndexOf('/') > 0;
     const pattern = slash ? find.slice(1, find.lastIndexOf('/')) : find;
     const flags = slash ? find.slice(find.lastIndexOf('/') + 1) : '';
