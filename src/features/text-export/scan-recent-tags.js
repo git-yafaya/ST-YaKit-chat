@@ -129,8 +129,64 @@ function collapse(children) {
     return result;
 }
 
-function finalize(children) {
-    return [...children.values()].sort((a, b) => a.first - b.first).map(node => ({
+// 一个标签名在整棵树里只出现一次：放在它出现次数最多的那个上级下面，次数和层数合并起来。
+// 规则是按标签名生成的，处理方式也按名字统一，所以同名不该分成好几行。
+function unify(children) {
+    const info = new Map();
+    const parents = new Map();
+    (function walk(map, parentName) {
+        for (const node of map.values()) {
+            const item = info.get(node.name)
+                || { name: node.name, count: 0, paired: false, first: Infinity, floors: new Set() };
+            item.count += node.count;
+            item.paired = item.paired || node.paired;
+            item.first = Math.min(item.first, node.first);
+            for (const floor of node.floors) item.floors.add(floor);
+            info.set(node.name, item);
+            const counts = parents.get(node.name) || new Map();
+            counts.set(parentName, (counts.get(parentName) || 0) + node.count);
+            parents.set(node.name, counts);
+            walk(node.children, node.name);
+        }
+    })(children, null);
+
+    // 选一个上级：出现次数最多的那个；自己套自己不算数
+    const parentOf = new Map();
+    for (const [name, counts] of parents) {
+        let best = null;
+        let most = -1;
+        for (const [parent, count] of counts) {
+            if (parent === name || (parent !== null && !info.has(parent))) continue;
+            if (count > most) { best = parent; most = count; }
+        }
+        parentOf.set(name, best);
+    }
+    // 互相套在对方里面时绕不出来，把它放回最外层
+    for (const name of parentOf.keys()) {
+        const seen = new Set([name]);
+        for (let parent = parentOf.get(name); parent; parent = parentOf.get(parent)) {
+            if (seen.has(parent)) { parentOf.set(name, null); break; }
+            seen.add(parent);
+        }
+    }
+
+    const nodes = new Map([...info].map(([name, item]) => [name, { ...item, children: [] }]));
+    const roots = [];
+    for (const [name, node] of nodes) {
+        const parent = parentOf.get(name);
+        if (parent === null || !nodes.has(parent)) roots.push(node);
+        else nodes.get(parent).children.push(node);
+    }
+    const sort = (list) => {
+        list.sort((a, b) => a.first - b.first);
+        for (const node of list) sort(node.children);
+        return list;
+    };
+    return sort(roots);
+}
+
+function finalize(nodes) {
+    return nodes.map(node => ({
         name: node.name,
         label: `<${node.name}${node.paired ? '' : '/'}>`,
         count: node.count,
@@ -142,7 +198,7 @@ function finalize(children) {
     }));
 }
 
-// 扫描多层原文，返回标签的嵌套结构：同名兄弟合并成一项，count 是出现次数，floors 是出现在多少层。
+// 扫描多层原文，返回标签的嵌套结构：同一个标签名只出现一次，count 是出现次数，floors 是出现在多少层。
 export async function scanTagTree(texts = []) {
     if (!Array.isArray(texts)) throw new TypeError('标签扫描原文必须是数组');
     const root = { children: new Map() };
@@ -155,5 +211,5 @@ export async function scanTagTree(texts = []) {
         // 楼层很多时分批让出主线程，界面不卡住。
         if (index % 200 === 199) await new Promise(resolve => setTimeout(resolve, 0));
     }
-    return finalize(collapse(root.children));
+    return finalize(unify(collapse(root.children)));
 }

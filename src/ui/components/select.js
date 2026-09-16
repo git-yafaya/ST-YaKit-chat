@@ -416,7 +416,10 @@
         if (ariaLabel) this.trigger.setAttribute('aria-label', ariaLabel);
       }
 
-      const chosen = this.isMultiple ? this.values : [this.value].filter(Boolean);
+      // 单选：空字符串也可能是一个正经选项（例如「不处理」），不能当成没选
+      const chosen = this.isMultiple
+        ? this.values
+        : (this.items.some((item) => item.value === this.value) ? [this.value] : []);
       const selected = chosen.length === 1 ? this.items.find((item) => item.value === chosen[0]) : null;
       const valueEl = this.$('.value');
       // 多选选了两项以上时，按钮上写一共选了几项
