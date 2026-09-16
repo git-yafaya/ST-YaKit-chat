@@ -23,9 +23,6 @@
  * 11. presets.exportBackup(uiPrefs)          下载备份文件：全部预设、当前预设、导出设置和界面传入的 uiPrefs
  * 12. presets.restoreBackup(text) → { presetCount, uiPrefs }   覆盖全部预设、当前预设和导出设置
  * 13. presets.suggestName() → string         当前聊天角色卡的名字；没有聊天时返回空字符串
- * 14. presets.fetchHostRegex() → { saved: [{ kind, name, count, counts: { delete, replace }, skipped, updated }] }
- *       读取酒馆正则扩展的规则，按「全局正则」「预设正则 · 酒馆预设名」「局部正则 · 角色卡名」存成导出预设，同名覆盖；
- *       没有可用规则的类别不存；skipped 是跳过的条数（清空历史类、只影响发送的、不作用于正文的）
  *
  * 界面负责：「已修改」比对、确认框、选文件、uiPrefs（主题、导航栏位置、主题切换方式）的读取和应用。
  * 没提供 presets 时，预设页显示「预设还没接入」，导出页不显示预设下拉框。
@@ -420,21 +417,6 @@
 
   $('preset-create').addEventListener('click', (event) => createPreset(event.currentTarget));
   $('preset-import').addEventListener('click', (event) => pickFile('import', event.currentTarget));
-  $('preset-fetch-host').addEventListener('click', async (event) => {
-    if (typeof service()?.fetchHostRegex !== 'function') return;
-    await run(event.currentTarget, async () => {
-      try {
-        const { saved = [] } = await service().fetchHostRegex() || {};
-        const skipped = saved.reduce((sum, item) => sum + (item.skipped || 0), 0);
-        YaKitToast.show(saved.length
-          ? `已获取：${saved.map((item) => `${item.name.split(' · ')[0]} ${item.count} 条`).join('、')}${skipped ? `，跳过 ${skipped} 条` : ''}`
-          : '酒馆里没有读到可用的正则', saved.length ? 'success' : 'warning');
-      } catch (error) {
-        YaKitToast.show(error?.message || '获取酒馆正则失败', 'danger');
-      }
-    });
-    await load();
-  });
   $('backup-restore').addEventListener('click', (event) => pickFile('restore', event.currentTarget));
   $('backup-export').addEventListener('click', (event) => {
     const button = event.currentTarget;

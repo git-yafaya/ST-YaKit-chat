@@ -1,10 +1,9 @@
 import * as store from './store.js';
 import * as files from './files.js';
-import { fetchHostRegex } from './host-regex.js';
 
 // 全部公开操作返回 Promise，底层异常统一为可显示的中文错误。
 export const presets = Object.freeze(Object.fromEntries(
-    Object.entries({ ...store, ...files, fetchHostRegex }).map(([name, operation]) => [name, async (...args) => {
+    Object.entries({ ...store, ...files }).map(([name, operation]) => [name, async (...args) => {
         try {
             return await operation(...args);
         } catch (error) {
