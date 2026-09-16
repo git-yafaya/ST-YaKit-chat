@@ -37,10 +37,11 @@
  *      酒馆里聊天切换或消息变化时调用 callback
  * 6. exportUI.loadSettings() → settings 或 null；exportUI.saveSettings(settings)
  *      记住用户的导出设置和规则
- * 7. exportUI.scanRecentTags() → [{ label: string, rule: string }]，可以是 Promise
+ * 7. exportUI.scanRecentTags() → [{ label, rule, innerRule }]，可以是 Promise
+ *      rule 匹配整块（含标签本身），删除组用；innerRule 只匹配标签里面的内容，保留组用
  *      扫描最近两层楼原文里的标签；label 是按钮上显示的文字，rule 是点击后加入规则列表的正则
  *      没提供这个函数时，界面不显示「识别到的标签」这一行
- *    exportUI.scanAllTags() → [{ label, rule, floors }]（Promise）
+ *    exportUI.scanAllTags() → [{ label, rule, innerRule, floors }]（Promise）
  *      扫描全部楼层（含隐藏）的标签，floors 是出现在多少层；按钮文字写「<标签> N 层」
  *      没提供这个函数时，不显示「扫描全部楼层」按钮
  *
@@ -385,8 +386,9 @@
     $('rule-empty').textContent = { keep: '还没有保留规则，保留全文。', replace: '还没有替换规则，正文照原样。' }[state.mode]
       || '还没有删除规则，导出原文。';
     $('rule-count').textContent = rules.length ? `${rules.length} 条规则` : '';
-    // 识别到的标签点一下加的是删除规则，看替换组时先不显示
+    // 替换组要自己写查找和替换内容，标签按钮只对删除组、保留组有用
     $('tag-scan').classList.toggle('is-other-group', state.mode === 'replace');
+    $('tag-scan-label').textContent = state.mode === 'keep' ? '只保留这些标签里的正文' : '识别到的标签';
     renderModeCounts();
     renderTagChips();
   }
@@ -416,9 +418,11 @@
       chip.type = 'button';
       chip.className = 'tag-chip';
       chip.textContent = scanAll && tag.floors ? `${tag.label} ${tag.floors} 层` : tag.label;
-      chip.title = tag.rule;
-      chip.setAttribute('aria-pressed', String(groupRules().includes(tag.rule)));
-      chip.addEventListener('click', () => toggleTagRule(tag.rule));
+      // 删除组点一下删掉整块；保留组点一下只保留这个标签里的正文
+      const rule = state.mode === 'keep' ? (tag.innerRule || tag.rule) : tag.rule;
+      chip.title = rule;
+      chip.setAttribute('aria-pressed', String(groupRules().includes(rule)));
+      chip.addEventListener('click', () => toggleTagRule(rule));
       return chip;
     }));
     updateTagToggle();

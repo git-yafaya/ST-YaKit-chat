@@ -2,6 +2,7 @@ const ATTRIBUTE = String.raw`(?:[^<>"']|"[^"]*"|'[^']*')`;
 const TOKEN = String.raw`<\/?[^\s/<>"'=]+(?:\s+${ATTRIBUTE}*)?\/?>`;
 const NAME = /^[\p{L}\p{N}_.:-]+$/u;
 
+// 整块（含标签本身），删除组用
 function tagRule(name) {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const start = String.raw`<${escaped}(?=[\s/>])(?:\s+${ATTRIBUTE}*)?`;
@@ -11,6 +12,16 @@ function tagRule(name) {
     // ponytail: 同名嵌套只取最内层完整块；需整棵删除时应改用解析器。
     const body = String.raw`(?:(?!(?:${open}|${close}))${TOKEN}|(?!${TOKEN})[\s\S])*`;
     return new RegExp(`${selfClose}|${open}${body}${close}`, 'gi').toString();
+}
+
+// 只要标签里面的内容（不含标签本身），保留组用：点一下就是「只保留这个标签里的正文」
+function innerTagRule(name) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const start = String.raw`<${escaped}(?=[\s/>])(?:\s+${ATTRIBUTE}*)?`;
+    const open = `${start}(?<!/)>`;
+    const close = String.raw`<\/${escaped}\s*>`;
+    const body = String.raw`(?:(?!(?:${open}|${close}))${TOKEN}|(?!${TOKEN})[\s\S])*`;
+    return new RegExp(`(?<=${open})${body}(?=${close})`, 'gi').toString();
 }
 
 // 每层分别配对，按第一次有效开始标签的位置去重排序。
@@ -50,5 +61,5 @@ export function scanTags(texts = []) {
         offset += text.length + 1;
     }
     return [...found.entries()].sort((a, b) => a[1].position - b[1].position)
-        .map(([name, { paired }]) => ({ label: `<${name}${paired ? '' : '/'}>`, rule: tagRule(name) }));
+        .map(([name, { paired }]) => ({ label: `<${name}${paired ? '' : '/'}>`, rule: tagRule(name), innerRule: innerTagRule(name) }));
 }

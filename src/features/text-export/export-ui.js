@@ -41,7 +41,8 @@ async function scanAllTags() {
         // 楼层很多时分批让出主线程，界面不卡住。
         if (index % 200 === 199) await new Promise(resolve => setTimeout(resolve, 0));
     }
-    return [...found.values()].sort((a, b) => a.first - b.first).map(({ label, rule, floors }) => ({ label, rule, floors }));
+    return [...found.values()].sort((a, b) => a.first - b.first)
+        .map(({ label, rule, innerRule, floors }) => ({ label, rule, innerRule, floors }));
 }
 
 // 插画小说只对 EPUB 生效：清洗前把生图标签换成占位符，refs 记录每张图的来源。
