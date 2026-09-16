@@ -49,6 +49,10 @@
       text-align: left;
       cursor: pointer;
       transition: background-color 0.15s ease;
+      /* 标题行是按钮，点一下不选中文字、不闪蓝框 */
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     .header:hover { background: color-mix(in srgb, var(--text-title, #14171A) 4%, transparent); }
     .header:focus { outline: none; }

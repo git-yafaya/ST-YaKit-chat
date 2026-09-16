@@ -1,5 +1,8 @@
 /* 居中弹窗。颜色来自 components/themes.css，只在 .yakit-scope 里生效 */
 
+/* 手机上点任何东西都不闪蓝框；只在纪实自己的范围内生效，不动酒馆 */
+.yakit-scope, .yakit-scope * { -webkit-tap-highlight-color: transparent; }
+
 .yakit-dialog {
     box-sizing: border-box;
     width: min(880px, calc(100vw - 48px));
