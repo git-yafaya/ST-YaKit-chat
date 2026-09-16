@@ -79,7 +79,6 @@
 
   const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
   const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB', jsonl: '酒馆聊天' };
-  const MODE_LABELS = { delete: '删除匹配', keep: '只保留匹配' };
   const ALERT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>';
   const WARNING_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4M12 17h.01"/></svg>';
   const CHUNK_LABELS = { fewer: '省次数', balanced: '均衡', quality: '重质量' };
@@ -588,8 +587,11 @@
   function contentSummary(content) {
     if (!content) return '';
     const types = TYPE_KEYS.filter((key) => content.types?.[key]).map((key) => TYPE_LABELS[key]).join('/') || '没有勾选消息类型';
-    const count = (content.rules || []).filter(Boolean).length;
-    const rules = count ? `${count} 条规则 · ${MODE_LABELS[content.mode] || MODE_LABELS.delete}` : '没有规则';
+    const counts = [['删除', content.rules], ['保留', content.keepRules]]
+      .map(([label, list]) => [label, (list || []).filter(Boolean).length])
+      .filter(([, count]) => count > 0)
+      .map(([label, count]) => `${label} ${count} 条`);
+    const rules = counts.length ? `${counts.join(' · ')}规则` : '没有规则';
     const hidden = exportPage()?.getState()?.includeHidden === false ? ' · 不含隐藏' : '';
     return `${types} · ${rules} · ${FORMAT_LABELS[content.format] || 'TXT'}${hidden}`;
   }

@@ -68,8 +68,11 @@
   }
 
   function summarize(content = {}) {
-    const rules = content.rules?.filter((rule) => rule) || [];
-    const parts = [rules.length ? `${rules.length} 条规则 · ${content.mode === 'keep' ? '只保留匹配' : '删除匹配'}` : '无规则'];
+    const counts = [['删除', content.rules], ['保留', content.keepRules]]
+      .map(([label, list]) => [label, (list || []).filter((rule) => rule).length])
+      .filter(([, count]) => count > 0)
+      .map(([label, count]) => `${label} ${count} 条`);
+    const parts = [counts.length ? `${counts.join(' · ')}规则` : '无规则'];
     const types = Object.keys(TYPE_LABELS).filter((key) => content.types?.[key]).map((key) => TYPE_LABELS[key]);
     parts.push(types.length ? types.join('/') : '未选择消息类型');
     parts.push(content.format === 'jsonl' ? FORMAT_LABELS.jsonl : `${FORMAT_LABELS[content.format] || 'TXT'}${content.labels === 'plain' ? ' 仅正文' : ' 带标注'}`);

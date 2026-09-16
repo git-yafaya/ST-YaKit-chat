@@ -79,6 +79,13 @@ function cleanText(text, regexes, mode) {
         .replace(/\uE000(?!\d+\uE001)\d*|(?<!\uE000\d+)\uE001/g, '');
 }
 
+// 两组规则：有保留规则时先只留下保留组匹配到的内容，再在其中删除删除组匹配到的内容。
+export function cleanByGroups(messages, deleteRules = [], keepRules = []) {
+    let result = keepRules.length ? cleanMessages(messages, keepRules, 'keep') : messages;
+    if (deleteRules.length) result = cleanMessages(result, deleteRules, 'remove');
+    return result;
+}
+
 // 返回消息浅拷贝，仅清洗正文，保留其他字段及嵌套引用。
 export function cleanMessages(messages, rules = [], mode = 'remove') {
     if (!Array.isArray(messages) || !Array.isArray(rules)) {

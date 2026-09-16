@@ -6,8 +6,9 @@
  *
  * 1. exportUI.getAiContext() → { apiName, model, usingMainApi, jailbreakName }
  *      抽屉顶部显示正则助手正在用的接口和破限词；jailbreakName 为 null 表示不使用
- * 2. exportUI.suggestRules({ request, mode, rules }) → { rules: [{ rule, explanation }] }
- *      request 是用户的描述，mode 是当前匹配方式，rules 是现有规则；失败 reject 中文原因
+ * 2. exportUI.suggestRules({ request, mode, rules, keepRules }) → { rules: [{ rule, explanation, action }] }
+ *      request 是用户的描述，mode 是界面正在看的那一组，rules 是删除组、keepRules 是保留组现有规则
+ *      action 为 'delete' / 'keep'，表示这条规则该进哪一组；失败 reject 中文原因
  *
  * 关掉抽屉或整个弹窗时生成照常进行：结果留在抽屉里，再打开就能看到，并弹提示告知（弹窗关着时用酒馆自己的提示）。
  * 生成中需求输入框锁住，结果出来后再改。
@@ -21,10 +22,8 @@
   const available = () => typeof service()?.suggestRules === 'function' && typeof service()?.getAiContext === 'function';
   const page = () => window.YaKitExportPage;
 
-  const MODE_NOTES = {
-    delete: '当前匹配方式：删除匹配。<br>生成的规则会删掉匹配到的内容。',
-    keep: '当前匹配方式：只保留匹配。<br>生成的规则会只留下匹配到的内容。',
-  };
+  const ACTION_LABELS = { delete: '删除组', keep: '保留组' };
+  const MODE_NOTE = 'AI 按你的描述判断每条规则进删除组还是保留组。<br>添加时自动放进对应的那一组。';
   const CHAT_NOTES = { none: '先在酒馆里打开一个聊天', unavailable: '文本导出还没接入' };
   const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
   const ALERT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>';
@@ -96,7 +95,7 @@
 
   function open() {
     const state = page()?.getState();
-    $('ai-mode-note').innerHTML = MODE_NOTES[state?.mode] || MODE_NOTES.delete;
+    $('ai-mode-note').innerHTML = MODE_NOTE;
     showError('');
     syncGenerate();
     renderContext();
@@ -104,16 +103,17 @@
   }
 
   function renderCandidates() {
-    const existing = page()?.getState().rules || [];
+    const state = page()?.getState() || {};
+    const existingFor = (action) => (action === 'keep' ? state.keepRules : state.rules) || [];
     $('ai-rules').replaceChildren(...candidates.map((item) => {
       const row = document.createElement('div');
       row.className = 'ai-rule';
       row.innerHTML = '<code></code><div class="ai-rule-note"></div>';
       row.querySelector('code').textContent = item.rule;
-      row.querySelector('.ai-rule-note').textContent = item.explanation || '';
+      row.querySelector('.ai-rule-note').textContent = `${ACTION_LABELS[item.action] || ACTION_LABELS.delete} · ${item.explanation || ''}`;
       if (!item.valid) {
         row.insertAdjacentHTML('beforeend', `<div class="ai-rule-invalid">${ALERT_ICON}<span>这条规则无效，已忽略</span></div>`);
-      } else if (existing.includes(item.rule)) {
+      } else if (existingFor(item.action).includes(item.rule)) {
         row.insertAdjacentHTML('beforeend', '<div class="ai-rule-state">已经在规则列表里了</div>');
       }
       return row;
@@ -130,7 +130,11 @@
     }
     let messages;
     try {
-      messages = await service().previewMessages({ ...state, rules: [...state.rules, ...valid] }, 2);
+      const extra = { delete: [], keep: [] };
+      for (const item of candidates) if (item.valid) extra[item.action === 'keep' ? 'keep' : 'delete'].push(item.rule);
+      messages = await service().previewMessages({ ...state,
+        rules: [...(state.rules || []), ...extra.delete],
+        keepRules: [...(state.keepRules || []), ...extra.keep] }, 2);
     } catch (error) {
       if (runToken !== token) return;
       box.innerHTML = '<div class="preview-empty">预览加载失败</div>';
@@ -163,11 +167,13 @@
     $('ai-request').setAttribute('disabled', '');
     showError('');
     try {
-      const result = await service().suggestRules({ request, mode: state.mode, rules: [...state.rules] });
+      const result = await service().suggestRules({ request, mode: state.mode,
+        rules: [...(state.rules || [])], keepRules: [...(state.keepRules || [])] });
       if (runToken !== token) return;
       candidates = (Array.isArray(result?.rules) ? result.rules : [])
         .filter((item) => typeof item?.rule === 'string' && item.rule)
-        .map((item) => ({ rule: item.rule, explanation: item.explanation || '', valid: isValid(item.rule) }));
+        .map((item) => ({ rule: item.rule, explanation: item.explanation || '',
+          action: item.action === 'keep' ? 'keep' : 'delete', valid: isValid(item.rule) }));
       if (!candidates.length) {
         clearResult();
         showError('AI 没有给出规则，换个说法再试试');
@@ -209,8 +215,11 @@
   $('ai-close').addEventListener('click', () => $('ai-drawer').close());
 
   $('ai-apply').addEventListener('click', () => {
-    const valid = candidates.filter((item) => item.valid).map((item) => item.rule);
-    const added = page()?.addRules(valid) || 0;
+    let added = 0;
+    for (const group of ['delete', 'keep']) {
+      const valid = candidates.filter((item) => item.valid && item.action === group).map((item) => item.rule);
+      if (valid.length) added += page()?.addRules(valid, group) || 0;
+    }
     if (added) {
       YaKitToast.show(`已添加 ${added} 条规则`, 'success');
       $('ai-drawer').close();

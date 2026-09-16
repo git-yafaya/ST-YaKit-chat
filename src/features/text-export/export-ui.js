@@ -1,6 +1,6 @@
 import { readChat } from './read-chat.js';
 import { filterMessages, getMessageType } from './filter-messages.js';
-import { cleanMessages } from './clean-messages.js';
+import { cleanByGroups } from './clean-messages.js';
 import { saveExport } from './save-export.js';
 import { scanTags } from './scan-recent-tags.js';
 import { getAiContext, suggestRules, cancelSuggestRules } from './ai-assist.js';
@@ -66,8 +66,8 @@ function readMessages(context, settings, refs = null) {
     const included = readChat(context, range).filter(message => settings.includeHidden || !message.is_system);
     let messages = filterMessages(included, settings.types);
     if (refs) messages = messages.map(message => ({ ...message, mes: replaceImageTags(message.mes, context.chat[message.floor - 1], message.floor - 1, context, refs) }));
-    const rules = settings.rules.map(parseRule).filter(rule => rule !== null);
-    return cleanMessages(messages, rules, settings.mode === 'delete' ? 'remove' : 'keep');
+    const parse = list => list.map(parseRule).filter(rule => rule !== null);
+    return cleanByGroups(messages, parse(settings.rules), parse(settings.keepRules));
 }
 
 function previewMessages(settings = {}, count = 2) {

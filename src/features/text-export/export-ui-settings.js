@@ -19,6 +19,7 @@ export function normalizeSettings(value = {}) {
         fileName: '',
         mode: 'delete',
         rules: [],
+        keepRules: [],
     };
     for (const key of ['allFloors', 'includeHidden', 'illustrated', 'start', 'end', 'fileName']) {
         if (!Object.hasOwn(value, key)) continue;
@@ -46,11 +47,18 @@ export function normalizeSettings(value = {}) {
             settings.types[type] = value.types[type];
         }
     }
-    if (Object.hasOwn(value, 'rules')) {
-        if (!Array.isArray(value.rules) || Array.from(value.rules).some(rule => typeof rule !== 'string')) {
-            throw new TypeError('导出设置 rules 必须是字符串数组');
+    // rules 是删除组，keepRules 是保留组；mode 只表示界面正在看哪一组，两组同时生效。
+    for (const key of ['rules', 'keepRules']) {
+        if (!Object.hasOwn(value, key)) continue;
+        if (!Array.isArray(value[key]) || Array.from(value[key]).some(rule => typeof rule !== 'string')) {
+            throw new TypeError(`导出设置 ${key} 必须是字符串数组`);
         }
-        settings.rules = [...value.rules];
+        settings[key] = [...value[key]];
+    }
+    // 旧设置没有保留组：原来选「只保留匹配」的规则整组迁到保留组。
+    if (!Object.hasOwn(value, 'keepRules') && settings.mode === 'keep') {
+        settings.keepRules = settings.rules;
+        settings.rules = [];
     }
     return settings;
 }

@@ -3,7 +3,7 @@ import { getAssistantSelection } from '../assistant-management/index.js';
 import { getMainClient, generateSecondary } from './ai-client.js';
 import { buildRuleMessages, parseRuleSuggestions } from './ai-rules.js';
 import { getMessageType } from './filter-messages.js';
-import { cleanMessages } from './clean-messages.js';
+import { cleanByGroups } from './clean-messages.js';
 import { parseRule } from './export-ui-settings.js';
 import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
 
@@ -48,7 +48,8 @@ export async function suggestRules(options) {
         throw new Error('请先说明想删除或保留什么内容');
     }
     if (!['delete', 'keep'].includes(options.mode)) throw new Error('请选择删除匹配或只保留匹配');
-    if (!Array.isArray(options.rules) || Array.from(options.rules).some(rule => typeof rule !== 'string')) {
+    const keepRules = options.keepRules === undefined ? [] : options.keepRules;
+    if ([options.rules, keepRules].some(list => !Array.isArray(list) || Array.from(list).some(rule => typeof rule !== 'string'))) {
         throw new Error('已有规则内容不对，请重新打开 AI 辅助');
     }
     const context = getContext();
@@ -59,12 +60,13 @@ export async function suggestRules(options) {
     // 在等待模型之前固定选择、原文和规则，后续界面改动不影响本次请求。
     const { api, jailbreak, sampling } = getAssistantSelection('regex');
     const rules = [...options.rules];
-    // 样本是这楼按导出页当前规则和匹配方式清洗后的文字。
-    const parsedRules = rules.map(rule => parseRule(rule)).filter(rule => rule !== null);
-    const [cleaned] = cleanMessages([{ mes: context.chat[floor].mes }], parsedRules, options.mode === 'delete' ? 'remove' : 'keep');
+    const keep = [...keepRules];
+    // 样本是这楼按现有两组规则清洗后的文字：先保留组，再删除组。
+    const parse = list => list.map(rule => parseRule(rule)).filter(rule => rule !== null);
+    const [cleaned] = cleanByGroups([{ mes: context.chat[floor].mes }], parse(rules), parse(keep));
     if (!cleaned.mes.trim()) throw new Error('这条 AI 回复按现有规则清洗后没有剩下文字，请调整规则后重试');
     const sample = { floor, text: cleaned.mes };
-    const messages = buildRuleMessages({ request: options.request.trim(), mode: options.mode, rules, sample, jailbreak, promptText: listCorePrompts().find(item => item.id === 'regex').text });
+    const messages = buildRuleMessages({ request: options.request.trim(), mode: options.mode, rules, keepRules: keep, sample, jailbreak, promptText: listCorePrompts().find(item => item.id === 'regex').text });
     const { timeoutSeconds, retries } = getRequestSettings();
     const timeoutMessage = `等了 ${timeoutSeconds} 秒还没生成规则，请检查当前 API 后重试`;
     // 新请求校验成功后才替换旧请求，一个父信号覆盖准备和全部格式重试。
@@ -90,7 +92,7 @@ export async function suggestRules(options) {
             }
             run.signal.throwIfAborted();
             try {
-                return parseRuleSuggestions(response.text, rules);
+                return parseRuleSuggestions(response.text, { rules, keepRules: keep }, options.mode === 'keep' ? 'keep' : 'delete');
             } catch (error) {
                 if (error?.code === 'AI_RULE_FORMAT' && response.finishReason === 'length') {
                     throw Object.assign(new Error('模型回复达到输出上限，正则规则被截断，请调整模型的思考设置或更换模型后重试'), { code: 'AI_OUTPUT_TRUNCATED' });

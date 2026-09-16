@@ -18,7 +18,8 @@
  *     illustrated: boolean,          插画小说：导出 EPUB 时带上柏宝绘、智绘姬生成的图片（只对 EPUB 生效，存进导出预设）
  *                                    loadSettings 返回的设置里没有这一项（且不是 null）时，界面认为还没接入：开关不能点，说明写「还没接入」
  *     fileName: string,              文件名，空字符串表示用默认名
- *     mode: 'delete' | 'keep',       删除匹配 / 只保留匹配
+ *     mode: 'delete' | 'keep',       界面正在看哪一组规则（删除组 / 保留组），两组始终同时生效
+ *     keepRules: string[],           保留组规则：有保留组规则时先只留下它们匹配到的内容，再在其中执行删除组（rules）
  *     rules: string[],               正则规则，每条是用户原样输入的文字
  *   }
  *
@@ -46,7 +47,7 @@
  * ───────── 给面板里其他页面脚本用（预设页 preset.js）─────────
  *   window.YaKitExportPage.getState()        当前导出设置（副本）
  *   window.YaKitExportPage.replaceState(s)   换成另一份导出设置并刷新界面（切换预设、从备份恢复后调用）
- *   window.YaKitExportPage.addRules(rules)   把规则追加到列表末尾并保存（已有的不重复加），返回实际加了几条
+ *   window.YaKitExportPage.addRules(rules, group)  把规则追加到某一组（'delete' / 'keep'，默认当前在看的一组）并保存（已有的不重复加），返回实际加了几条
  *   window.YaKitExportPage.getChatStatus()   'ok' | 'none' | 'unavailable'
  *   window 事件 yakit-export-change          导出设置有任何改动时触发，event.detail 是改动后的设置副本
  */
@@ -72,6 +73,7 @@
     fileName: '',
     mode: 'delete',
     rules: [],
+    keepRules: [],
   };
 
   function loadState() {
@@ -287,9 +289,18 @@
     }
   };
 
+  // 当前正在看的那一组规则；mode 只决定看哪一组，两组都会生效
+  const groupKey = (group = state.mode) => (group === 'keep' ? 'keepRules' : 'rules');
+  const groupRules = (group = state.mode) => {
+    const key = groupKey(group);
+    if (!Array.isArray(state[key])) state[key] = [];
+    return state[key];
+  };
+
   function renderRules() {
     const list = $('rule-list');
-    list.replaceChildren(...state.rules.map((rule, index) => {
+    const rules = groupRules();
+    list.replaceChildren(...rules.map((rule, index) => {
       const row = document.createElement('div');
       row.className = 'rule-row';
       row.innerHTML = `
@@ -305,7 +316,7 @@
       };
       check();
       input.addEventListener('input', () => {
-        state.rules[index] = input.value;
+        groupRules()[index] = input.value;
         check();
         save();
         renderTagChips();
@@ -314,15 +325,17 @@
       const remove = row.querySelector('yakit-button');
       remove.setAttribute('aria-label', `删除第 ${index + 1} 条规则`);
       remove.addEventListener('click', () => {
-        state.rules.splice(index, 1);
+        groupRules().splice(index, 1);
         save();
         renderRules();
         renderPreview();
       });
       return row;
     }));
-    $('rule-empty').hidden = state.rules.length > 0;
-    $('rule-count').textContent = state.rules.length ? `${state.rules.length} 条规则` : '';
+    $('rule-empty').hidden = rules.length > 0;
+    $('rule-empty').textContent = state.mode === 'keep' ? '还没有保留规则，保留全文。' : '还没有删除规则，导出原文。';
+    $('rule-count').textContent = rules.length ? `${rules.length} 条规则` : '';
+    renderModeCounts();
     renderTagChips();
   }
 
@@ -352,7 +365,7 @@
       chip.className = 'tag-chip';
       chip.textContent = scanAll && tag.floors ? `${tag.label} ${tag.floors} 层` : tag.label;
       chip.title = tag.rule;
-      chip.setAttribute('aria-pressed', String(state.rules.includes(tag.rule)));
+      chip.setAttribute('aria-pressed', String(groupRules().includes(tag.rule)));
       chip.addEventListener('click', () => toggleTagRule(tag.rule));
       return chip;
     }));
@@ -418,8 +431,9 @@
   new ResizeObserver(() => updateTagToggle()).observe($('tag-chips'));
 
   function toggleTagRule(rule) {
-    if (state.rules.includes(rule)) state.rules = state.rules.filter((item) => item !== rule);
-    else state.rules.push(rule);
+    const key = groupKey();
+    if (state[key].includes(rule)) state[key] = state[key].filter((item) => item !== rule);
+    else state[key].push(rule);
     save();
     renderRules();
     renderPreview();
@@ -456,7 +470,7 @@
   });
 
   $('rule-add').addEventListener('click', () => {
-    state.rules.push('');
+    groupRules().push('');
     save();
     renderRules();
     const inputs = $('rule-list').querySelectorAll('yakit-input');
@@ -464,11 +478,22 @@
     $('rule-list').scrollTop = $('rule-list').scrollHeight;
   });
 
+  // 切换只换正在编辑的那一组，两组规则都保留、都生效
   $('rule-mode').addEventListener('change', (event) => {
     state.mode = event.detail.value;
     save();
-    renderPreview();
+    renderRules();
+    renderSummary();
   });
+
+  // 分段选择器上写各组条数
+  function renderModeCounts() {
+    const counts = { delete: groupRules('delete').filter(Boolean).length, keep: groupRules('keep').filter(Boolean).length };
+    $('rule-mode').querySelectorAll('option').forEach((option) => {
+      const label = option.value === 'keep' ? '只保留匹配' : '删除匹配';
+      option.textContent = counts[option.value] ? `${label} ${counts[option.value]}` : label;
+    });
+  }
 
   /* ---------- 导出设置抽屉 ---------- */
 
@@ -664,17 +689,19 @@
     getState: () => structuredClone(state),
     replaceState(next = {}) {
       Object.assign(state, structuredClone(defaults), next, { types: { ...defaults.types, ...next.types } });
-      if (!Array.isArray(state.rules)) state.rules = [];
+      for (const key of ['rules', 'keepRules']) if (!Array.isArray(state[key])) state[key] = [];
       syncControls();
       renderRules();
       renderSummary();
       renderPreview();
       notifyChange();
     },
-    addRules(rules = []) {
-      const fresh = [...new Set(rules)].filter((rule) => rule && !state.rules.includes(rule));
+    addRules(rules = [], group = state.mode) {
+      const key = groupKey(group === 'keep' ? 'keep' : 'delete');
+      if (!Array.isArray(state[key])) state[key] = [];
+      const fresh = [...new Set(rules)].filter((rule) => rule && !state[key].includes(rule));
       if (!fresh.length) return 0;
-      state.rules.push(...fresh);
+      state[key].push(...fresh);
       save();
       renderRules();
       renderPreview();
