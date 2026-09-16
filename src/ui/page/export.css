@@ -39,8 +39,12 @@
 .rule-row { display: flex; align-items: flex-start; gap: 4px; }
 .rule-row + .rule-row { margin-top: 8px; }
 .rule-row yakit-input { flex: 1; min-width: 0; }
+/* 替换规则：查找和替换为两个输入框，窄屏上下排 */
+.rule-row.is-replace { flex-wrap: wrap; }
+.rule-row.is-replace yakit-input { flex: 1 1 200px; }
 /* 识别到的标签：点一下加对应规则，再点取消 */
 .tag-scan { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.tag-scan.is-other-group { display: none; }
 .tag-scan-label { flex: none; font-size: 12px; line-height: 24px; color: var(--text-muted); }
 /* 收起时只显示一行；展开时在原位变成多行，把下面的规则列表往下推 */
 .tag-chips-wrap { flex: 1; min-width: 0; }

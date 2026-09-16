@@ -587,8 +587,8 @@
   function contentSummary(content) {
     if (!content) return '';
     const types = TYPE_KEYS.filter((key) => content.types?.[key]).map((key) => TYPE_LABELS[key]).join('/') || '没有勾选消息类型';
-    const counts = [['删除', content.rules], ['保留', content.keepRules]]
-      .map(([label, list]) => [label, (list || []).filter(Boolean).length])
+    const counts = [['删除', content.rules], ['保留', content.keepRules], ['替换', content.replaceRules]]
+      .map(([label, list]) => [label, (list || []).filter((rule) => (typeof rule === 'string' ? rule : rule?.find)).length])
       .filter(([, count]) => count > 0)
       .map(([label, count]) => `${label} ${count} 条`);
     const rules = counts.length ? `${counts.join(' · ')}规则` : '没有规则';

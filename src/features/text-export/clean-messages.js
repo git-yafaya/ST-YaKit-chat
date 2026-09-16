@@ -79,9 +79,36 @@ function cleanText(text, regexes, mode) {
         .replace(/\uE000(?!\d+\uE001)\d*|(?<!\uE000\d+)\uE001/g, '');
 }
 
-// 两组规则：有保留规则时先只留下保留组匹配到的内容，再在其中删除删除组匹配到的内容。
-export function cleanByGroups(messages, deleteRules = [], keepRules = []) {
+// 替换组：按顺序依次替换，和酒馆的正则替换一致；替换文字里的 $1、$& 照正则规则展开。
+export function replaceMessages(messages, replacements = []) {
+    if (!Array.isArray(messages) || !Array.isArray(replacements)) throw new TypeError('messages 和 replacements 必须是数组');
+    if (!replacements.length) return messages;
+    const compiled = [];
+    for (const rule of replacements) {
+        if (rule === null || typeof rule !== 'object' || Array.isArray(rule)) throw new TypeError('replacements 中的规则必须是对象');
+        const { pattern, flags = '', to } = rule;
+        if (typeof pattern !== 'string' || typeof flags !== 'string' || typeof to !== 'string') {
+            throw new TypeError('替换规则的 pattern、flags 和 to 必须是字符串');
+        }
+        try {
+            compiled.push([new RegExp(pattern, flags.includes('g') ? flags : `${flags}g`), to]);
+        } catch (error) {
+            if (!(error instanceof SyntaxError)) throw error;
+        }
+    }
+    return messages.map(message => {
+        if (message === null || typeof message !== 'object' || Array.isArray(message)) throw new TypeError('messages 中的消息必须是对象');
+        if (typeof message.mes !== 'string') throw new TypeError('每条消息的 mes 必须是字符串');
+        let text = message.mes;
+        for (const [regex, to] of compiled) text = text.replace(regex, to);
+        return { ...message, mes: text };
+    });
+}
+
+// 三组规则：先按保留组只留下匹配到的内容，再按替换组依次替换，最后删除删除组匹配到的内容。
+export function cleanByGroups(messages, deleteRules = [], keepRules = [], replaceRules = []) {
     let result = keepRules.length ? cleanMessages(messages, keepRules, 'keep') : messages;
+    if (replaceRules.length) result = replaceMessages(result, replaceRules);
     if (deleteRules.length) result = cleanMessages(result, deleteRules, 'remove');
     return result;
 }

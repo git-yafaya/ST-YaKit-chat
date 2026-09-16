@@ -4,7 +4,7 @@ import { cleanByGroups } from './clean-messages.js';
 import { saveExport } from './save-export.js';
 import { scanTags } from './scan-recent-tags.js';
 import { getAiContext, suggestRules, cancelSuggestRules } from './ai-assist.js';
-import { normalizeSettings, parseRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
+import { normalizeSettings, parseRule, parseReplaceRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
 import { replaceImageTags, loadIllustrations, TOKEN_PATTERN } from './illustrations.js';
 
 function chatInfo(context) {
@@ -67,7 +67,8 @@ function readMessages(context, settings, refs = null) {
     let messages = filterMessages(included, settings.types);
     if (refs) messages = messages.map(message => ({ ...message, mes: replaceImageTags(message.mes, context.chat[message.floor - 1], message.floor - 1, context, refs) }));
     const parse = list => list.map(parseRule).filter(rule => rule !== null);
-    return cleanByGroups(messages, parse(settings.rules), parse(settings.keepRules));
+    const replacements = settings.replaceRules.map(parseReplaceRule).filter(rule => rule !== null);
+    return cleanByGroups(messages, parse(settings.rules), parse(settings.keepRules), replacements);
 }
 
 function previewMessages(settings = {}, count = 2) {

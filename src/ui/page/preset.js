@@ -68,8 +68,8 @@
   }
 
   function summarize(content = {}) {
-    const counts = [['删除', content.rules], ['保留', content.keepRules]]
-      .map(([label, list]) => [label, (list || []).filter((rule) => rule).length])
+    const counts = [['删除', content.rules], ['保留', content.keepRules], ['替换', content.replaceRules]]
+      .map(([label, list]) => [label, (list || []).filter((rule) => (typeof rule === 'string' ? rule : rule?.find)).length])
       .filter(([, count]) => count > 0)
       .map(([label, count]) => `${label} ${count} 条`);
     const parts = [counts.length ? `${counts.join(' · ')}规则` : '无规则'];

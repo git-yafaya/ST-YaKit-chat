@@ -6,7 +6,7 @@
  *
  * 1. exportUI.getAiContext() → { apiName, model, usingMainApi, jailbreakName }
  *      抽屉顶部显示正则助手正在用的接口和破限词；jailbreakName 为 null 表示不使用
- * 2. exportUI.suggestRules({ request, mode, rules, keepRules }) → { rules: [{ rule, explanation, action }] }
+ * 2. exportUI.suggestRules({ request, mode, rules, keepRules, replaceRules }) → { rules: [{ rule, explanation, action }] }
  *      request 是用户的描述，mode 是界面正在看的那一组，rules 是删除组、keepRules 是保留组现有规则
  *      action 为 'delete' / 'keep'，表示这条规则该进哪一组；失败 reject 中文原因
  *
@@ -23,7 +23,7 @@
   const page = () => window.YaKitExportPage;
 
   const ACTION_LABELS = { delete: '删除组', keep: '保留组' };
-  const MODE_NOTE = 'AI 按你的描述判断每条规则进删除组还是保留组。<br>添加时自动放进对应的那一组。';
+  const MODE_NOTE = 'AI 按你的描述判断每条规则进删除组还是保留组。<br>添加时自动放进对应的那一组；替换组的规则要自己写。';
   const CHAT_NOTES = { none: '先在酒馆里打开一个聊天', unavailable: '文本导出还没接入' };
   const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
   const ALERT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>';
@@ -135,6 +135,7 @@
       messages = await service().previewMessages({ ...state,
         rules: [...(state.rules || []), ...extra.delete],
         keepRules: [...(state.keepRules || []), ...extra.keep] }, 2);
+      if (!messages) return;
     } catch (error) {
       if (runToken !== token) return;
       box.innerHTML = '<div class="preview-empty">预览加载失败</div>';
@@ -167,8 +168,9 @@
     $('ai-request').setAttribute('disabled', '');
     showError('');
     try {
-      const result = await service().suggestRules({ request, mode: state.mode,
-        rules: [...(state.rules || [])], keepRules: [...(state.keepRules || [])] });
+      const result = await service().suggestRules({ request, mode: state.mode === 'keep' ? 'keep' : 'delete',
+        rules: [...(state.rules || [])], keepRules: [...(state.keepRules || [])],
+        replaceRules: (state.replaceRules || []).map(({ find, to }) => ({ find, to })) });
       if (runToken !== token) return;
       candidates = (Array.isArray(result?.rules) ? result.rules : [])
         .filter((item) => typeof item?.rule === 'string' && item.rule)

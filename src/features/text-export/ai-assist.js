@@ -4,7 +4,7 @@ import { getMainClient, generateSecondary } from './ai-client.js';
 import { buildRuleMessages, parseRuleSuggestions } from './ai-rules.js';
 import { getMessageType } from './filter-messages.js';
 import { cleanByGroups } from './clean-messages.js';
-import { parseRule } from './export-ui-settings.js';
+import { parseRule, parseReplaceRule } from './export-ui-settings.js';
 import { getRequestSettings, withRequestTimeout } from '../../shared/ai-request.js';
 
 let activeRun = null;
@@ -49,6 +49,11 @@ export async function suggestRules(options) {
     }
     if (!['delete', 'keep'].includes(options.mode)) throw new Error('请选择删除匹配或只保留匹配');
     const keepRules = options.keepRules === undefined ? [] : options.keepRules;
+    const replaceRules = options.replaceRules === undefined ? [] : options.replaceRules;
+    if (!Array.isArray(replaceRules) || Array.from(replaceRules).some(rule => rule === null || typeof rule !== 'object'
+        || typeof rule.find !== 'string' || typeof rule.to !== 'string')) {
+        throw new Error('已有规则内容不对，请重新打开 AI 辅助');
+    }
     if ([options.rules, keepRules].some(list => !Array.isArray(list) || Array.from(list).some(rule => typeof rule !== 'string'))) {
         throw new Error('已有规则内容不对，请重新打开 AI 辅助');
     }
@@ -63,7 +68,8 @@ export async function suggestRules(options) {
     const keep = [...keepRules];
     // 样本是这楼按现有两组规则清洗后的文字：先保留组，再删除组。
     const parse = list => list.map(rule => parseRule(rule)).filter(rule => rule !== null);
-    const [cleaned] = cleanByGroups([{ mes: context.chat[floor].mes }], parse(rules), parse(keep));
+    const replacements = Array.from(replaceRules).map(parseReplaceRule).filter(rule => rule !== null);
+    const [cleaned] = cleanByGroups([{ mes: context.chat[floor].mes }], parse(rules), parse(keep), replacements);
     if (!cleaned.mes.trim()) throw new Error('这条 AI 回复按现有规则清洗后没有剩下文字，请调整规则后重试');
     const sample = { floor, text: cleaned.mes };
     const messages = buildRuleMessages({ request: options.request.trim(), mode: options.mode, rules, keepRules: keep, sample, jailbreak, promptText: listCorePrompts().find(item => item.id === 'regex').text });

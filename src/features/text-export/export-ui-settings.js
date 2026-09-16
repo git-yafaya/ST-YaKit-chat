@@ -20,6 +20,7 @@ export function normalizeSettings(value = {}) {
         mode: 'delete',
         rules: [],
         keepRules: [],
+        replaceRules: [],
     };
     for (const key of ['allFloors', 'includeHidden', 'illustrated', 'start', 'end', 'fileName']) {
         if (!Object.hasOwn(value, key)) continue;
@@ -31,7 +32,7 @@ export function normalizeSettings(value = {}) {
     for (const [key, allowed] of Object.entries({
         format: ['txt', 'md', 'epub', 'jsonl'],
         labels: ['with', 'plain'],
-        mode: ['delete', 'keep'],
+        mode: ['delete', 'keep', 'replace'],
     })) {
         if (!Object.hasOwn(value, key)) continue;
         if (!allowed.includes(value[key])) throw new TypeError(`导出设置 ${key} 不受支持`);
@@ -54,6 +55,14 @@ export function normalizeSettings(value = {}) {
             throw new TypeError(`导出设置 ${key} 必须是字符串数组`);
         }
         settings[key] = [...value[key]];
+    }
+    // 替换组：每条是 { find, to }，find 写法同其他规则，to 是替换成的文字（可为空）。
+    if (Object.hasOwn(value, 'replaceRules')) {
+        const list = Array.isArray(value.replaceRules) ? Array.from(value.replaceRules) : null;
+        if (!list || list.some(rule => !isObject(rule) || typeof rule.find !== 'string' || typeof rule.to !== 'string')) {
+            throw new TypeError('导出设置 replaceRules 必须是 { find, to } 组成的数组');
+        }
+        settings.replaceRules = list.map(({ find, to }) => ({ find, to }));
     }
     // 旧设置没有保留组：原来选「只保留匹配」的规则整组迁到保留组。
     if (!Object.hasOwn(value, 'keepRules') && settings.mode === 'keep') {
@@ -85,6 +94,14 @@ export function parseRule(source) {
 
 export function isValidRule(source) {
     return parseRule(source) !== null;
+}
+
+// 替换组：查找写法同其他规则，{{match}} 换成整段匹配内容（正则替换里的 $&）。
+export function parseReplaceRule(rule) {
+    const parsed = parseRule(rule?.find);
+    if (parsed === null || typeof rule?.to !== 'string') return null;
+    // 用函数返回替换文字，避免 $& 在 replaceAll 里又被当成匹配内容
+    return { ...parsed, to: rule.to.replaceAll('{{match}}', () => '$&') };
 }
 
 export function loadSettings() {

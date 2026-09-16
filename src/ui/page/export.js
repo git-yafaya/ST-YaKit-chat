@@ -18,7 +18,9 @@
  *     illustrated: boolean,          插画小说：导出 EPUB 时带上柏宝绘、智绘姬生成的图片（只对 EPUB 生效，存进导出预设）
  *                                    loadSettings 返回的设置里没有这一项（且不是 null）时，界面认为还没接入：开关不能点，说明写「还没接入」
  *     fileName: string,              文件名，空字符串表示用默认名
- *     mode: 'delete' | 'keep',       界面正在看哪一组规则（删除组 / 保留组），两组始终同时生效
+ *     mode: 'delete' | 'keep' | 'replace',  界面正在看哪一组规则（删除组 / 保留组 / 替换组），三组始终同时生效
+ *     replaceRules: [{ find, to }],  替换组：find 写法同其他规则，to 是替换成的文字（可为空，{{match}} 表示整段匹配）
+ *                                    清洗顺序：保留组 → 替换组 → 删除组
  *     keepRules: string[],           保留组规则：有保留组规则时先只留下它们匹配到的内容，再在其中执行删除组（rules）
  *     rules: string[],               正则规则，每条是用户原样输入的文字
  *   }
@@ -74,6 +76,7 @@
     mode: 'delete',
     rules: [],
     keepRules: [],
+    replaceRules: [],
   };
 
   function loadState() {
@@ -289,18 +292,64 @@
     }
   };
 
-  // 当前正在看的那一组规则；mode 只决定看哪一组，两组都会生效
-  const groupKey = (group = state.mode) => (group === 'keep' ? 'keepRules' : 'rules');
+  // 当前正在看的那一组规则；mode 只决定看哪一组，三组都会生效
+  const GROUP_KEYS = { delete: 'rules', keep: 'keepRules', replace: 'replaceRules' };
+  const groupKey = (group = state.mode) => GROUP_KEYS[group] || GROUP_KEYS.delete;
   const groupRules = (group = state.mode) => {
     const key = groupKey(group);
     if (!Array.isArray(state[key])) state[key] = [];
     return state[key];
   };
 
+  // 替换组：一行两个输入框，左边查找、右边替换成的文字
+  function renderReplaceRules() {
+    $('rule-list').replaceChildren(...groupRules('replace').map((rule, index) => {
+      const row = document.createElement('div');
+      row.className = 'rule-row is-replace';
+      row.innerHTML = `
+        <yakit-input size="sm" placeholder="查找，例如 /<status>[\\s\\S]*?<\\/status>/g"></yakit-input>
+        <yakit-input size="sm" placeholder="替换成的文字，可留空"></yakit-input>
+        <yakit-button variant="ghost" size="sm" icon="../icons/trash.svg"></yakit-button>
+      `;
+      const [find, to] = row.querySelectorAll('yakit-input');
+      find.setAttribute('aria-label', `第 ${index + 1} 条替换规则的查找内容`);
+      to.setAttribute('aria-label', `第 ${index + 1} 条替换规则替换成的文字`);
+      find.value = rule.find ?? '';
+      to.value = rule.to ?? '';
+      const check = () => {
+        if (!find.value.trim() || ruleIsValid(find.value)) find.removeAttribute('error');
+        else find.setAttribute('error', '这条规则无效，已忽略');
+      };
+      check();
+      find.addEventListener('input', () => {
+        groupRules('replace')[index].find = find.value;
+        check();
+        save();
+        renderModeCounts();
+        renderPreview();
+      });
+      to.addEventListener('input', () => {
+        groupRules('replace')[index].to = to.value;
+        save();
+        renderPreview();
+      });
+      const remove = row.querySelector('yakit-button');
+      remove.setAttribute('aria-label', `删除第 ${index + 1} 条替换规则`);
+      remove.addEventListener('click', () => {
+        groupRules('replace').splice(index, 1);
+        save();
+        renderRules();
+        renderPreview();
+      });
+      return row;
+    }));
+  }
+
   function renderRules() {
     const list = $('rule-list');
     const rules = groupRules();
-    list.replaceChildren(...rules.map((rule, index) => {
+    if (state.mode === 'replace') renderReplaceRules();
+    else list.replaceChildren(...rules.map((rule, index) => {
       const row = document.createElement('div');
       row.className = 'rule-row';
       row.innerHTML = `
@@ -333,8 +382,11 @@
       return row;
     }));
     $('rule-empty').hidden = rules.length > 0;
-    $('rule-empty').textContent = state.mode === 'keep' ? '还没有保留规则，保留全文。' : '还没有删除规则，导出原文。';
+    $('rule-empty').textContent = { keep: '还没有保留规则，保留全文。', replace: '还没有替换规则，正文照原样。' }[state.mode]
+      || '还没有删除规则，导出原文。';
     $('rule-count').textContent = rules.length ? `${rules.length} 条规则` : '';
+    // 识别到的标签点一下加的是删除规则，看替换组时先不显示
+    $('tag-scan').classList.toggle('is-other-group', state.mode === 'replace');
     renderModeCounts();
     renderTagChips();
   }
@@ -470,7 +522,8 @@
   });
 
   $('rule-add').addEventListener('click', () => {
-    groupRules().push('');
+    if (state.mode === 'replace') groupRules('replace').push({ find: '', to: '' });
+    else groupRules().push('');
     save();
     renderRules();
     const inputs = $('rule-list').querySelectorAll('yakit-input');
@@ -488,9 +541,13 @@
 
   // 分段选择器上写各组条数
   function renderModeCounts() {
-    const counts = { delete: groupRules('delete').filter(Boolean).length, keep: groupRules('keep').filter(Boolean).length };
+    const counts = {
+      delete: groupRules('delete').filter(Boolean).length,
+      keep: groupRules('keep').filter(Boolean).length,
+      replace: groupRules('replace').filter((rule) => rule?.find).length,
+    };
     $('rule-mode').querySelectorAll('option').forEach((option) => {
-      const label = option.value === 'keep' ? '只保留匹配' : '删除匹配';
+      const label = { keep: '只保留匹配', replace: '替换' }[option.value] || '删除匹配';
       option.textContent = counts[option.value] ? `${label} ${counts[option.value]}` : label;
     });
   }
@@ -689,7 +746,7 @@
     getState: () => structuredClone(state),
     replaceState(next = {}) {
       Object.assign(state, structuredClone(defaults), next, { types: { ...defaults.types, ...next.types } });
-      for (const key of ['rules', 'keepRules']) if (!Array.isArray(state[key])) state[key] = [];
+      for (const key of ['rules', 'keepRules', 'replaceRules']) if (!Array.isArray(state[key])) state[key] = [];
       syncControls();
       renderRules();
       renderSummary();
