@@ -23,9 +23,6 @@
 
 #prompt-target-note { margin: 0 0 14px; }
 /* 恢复默认放左边，取消和保存放右边 */
-/* 恢复默认留在左边，取消和保存始终靠右（恢复默认不显示时也一样） */
-.prompt-drawer-footer { flex: 1; justify-content: flex-end; }
-.prompt-drawer-footer #prompt-drawer-reset { margin-right: auto; }
 
 /* 参数卡片 */
 .request-timeout { display: flex; align-items: center; gap: 6px; }
@@ -43,3 +40,7 @@
 /* 自定义提示词：分段选在看哪一类，下面是这一类的提示词列表 */
 #prompt-kind { margin-bottom: 10px; }
 #prompt-name { margin-bottom: 14px; }
+
+/* 助手下面的破限词、提示词两行，比接口那一行缩一点 */
+.assistant-card .sub-field { margin-top: 6px; }
+.assistant-card .sub-field .setting-label { color: var(--text-body); }

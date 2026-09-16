@@ -1,4 +1,3 @@
-import { listCorePrompts } from '../api-ui/core-prompts.js';
 import { getAssistantSelection } from '../assistant-management/index.js';
 import { getMainClient, generateSecondary } from '../text-export/ai-client.js';
 import { buildAssistantTask } from '../../shared/assistant-prompts.js';
@@ -86,8 +85,8 @@ async function worldInfoFor(host, floors) {
 
 export function createGenerator(context, inputs = null, { worldInfo = false } = {}) {
     // 每轮操作开始时固定接口、采样、破限词、文风、润色提示词和本次任务输入，本轮续写与重试沿用。
-    const { api, sampling, jailbreak, prompt } = structuredClone(getAssistantSelection('polish'));
-    const promptText = listCorePrompts().find(item => item.id === 'polish').text;
+    const { api, sampling, jailbreak, prompt, rules: assistRules } = structuredClone(getAssistantSelection('polish'));
+    const promptText = assistRules?.text ?? '';
     const inputsText = buildInputsText(structuredClone(inputs));
     const { timeoutSeconds, retries } = getRequestSettings();
     const host = { ...context };

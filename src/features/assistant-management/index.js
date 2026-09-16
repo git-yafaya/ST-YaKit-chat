@@ -2,9 +2,11 @@ import { normalizeSampling } from '../../shared/assistant-sampling.js';
 
 const DEFAULT_TEMPERATURE = { regex: 0.8, polish: 0.95 };
 import { readSettings, updateSettings } from '../../shared/settings.js';
+import { assistGroupKey, assistBuiltinId } from '../../shared/builtin-prompts.js';
 
 const kinds = ['regex', 'polish'];
-const fields = { regex: ['profile'], polish: ['profile'] };
+// profile = 用哪个接口；jailbreak = 用哪条破限词；rules = 用哪条本助手的提示词
+const fields = { regex: ['profile', 'jailbreak', 'rules'], polish: ['profile', 'jailbreak', 'rules'] };
 const promptDefaults = {
     jailbreak: { target: 'system', anchor: 'start', priority: 100 },
     style: { target: 'user', anchor: 'end', priority: 50 },
@@ -18,15 +20,23 @@ function isObject(value) {
     return value !== null && Object.prototype.toString.call(value) === '[object Object]';
 }
 
-function getGroup(settings, field) {
+function getGroup(settings, field, kind) {
     if (field === 'profile') return settings.apiProfiles;
-    return settings.prompts[field === 'jailbreak' ? 'jailbreak' : 'style'];
+    if (field === 'jailbreak') return settings.prompts.jailbreak;
+    if (field === 'rules') return settings.prompts[assistGroupKey(kind)];
+    return settings.prompts.style;
 }
 
-function validChoice(settings, field, value) {
+// 每一项都能选「跟随」；接口多一个「主 API」，破限词多一个「不使用」，助手提示词必须有一条
+function extraChoice(field) {
+    if (field === 'profile') return 'main';
+    return field === 'rules' ? null : 'none';
+}
+
+function validChoice(settings, field, value, kind) {
     return typeof value === 'string' && (value === 'follow'
-        || value === (field === 'profile' ? 'main' : 'none')
-        || getGroup(settings, field).items.some(item => item.id === value));
+        || value === extraChoice(field)
+        || getGroup(settings, field, kind).items.some(item => item.id === value));
 }
 
 function readAssistant(settings, kind) {
@@ -39,7 +49,7 @@ function readAssistant(settings, kind) {
     // 没保存过温度时用助手默认温度；用户清空后保存的 null 保持不设置。
     const sampling = { temperature: DEFAULT_TEMPERATURE[kind] ?? null, ...(isObject(saved?.sampling) ? saved.sampling : {}) };
     return { sampling: normalizeSampling(saved?.sampling === undefined || isObject(saved.sampling) ? sampling : saved.sampling), ...Object.fromEntries(fields[kind].map(field => [field,
-        validChoice(settings, field, saved?.[field]) ? saved[field] : 'follow',
+        validChoice(settings, field, saved?.[field], kind) ? saved[field] : 'follow',
     ])) };
 }
 
@@ -52,7 +62,7 @@ export function setAssistant(kind, patch) {
     assertKind(kind);
     if (!isObject(patch)) throw new Error('助手配置内容不对，请重新选择');
     const keys = Reflect.ownKeys(patch);
-    if (keys.some(field => !['profile', 'sampling'].includes(field))) throw new Error('这项助手设置不能修改');
+    if (keys.some(field => !['profile', 'jailbreak', 'rules', 'sampling'].includes(field))) throw new Error('这项助手设置不能修改');
     if (!keys.length) return getAssistant(kind);
     return updateSettings(settings => {
         const next = readAssistant(settings, kind);
@@ -64,7 +74,7 @@ export function setAssistant(kind, patch) {
                 next.sampling = { ...next.sampling, ...value };
                 continue;
             }
-            if (!validChoice(settings, field, value)) {
+            if (!validChoice(settings, field, value, kind)) {
                 throw new Error(field === 'profile' ? '所选接口已不存在或不能使用，请重新选择' : '所选提示词已不存在或不能使用，请重新选择');
             }
             next[field] = value;
@@ -80,7 +90,8 @@ export function setAssistant(kind, patch) {
 export function resetAssistant(kind) {
     assertKind(kind);
     return updateSettings(settings => {
-        const next = { profile: 'follow', sampling: normalizeSampling({ temperature: DEFAULT_TEMPERATURE[kind] ?? null }) };
+        const next = { profile: 'follow', jailbreak: 'follow', rules: 'follow',
+            sampling: normalizeSampling({ temperature: DEFAULT_TEMPERATURE[kind] ?? null }) };
         settings.assistants ??= {};
         settings.assistants[kind] = { ...settings.assistants[kind], ...next };
         return readAssistant(settings, kind);
@@ -93,8 +104,8 @@ function resolveRecord(group, selection) {
     return group.items.find(item => item.id === id) ?? null;
 }
 
-function resolvePrompt(settings, field, selection) {
-    const record = resolveRecord(getGroup(settings, field), selection);
+function resolvePrompt(settings, field, selection, kind) {
+    const record = resolveRecord(getGroup(settings, field, kind), selection);
     if (!record) return null;
     // 空破限词只在本次解析中视为不使用，保留原选择以便填写后自动生效。
     if (field === 'jailbreak' && (typeof record.content !== 'string' || !record.content.trim())) return null;
@@ -108,6 +119,14 @@ function resolvePrompt(settings, field, selection) {
     return result;
 }
 
+// 本助手的提示词正文：选中的那条没了就回到这一类内置的那条
+function resolveRules(settings, kind, selection) {
+    const group = getGroup(settings, 'rules', kind);
+    const record = resolveRecord(group, selection)
+        ?? group.items.find(item => item.id === assistBuiltinId(kind));
+    return record ? { id: record.id, name: record.name, text: record.content } : null;
+}
+
 export function getAssistantSelection(kind) {
     assertKind(kind);
     const settings = readSettings();
@@ -117,17 +136,19 @@ export function getAssistantSelection(kind) {
         sampling: selection.sampling,
         api: config ? { source: 'secondary', config } : { source: 'main' },
         // 用破限词库里正在用的那条（默认是内置那条）
-        jailbreak: resolvePrompt(settings, 'jailbreak', 'follow'),
+        // 破限词和本助手的提示词，各按这个助手自己的选择来
+        jailbreak: resolvePrompt(settings, 'jailbreak', selection.jailbreak),
+        rules: resolveRules(settings, kind, selection.rules),
         ...(kind === 'polish' ? { prompt: resolvePrompt(settings, 'prompt', 'follow') } : {}),
     };
 }
 
 // 删除事务只清理现有助手的匹配项，不补建助手配置。
 export function resetAssistantReferences(settings, field, id, kind) {
-    if (!['profile', 'jailbreak', 'prompt'].includes(field) || (field === 'prompt' && kind !== 'polish')) {
+    if (!['profile', 'jailbreak', 'prompt', 'rules'].includes(field) || (field === 'prompt' && kind !== 'polish')) {
         throw new Error('这项助手设置不能修改');
     }
-    for (const target of field === 'prompt' ? [kind] : kinds) {
+    for (const target of ['prompt', 'rules'].includes(field) ? [kind] : kinds) {
         const assistant = settings.assistants?.[target];
         if (assistant?.[field] === id) assistant[field] = 'follow';
     }

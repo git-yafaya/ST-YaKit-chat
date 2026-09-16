@@ -150,7 +150,7 @@ ST-YaKit-chat/
 10. API 管理页（`src/ui/page/api.js`）：
    - 打开时 `listProfiles()` + `getActiveProfileId()`、`listCorePrompts()`、`getAssistant('regex'|'polish')`、`getRequestSettings()`
    - 配置抽屉：输入时 `checkProfile(draft)`，保存 `saveProfile(draft)`；「获取模型」`fetchModels(draft)`、「测试连接」`testConnection(draft)`
-   - 助手卡片：接口下拉改动即 `setAssistant(kind, {profile})`；采样参数输入框离开时 `setAssistant(kind, {sampling: {某项: 数字|null}})`，空着为 null
+   - 助手卡片：三个下拉分别写 `setAssistant(kind, {profile})`、`{jailbreak}`、`{rules}`，选项来自 `listProfiles()` 与 `listPrompts('jailbreak'|kind)`，「跟随使用中」后面显示各自 `getActivePromptId` 指向那条的名字；采样参数输入框离开时 `setAssistant(kind, {sampling: {某项: 数字|null}})`，空着为 null
    - 自定义提示词卡片：分段切换 `jailbreak` / `regex` / `polish`，切换后 `listPrompts(kind)` + `getActivePromptId(kind)`；点某一行 `activatePrompt(kind, id)`；行尾按钮编辑、复制 `duplicatePrompt`、删除 `removePrompt`（内置那条不显示删除）；「新建提示词」和「编辑」共用一个抽屉（名称 + 正文），保存前 `checkPrompt(kind, draft)`，保存 `savePrompt(kind, draft)`，新建成功后自动 `activatePrompt`；只有内置那条显示「恢复默认」，点了把 `listCorePrompts()` 给的 `defaultText` 填进输入框（不直接写盘，保存才生效）；折叠行尾按 `listCorePrompts()` 的 `modified` 写「自定义 N 类 / 默认」
    - 参数卡片：超时离开输入框、重试点选即 `setRequestSettings(patch)`
 
@@ -424,6 +424,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 | 位置 | 默认 | 含义 |
 | --- | --- | --- |
 | `apiProfiles` | `{items:[], activeId:null}` | 副 API 配置与当前选择，未选时用主 API |
+| `assistants[kind]` | `{ profile:'follow', jailbreak:'follow', rules:'follow', sampling }` | 每个助手各自选接口、破限词、本助手的提示词；`follow` 跟随对应库正在用的那条，`profile` 可为 `main`，`jailbreak` 可为 `none`，`rules` 必须有一条（选中的被删掉时回到内置那条） |
 | `corePrompts` | 源码默认（jailbreak 英文纯文本，regex / polish 中文规则） | 固定三条提示词正文与编辑标记 |
 | `prompts.jailbreak` | 通用内置条目 | 破限词库；助手请求用 `activeId` 指向的那条（没选过或选的被删了回到内置那条），正文为空时这次不发 |
 | `prompts.regexAssist` / `prompts.polishAssist` | 各一条内置条目 | 正则助手、润色助手的提示词库；首次读取时把原来的 `corePrompts.regex` / `.polish` 迁进内置条目，内置条目不能删，删掉正在用的那条会回到内置那条 |

@@ -246,6 +246,14 @@
                 <span class="setting-label">正则助手</span>
                 <yakit-select size="sm" data-kind="regex" aria-label="正则助手用的接口"></yakit-select>
               </div>
+              <div class="setting-field sub-field">
+                <span class="setting-label">破限词</span>
+                <yakit-select size="sm" data-jailbreak="regex" aria-label="正则助手用哪条破限词"></yakit-select>
+              </div>
+              <div class="setting-field sub-field">
+                <span class="setting-label">提示词</span>
+                <yakit-select size="sm" data-rules="regex" aria-label="正则助手用哪条提示词"></yakit-select>
+              </div>
               <div class="sampling-grid" data-kind="regex">
                 <label class="sampling-cell"><span class="setting-label">温度</span><yakit-input type="number" size="sm" data-param="temperature" placeholder="不设置" aria-label="正则助手温度"></yakit-input></label>
                 <label class="sampling-cell"><span class="setting-label">Top P</span><yakit-input type="number" size="sm" data-param="topP" placeholder="不设置" aria-label="正则助手Top P"></yakit-input></label>
@@ -253,11 +261,19 @@
                 <label class="sampling-cell"><span class="setting-label">频率惩罚</span><yakit-input type="number" size="sm" data-param="frequencyPenalty" placeholder="不设置" aria-label="正则助手频率惩罚"></yakit-input></label>
                 <label class="sampling-cell"><span class="setting-label">存在惩罚</span><yakit-input type="number" size="sm" data-param="presencePenalty" placeholder="不设置" aria-label="正则助手存在惩罚"></yakit-input></label>
               </div>
-              <p class="field-note">文本导出页「AI 辅助」生成规则时用。</p>
+              <p class="field-note">文本导出页「AI 辅助」生成规则时用。<br>破限词和提示词选「跟随使用中」时，跟着「自定义提示词」里正在用的那条走。</p>
               <div class="btn-row assistant-reset"><yakit-button data-reset="regex">重置</yakit-button></div>
               <div class="setting-field request-gap">
                 <span class="setting-label">润色助手</span>
                 <yakit-select size="sm" data-kind="polish" aria-label="润色助手用的接口"></yakit-select>
+              </div>
+              <div class="setting-field sub-field">
+                <span class="setting-label">破限词</span>
+                <yakit-select size="sm" data-jailbreak="polish" aria-label="润色助手用哪条破限词"></yakit-select>
+              </div>
+              <div class="setting-field sub-field">
+                <span class="setting-label">提示词</span>
+                <yakit-select size="sm" data-rules="polish" aria-label="润色助手用哪条提示词"></yakit-select>
               </div>
               <div class="sampling-grid" data-kind="polish">
                 <label class="sampling-cell"><span class="setting-label">温度</span><yakit-input type="number" size="sm" data-param="temperature" placeholder="不设置" aria-label="润色助手温度"></yakit-input></label>
@@ -408,8 +424,8 @@
       <div class="ai-preview" id="ai-preview"></div>
     </section>
 
-    <div slot="footer" class="btn-row">
-      <yakit-button id="ai-close" variant="ghost">关闭</yakit-button>
+    <div slot="footer" class="btn-row drawer-footer">
+      <yakit-button id="ai-close" class="footer-cancel">关闭</yakit-button>
       <yakit-button id="ai-regenerate" hidden>重新生成</yakit-button>
       <yakit-button id="ai-apply" variant="primary" hidden>添加到规则</yakit-button>
     </div>
@@ -536,8 +552,8 @@
       </div>
     </section>
 
-    <div slot="footer" class="btn-row">
-      <yakit-button id="api-drawer-cancel" variant="ghost">取消</yakit-button>
+    <div slot="footer" class="btn-row drawer-footer">
+      <yakit-button id="api-drawer-cancel" class="footer-cancel">取消</yakit-button>
       <yakit-button id="api-drawer-save" variant="primary">保存</yakit-button>
     </div>
   </yakit-drawer>
@@ -552,8 +568,8 @@
       </div>
     </section>
     <p class="field-note">润色时合进 user 消息里，和本次任务一起发送。<br>在润色设置里选用哪一套文风。</p>
-    <div slot="footer" class="btn-row">
-      <yakit-button id="style-drawer-cancel" variant="ghost">取消</yakit-button>
+    <div slot="footer" class="btn-row drawer-footer">
+      <yakit-button id="style-drawer-cancel" class="footer-cancel">取消</yakit-button>
       <yakit-button id="style-drawer-save" variant="primary">保存</yakit-button>
     </div>
   </yakit-drawer>
@@ -565,9 +581,9 @@
     <section class="drawer-section">
       <yakit-input id="prompt-text" label="正文" multiline rows="12" placeholder="写下提示词内容"></yakit-input>
     </section>
-    <div slot="footer" class="btn-row prompt-drawer-footer">
+    <div slot="footer" class="btn-row drawer-footer">
+      <yakit-button id="prompt-drawer-cancel" class="footer-cancel">取消</yakit-button>
       <yakit-button id="prompt-drawer-reset" variant="ghost">恢复默认</yakit-button>
-      <yakit-button id="prompt-drawer-cancel">取消</yakit-button>
       <yakit-button id="prompt-drawer-save" variant="primary">保存</yakit-button>
     </div>
   </yakit-drawer>
@@ -780,8 +796,8 @@
       <div class="rule-name">去掉状态栏</div>
       <code>/&lt;status&gt;[\s\S]*?&lt;\/status&gt;/g</code>
     </div>
-    <div slot="footer" class="btn-row">
-      <yakit-button variant="ghost" data-close>取消</yakit-button>
+    <div slot="footer" class="btn-row drawer-footer">
+      <yakit-button class="footer-cancel" data-close>取消</yakit-button>
       <yakit-button variant="primary" data-close>保存</yakit-button>
     </div>
   </yakit-drawer>

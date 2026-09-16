@@ -597,13 +597,29 @@
     const token = ++assistantToken;
     let data;
     try {
-      const [profileList, activeProfile, regex, polish] = await Promise.all([
+      const [profileList, activeProfile, regex, polish, jailbreaks, jailbreakActive,
+        regexRules, regexActive, polishRules, polishActive] = await Promise.all([
         api.listProfiles(),
         api.getActiveProfileId(),
         api.getAssistant('regex'),
         api.getAssistant('polish'),
+        api.listPrompts('jailbreak'),
+        api.getActivePromptId('jailbreak'),
+        api.listPrompts('regex'),
+        api.getActivePromptId('regex'),
+        api.listPrompts('polish'),
+        api.getActivePromptId('polish'),
       ]);
-      data = { profileList: Array.isArray(profileList) ? profileList : [], activeProfile, current: { regex, polish } };
+      data = {
+        profileList: Array.isArray(profileList) ? profileList : [],
+        activeProfile,
+        current: { regex, polish },
+        jailbreaks: { items: Array.isArray(jailbreaks) ? jailbreaks : [], activeId: jailbreakActive },
+        rules: {
+          regex: { items: Array.isArray(regexRules) ? regexRules : [], activeId: regexActive },
+          polish: { items: Array.isArray(polishRules) ? polishRules : [], activeId: polishActive },
+        },
+      };
     } catch (error) {
       YaKitErrorLog.warn('读取助手配置失败', error);
       return;
@@ -626,11 +642,38 @@
         input.value = value === null || value === undefined ? '' : String(value);
       });
     });
-    document.querySelectorAll('#assistant-card yakit-select').forEach((select) => {
+    document.querySelectorAll('#assistant-card yakit-select[data-kind]').forEach((select) => {
       const value = data.current[select.dataset.kind]?.profile;
       select.replaceChildren(...options.map(([optionValue, label]) => new Option(label, optionValue)));
       // 找不到的 id（比如刚被删掉）按跟随使用中显示
       select.value = options.some(([optionValue]) => optionValue === value) ? value : 'follow';
+    });
+
+    // 破限词：可以跟随「自定义提示词」里正在用的那条，也可以指定一条或不用
+    const nameOf = (group) => group.items.find((item) => item.id === group.activeId)?.name || '没选';
+    document.querySelectorAll('#assistant-card yakit-select[data-jailbreak]').forEach((select) => {
+      const kind = select.dataset.jailbreak;
+      const list = [
+        ['follow', `跟随使用中（${nameOf(data.jailbreaks)}）`],
+        ['none', '不使用'],
+        ...data.jailbreaks.items.map((item) => [item.id, item.name]),
+      ];
+      const value = data.current[kind]?.jailbreak;
+      select.replaceChildren(...list.map(([optionValue, label]) => new Option(label, optionValue)));
+      select.value = list.some(([optionValue]) => optionValue === value) ? value : 'follow';
+    });
+
+    // 提示词：这个助手自己那一类里的哪一条
+    document.querySelectorAll('#assistant-card yakit-select[data-rules]').forEach((select) => {
+      const kind = select.dataset.rules;
+      const group = data.rules[kind];
+      const list = [
+        ['follow', `跟随使用中（${nameOf(group)}）`],
+        ...group.items.map((item) => [item.id, item.name]),
+      ];
+      const value = data.current[kind]?.rules;
+      select.replaceChildren(...list.map(([optionValue, label]) => new Option(label, optionValue)));
+      select.value = list.some(([optionValue]) => optionValue === value) ? value : 'follow';
     });
   }
 
@@ -655,11 +698,13 @@
     });
   });
 
+  // 三个下拉分别存接口、破限词、这个助手用的提示词
   document.querySelectorAll('#assistant-card yakit-select').forEach((select) => {
+    const field = select.dataset.kind ? 'profile' : (select.dataset.jailbreak ? 'jailbreak' : 'rules');
+    const kind = select.dataset.kind || select.dataset.jailbreak || select.dataset.rules;
     select.addEventListener('change', async (event) => {
-      const kind = select.dataset.kind;
       try {
-        await service().setAssistant(kind, { profile: event.detail.value });
+        await service().setAssistant(kind, { [field]: event.detail.value });
         YaKitToast.show(`已保存${ASSISTANT_NAMES[kind]}`, 'success');
       } catch (error) {
         showError(error, '保存助手失败');
