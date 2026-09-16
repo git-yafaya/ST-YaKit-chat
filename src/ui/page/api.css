@@ -23,7 +23,8 @@
 
 #prompt-target-note { margin: 0 0 14px; }
 /* 恢复默认放左边，取消和保存放右边 */
-.prompt-drawer-footer { flex: 1; }
+/* 恢复默认留在左边，取消和保存始终靠右（恢复默认不显示时也一样） */
+.prompt-drawer-footer { flex: 1; justify-content: flex-end; }
 .prompt-drawer-footer #prompt-drawer-reset { margin-right: auto; }
 
 /* 参数卡片 */
