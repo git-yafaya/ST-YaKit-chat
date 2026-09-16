@@ -90,11 +90,11 @@ function hasNewError() {
     }
 }
 
-// 有新版本、而且用户在当前这一版还没看过提示时，点一个点睛色圆点
-function hasUnseenUpdate(available) {
+// 有新版本、而且这个版本的提示还没看过时，点一个点睛色圆点
+function hasUnseenUpdate(available, target) {
     if (!available) return false;
     try {
-        return localStorage.getItem(UPDATE_SEEN_KEY) !== (globalThis.YaKitChat?.version ?? '');
+        return localStorage.getItem(UPDATE_SEEN_KEY) !== target;
     } catch {
         return true;
     }
@@ -317,12 +317,16 @@ function openPanel() {
     /* ---------- 设置页签上的提醒小圆点 ---------- */
     // 出过没看过的报错点危险色，有没看过的新版本点点睛色，两样都有时按报错算
     let updateAvailable = false;
+    let updateTarget = '';   // 仓库里那个新版本号；读不到时退回本插件版本号
     let lastCheck = 0;
     const settingsOption = [...tabs.querySelectorAll('option')].find((option) => option.value === 'settings');
     const settingsBottomTab = bottomTabs.find((tab) => tab.dataset.tab === 'settings');
 
+    // 看过更新提示时记下的是哪个版本：知道仓库的新版本号就记它，读不到就记本插件版本号
+    const seenTarget = () => updateTarget || globalThis.YaKitChat?.version || '';
+
     function refreshAlerts() {
-        const dot = hasNewError() ? 'danger' : (hasUnseenUpdate(updateAvailable) ? 'accent' : '');
+        const dot = hasNewError() ? 'danger' : (hasUnseenUpdate(updateAvailable, seenTarget()) ? 'accent' : '');
         if (dot) {
             settingsOption?.setAttribute('dot', dot);
             settingsBottomTab?.setAttribute('data-dot', dot);
@@ -340,10 +344,31 @@ function openPanel() {
         try {
             const { isUpToDate, canUpdate } = await service.checkUpdate();
             updateAvailable = Boolean(canUpdate) && !isUpToDate;
+            updateTarget = updateAvailable ? await readTargetVersion() : '';
         } catch {
             updateAvailable = false;
+            updateTarget = '';
             lastCheck = 0;
         }
+        refreshAlerts();
+    }
+
+    // 新版本号从更新公告里取（仓库 NOTICE.md 的第一条就是最高版本）；读不到就算了，不影响提醒
+    async function readTargetVersion() {
+        const notice = globalThis.YaKitChat?.notice;
+        if (typeof notice?.fetchNewer !== 'function') return '';
+        try {
+            const list = await notice.fetchNewer();
+            return list?.[0]?.version || '';
+        } catch {
+            return '';
+        }
+    }
+
+    // 面板里展开了「报错记录」或「更新」那一行，就算看过这一项
+    function markSeen(kind) {
+        if (kind === 'error') saveSetting(ERROR_SEEN_KEY, String(YaKitErrorLog.list()[0]?.time ?? 0));
+        if (kind === 'update') saveSetting(UPDATE_SEEN_KEY, seenTarget());
         refreshAlerts();
     }
 
@@ -375,8 +400,11 @@ function openPanel() {
             if (typeof data.updateAvailable === 'boolean') {
                 updateAvailable = data.updateAvailable;
                 lastCheck = Date.now();
+                if (updateAvailable) readTargetVersion().then((version) => { updateTarget = version; refreshAlerts(); });
+                else updateTarget = '';
             }
-            refreshAlerts();
+            if (data.seen) markSeen(data.seen);
+            else refreshAlerts();
         }
     };
     window.addEventListener('message', onMessage);
