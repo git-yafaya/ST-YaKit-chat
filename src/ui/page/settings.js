@@ -4,11 +4,31 @@
 (() => {
   const $ = (id) => document.getElementById(id);
 
+  /* ---------- 设置页签上的提醒小圆点：展开哪一行就算看过哪一项 ---------- */
+  const ERROR_SEEN_KEY = 'yakit-error-seen';
+  const UPDATE_SEEN_KEY = 'yakit-update-seen';
+  const tellAlerts = (extra = {}) => parent.postMessage({ type: 'yakit:alerts', ...extra }, '*');
+
+  function markSeen(key, value) {
+    try {
+      localStorage.setItem(key, String(value));
+    } catch {
+      // 存不了就这次不记，下次还会提醒
+    }
+    tellAlerts();
+  }
+
   /* ---------- 二级设置项：同一时间只展开一项 ---------- */
   const settingItems = [...document.querySelectorAll('.settings-list yakit-collapse:not([link])')];
   settingItems.forEach((item) => item.addEventListener('toggle', (event) => {
     if (event.detail.open) settingItems.forEach((other) => { if (other !== item) other.open = false; });
   }));
+  $('set-errors').addEventListener('toggle', (event) => {
+    if (event.detail.open) markSeen(ERROR_SEEN_KEY, YaKitErrorLog.list()[0]?.time ?? 0);
+  });
+  $('set-update').addEventListener('toggle', (event) => {
+    if (event.detail.open) markSeen(UPDATE_SEEN_KEY, parent.YaKitChat?.version ?? '');
+  });
   $('set-demo').addEventListener('activate', () => $('demo-drawer').show());
   // 组件示例平时隐藏，开发时在控制台运行 localStorage.setItem('yakit-demo', 'on') 后刷新即可看到
   try { $('set-demo').hidden = localStorage.getItem('yakit-demo') !== 'on'; } catch {}
@@ -62,6 +82,7 @@
     updateButton.setAttribute('loading', '');
     try {
       const { isUpToDate, canUpdate } = await service.checkUpdate();
+      tellAlerts({ updateAvailable: Boolean(canUpdate) && !isUpToDate });
       if (!canUpdate) setUpdateState('无法在线更新');
       else if (isUpToDate) {
         setUpdateState('已是最新', { canClick: true, action: 'check' });

@@ -146,6 +146,7 @@ ST-YaKit-chat/
    - 「更新」：切到设置页时 `updater.checkUpdate()`，一分钟内不重复自动检查；已是最新或检查失败时按钮为「检查更新」；有新版本时「更新」→ `updater.update()` → `updated: true` 时约 1.2 秒后 `parent.location.reload()`；失败在按钮下方显示 `error.message`；未提供 `updater` 时不显示这一行
    - 「更新公告」按钮：打开抽屉先 `notice.listInstalled()`，再 `notice.fetchNewer()`，新版本条目标「还没更新」排在最上；读取失败显示危险提示框。面板加载后收到页签消息时，比较 `localStorage` 的 `yakit-notice-seen` 与 `YaKitChat.version`：记录存在且不同、已安装公告里有当前版本时自动弹出一次；没有记录（首次安装）只写入不弹
    - 「报错记录」：`YaKitErrorLog` 记录危险提示、页面脚本捕获的失败、面板与弹窗中未处理的报错（弹窗只记插件文件的错，浏览器 ResizeObserver 布局提示不记），存 `localStorage` 最多 50 条
+   - 「设置」页签的提醒小圆点由弹窗外壳（`src/ui/panel/index.js`）管理：报错点比较 `yakit-error-log` 最新一条的时间与 `yakit-error-seen`；更新点在打开面板后空闲调 `updater.checkUpdate()`（一分钟内不重复，失败当作没有新版本），与 `yakit-update-seen` 里存的插件版本号比较；设置页展开「报错记录」或「更新」那一行时写入对应的 seen 并 `postMessage({type:'yakit:alerts'})` 通知弹窗刷新；弹窗还监听 `yakit-error-log-change` 与 `storage` 事件
 10. API 管理页（`src/ui/page/api.js`）：
    - 打开时 `listProfiles()` + `getActiveProfileId()`、`listCorePrompts()`、`getAssistant('regex'|'polish')`、`getRequestSettings()`
    - 配置抽屉：输入时 `checkProfile(draft)`，保存 `saveProfile(draft)`；「获取模型」`fetchModels(draft)`、「测试连接」`testConnection(draft)`
@@ -455,6 +456,8 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 | `yakit-tavern-theme` | 首次使用时生成 | 「跟随ST」取色结果与美化指纹 |
 | `yakit-error-log` | 空 | 报错记录，最多 50 条，弹窗与面板共用 |
 | `yakit-notice-seen` | 首次打开时写入当前版本 | 看过更新公告的版本号，判断更新后是否自动弹出 |
+| `yakit-error-seen` | 无 | 看过报错记录时最新一条的时间戳，判断设置页签要不要点提醒小圆点 |
+| `yakit-update-seen` | 无 | 看过「更新」那一行时的插件版本号，判断有新版本时要不要点提醒小圆点 |
 | `yakit-demo` | 无 | 值为 `on` 时设置页显示组件示例 |
 
 旧版本存在 `dsh-theme`、`dsh-nav`、`dsh-theme-switch`、`dsh-tavern-theme` 里的值，弹窗初始化时自动搬到对应的 `yakit-` 键（新键已有值时不覆盖），并删除旧键。

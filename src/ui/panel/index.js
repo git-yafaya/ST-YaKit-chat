@@ -24,6 +24,10 @@ const THEME_KEY = 'yakit-theme';
 const DEFAULT_THEME = 'fir';
 const NAV_KEY = 'yakit-nav';
 const NAV_MODES = ['auto', 'top', 'bottom'];
+// 设置页签上的提醒小圆点：出过没看过的报错、或有还没看过的新版本
+const ERROR_SEEN_KEY = 'yakit-error-seen';
+const UPDATE_SEEN_KEY = 'yakit-update-seen';
+const CHECK_INTERVAL = 60 * 1000;
 // 面板是插件自己的页面，允许它读取插件文件（酒馆服务器不给隔离页面读文件）
 // 样式依然和酒馆互不影响；以后面板也能直接读酒馆数据、下载导出文件
 const PANEL_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads';
@@ -75,6 +79,27 @@ const readTheme = () => readSetting(THEME_KEY, (v) => THEMES.some((t) => t.id ==
 const saveTheme = (theme) => saveSetting(THEME_KEY, theme);
 const readNav = () => readSetting(NAV_KEY, (v) => NAV_MODES.includes(v), 'auto');
 
+// 设置页里出过没看过的报错时，页签上点一个危险色圆点
+function hasNewError() {
+    try {
+        const latest = YaKitErrorLog.list()[0];
+        if (!latest) return false;
+        return Number(localStorage.getItem(ERROR_SEEN_KEY) || 0) < latest.time;
+    } catch {
+        return false;
+    }
+}
+
+// 有新版本、而且用户在当前这一版还没看过提示时，点一个点睛色圆点
+function hasUnseenUpdate(available) {
+    if (!available) return false;
+    try {
+        return localStorage.getItem(UPDATE_SEEN_KEY) !== (globalThis.YaKitChat?.version ?? '');
+    } catch {
+        return true;
+    }
+}
+
 // 电脑：用鼠标（能悬停、指得准）并且窗口够宽
 const pcQuery = matchMedia('(hover: hover) and (pointer: fine) and (min-width: 768px)');
 
@@ -104,6 +129,8 @@ function openPanel() {
     if (existing) {
         existing.classList.remove('is-closing');
         existing.showModal();
+        // 关掉期间可能出过报错、也可能发布了新版本
+        existing.yakitRefreshAlerts?.();
         return;
     }
 
@@ -287,6 +314,52 @@ function openPanel() {
         setTheme(THEMES[(index + 1) % THEMES.length].id);
     });
 
+    /* ---------- 设置页签上的提醒小圆点 ---------- */
+    // 出过没看过的报错点危险色，有没看过的新版本点点睛色，两样都有时按报错算
+    let updateAvailable = false;
+    let lastCheck = 0;
+    const settingsOption = [...tabs.querySelectorAll('option')].find((option) => option.value === 'settings');
+    const settingsBottomTab = bottomTabs.find((tab) => tab.dataset.tab === 'settings');
+
+    function refreshAlerts() {
+        const dot = hasNewError() ? 'danger' : (hasUnseenUpdate(updateAvailable) ? 'accent' : '');
+        if (dot) {
+            settingsOption?.setAttribute('dot', dot);
+            settingsBottomTab?.setAttribute('data-dot', dot);
+        } else {
+            settingsOption?.removeAttribute('dot');
+            settingsBottomTab?.removeAttribute('data-dot');
+        }
+    }
+
+    // 不进设置页也要能看到提醒，所以打开面板时自己查一次（一分钟内不重复，失败就当没有）
+    async function checkUpdateQuietly() {
+        const service = globalThis.YaKitChat?.updater;
+        if (typeof service?.checkUpdate !== 'function' || Date.now() - lastCheck < CHECK_INTERVAL) return;
+        lastCheck = Date.now();
+        try {
+            const { isUpToDate, canUpdate } = await service.checkUpdate();
+            updateAvailable = Boolean(canUpdate) && !isUpToDate;
+        } catch {
+            updateAvailable = false;
+            lastCheck = 0;
+        }
+        refreshAlerts();
+    }
+
+    const idle = globalThis.requestIdleCallback || ((fn) => setTimeout(fn, 1000));
+    dialog.yakitRefreshAlerts = () => {
+        refreshAlerts();
+        idle(() => checkUpdateQuietly());
+    };
+    refreshAlerts();
+    idle(() => checkUpdateQuietly());
+    // 弹窗自己记的报错、面板那边记的报错（storage 事件）都要跟着刷新
+    window.addEventListener('yakit-error-log-change', refreshAlerts);
+    window.addEventListener('storage', (event) => {
+        if (['yakit-error-log', ERROR_SEEN_KEY, UPDATE_SEEN_KEY].includes(event.key)) refreshAlerts();
+    });
+
     // 设置页里点了某个主题
     const onMessage = (event) => {
         if (event.source !== frame.iframe.contentWindow) return;
@@ -296,6 +369,14 @@ function openPanel() {
             navMode = data.mode;
             saveSetting(NAV_KEY, navMode);
             applyNav();
+        }
+        // 面板里看过报错记录或更新那一行；也用于面板自己查过更新之后同步
+        if (data.type === 'yakit:alerts') {
+            if (typeof data.updateAvailable === 'boolean') {
+                updateAvailable = data.updateAvailable;
+                lastCheck = Date.now();
+            }
+            refreshAlerts();
         }
     };
     window.addEventListener('message', onMessage);

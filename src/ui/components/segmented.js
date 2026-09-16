@@ -15,6 +15,10 @@
  *   block       撑满整行，每项一样宽
  *   size="sm"   小号
  *
+ * 选项写法：
+ *   <option value="settings" dot="danger">设置</option>
+ *   dot="danger" / "accent" 在这一项右上角点一个提醒小圆点，不写就没有
+ *
  * 事件：
  *   change      切换时触发，event.detail.value 是新选中的值
  */
@@ -95,6 +99,20 @@
     :host([size="sm"]) button { padding: 0 10px; }
     button:hover { color: var(--text-title, #14171A); }
     button:disabled { cursor: not-allowed; opacity: 0.45; }
+    /* 提醒小圆点：右上角，表示这一项里有需要看的东西 */
+    button[data-dot]::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--danger, #D4574B);
+    }
+    button[data-dot="accent"]::after { background: var(--accent, #5B7FB0); }
+    :host([size="sm"]) button[data-dot]::after { top: 2px; right: 4px; }
+
     button:focus { outline: none; }
     button:focus-visible { outline: 2px solid var(--primary, #46618A); outline-offset: 1px; }
     button[aria-checked="true"],
@@ -120,14 +138,18 @@
       this.buttons = [];
       // 宽度变了（换字体、窗口变大小）时直接摆好滑块，不播放滑动动画
       this.resizeObserver = new ResizeObserver(() => this.place({ animate: false }));
-      this.childObserver = new MutationObserver(() => this.build());
+      // 只改了提醒小圆点时不重建按钮，免得滑块跳一下
+      this.childObserver = new MutationObserver((records) => {
+        if (records.every((record) => record.type === 'attributes' && record.attributeName === 'dot')) this.syncDots();
+        else this.build();
+      });
       this.onFontsLoaded = () => this.place({ animate: false });
     }
 
     connectedCallback() {
       this.build();
       this.resizeObserver.observe(this);
-      this.childObserver.observe(this, { childList: true, subtree: true, characterData: true });
+      this.childObserver.observe(this, { childList: true, subtree: true, characterData: true, attributeFilter: ['dot'] });
       // 先摆好滑块位置，再打开动画，避免一出现就从左边滑过来
       requestAnimationFrame(() => {
         this.place({ animate: false });
@@ -162,6 +184,8 @@
         button.textContent = option.textContent;
         button.dataset.value = option.value;
         button.disabled = option.disabled;
+        const dot = option.getAttribute('dot');
+        if (dot) button.dataset.dot = dot;
         button.addEventListener('click', () => this.select(option.value));
         button.addEventListener('keydown', (event) => this.onKey(event));
         this.track.append(button);
@@ -169,6 +193,16 @@
         return button;
       });
       this.sync();
+    }
+
+    syncDots() {
+      [...this.querySelectorAll('option')].forEach((option, index) => {
+        const button = this.buttons[index];
+        if (!button) return;
+        const dot = option.getAttribute('dot');
+        if (dot) button.dataset.dot = dot;
+        else delete button.dataset.dot;
+      });
     }
 
     select(value, focus = false) {
