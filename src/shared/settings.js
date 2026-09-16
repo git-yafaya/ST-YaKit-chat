@@ -1,4 +1,4 @@
-import { ensureBuiltinJailbreaks } from './builtin-prompts.js';
+import { ensureBuiltinJailbreaks, ensureAssistPrompts, assistGroupKey, ASSIST_KINDS } from './builtin-prompts.js';
 
 const SETTINGS_KEY = 'ST-YaKit-chat';
 
@@ -33,10 +33,11 @@ function snapshot(context) {
     settings.apiProfiles = readGroup(settings.apiProfiles);
     settings.prompts ??= {};
     if (!isObject(settings.prompts)) throw new Error('纪实提示词设置格式不正确');
-    for (const category of ['jailbreak', 'style']) {
+    for (const category of ['jailbreak', 'style', ...ASSIST_KINDS.map(assistGroupKey)]) {
         settings.prompts[category] = readGroup(settings.prompts[category]);
     }
     ensureBuiltinJailbreaks(settings);
+    ensureAssistPrompts(settings);
     // 原文风库直接复用；助手的独立选择只迁移一次，避免取消使用后又被旧字段恢复。
     if (settings.styleSelectionMigrated !== true) {
         const group = settings.prompts.style;

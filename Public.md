@@ -2,11 +2,11 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.7.2。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、固定三条提示词；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.0。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。入口目前直接引用多个业务模块，尚未收敛为「UI 总文件 + 业务总文件」两个引用。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
-- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出、标签识别与正则 AI 辅助，11 个）；`polishUI`（润色，20 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、固定提示词、助手、请求参数；旧提示词接口仍保留）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
+- **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出、标签识别与正则 AI 辅助，11 个）；`polishUI`（润色，20 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、自定义提示词三类各一个库、助手、请求参数）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
 - **当前还没做什么**：v0.7.0 的整理标签、三组规则、酒馆聊天导出与预设叠加只有离线测试和真实页面的只读核对，写入规则、叠加切换与导出文件都没在真实环境跑过（这些不需要 AI 请求，小主复测即可）；润色功能仍在测试中，已知可能出现回复格式不对、被模型拒绝、字数变少或效果不理想，世界书开关与重写后的提示词未经真实 API 对照测试；插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
 
 ## 仓库结构
@@ -151,7 +151,7 @@ ST-YaKit-chat/
    - 打开时 `listProfiles()` + `getActiveProfileId()`、`listCorePrompts()`、`getAssistant('regex'|'polish')`、`getRequestSettings()`
    - 配置抽屉：输入时 `checkProfile(draft)`，保存 `saveProfile(draft)`；「获取模型」`fetchModels(draft)`、「测试连接」`testConnection(draft)`
    - 助手卡片：接口下拉改动即 `setAssistant(kind, {profile})`；采样参数输入框离开时 `setAssistant(kind, {sampling: {某项: 数字|null}})`，空着为 null
-   - 提示词卡片固定三行；编辑抽屉保存 `saveCorePrompt(id, text)`，「恢复默认」`resetCorePrompt(id)`，输入时把输入框原文和 `defaultText` 比较决定按钮能不能点；正则 / 润色提示词编辑页在正文上方列出程序使用的标签（界面静态表，内容来自业务说明）
+   - 自定义提示词卡片：分段切换 `jailbreak` / `regex` / `polish`，切换后 `listPrompts(kind)` + `getActivePromptId(kind)`；点某一行 `activatePrompt(kind, id)`；行尾按钮编辑、复制 `duplicatePrompt`、删除 `removePrompt`（内置那条不显示删除）；「新建提示词」和「编辑」共用一个抽屉（名称 + 正文），保存前 `checkPrompt(kind, draft)`，保存 `savePrompt(kind, draft)`，新建成功后自动 `activatePrompt`；只有内置那条显示「恢复默认」，点了把 `listCorePrompts()` 给的 `defaultText` 填进输入框（不直接写盘，保存才生效）；折叠行尾按 `listCorePrompts()` 的 `modified` 写「自定义 N 类 / 默认」
    - 参数卡片：超时离开输入框、重试点选即 `setRequestSettings(patch)`
 
 <details>
@@ -425,7 +425,8 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 | --- | --- | --- |
 | `apiProfiles` | `{items:[], activeId:null}` | 副 API 配置与当前选择，未选时用主 API |
 | `corePrompts` | 源码默认（jailbreak 英文纯文本，regex / polish 中文规则） | 固定三条提示词正文与编辑标记 |
-| `prompts.jailbreak` | 通用内置条目 | 旧破限词库（旧接口仍可用，自建破限词不进入助手请求） |
+| `prompts.jailbreak` | 通用内置条目 | 破限词库；助手请求用 `activeId` 指向的那条（没选过或选的被删了回到内置那条），正文为空时这次不发 |
+| `prompts.regexAssist` / `prompts.polishAssist` | 各一条内置条目 | 正则助手、润色助手的提示词库；首次读取时把原来的 `corePrompts.regex` / `.polish` 迁进内置条目，内置条目不能删，删掉正在用的那条会回到内置那条 |
 | `prompts.style` | `[]`，activeId null | 文风预设库（`styles` 接口操作） |
 | `assistants.regex` / `assistants.polish` | `{profile:'follow', sampling:{五项 null}}` | 两个助手独立 |
 | `requestSettings` | `{timeoutSeconds:360, retries:1}` | 超时 30–1800 整数秒，重试 0–3 |
@@ -1259,7 +1260,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.7.2 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.8.0 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 
 ## 开发与验证
 

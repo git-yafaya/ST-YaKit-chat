@@ -225,10 +225,18 @@
             <yakit-button id="api-create" size="sm" variant="primary" icon="../icons/plus.svg">新建配置</yakit-button>
           </div>
         </yakit-collapse>
-        <yakit-collapse id="api-entry-prompts" title="提示词" icon="../icons/edit.svg">
-          <p class="field-note api-section-note">发给 AI 的固定提示词</p>
+        <yakit-collapse id="api-entry-prompts" title="自定义提示词" icon="../icons/edit.svg">
+          <p class="field-note api-section-note">发给 AI 的提示词，每一类可以存好几条，点一条就是用它</p>
+          <yakit-segmented id="prompt-kind" size="sm" block value="jailbreak" aria-label="提示词类型">
+            <option value="jailbreak">破限词</option>
+            <option value="regex">正则助手</option>
+            <option value="polish">润色助手</option>
+          </yakit-segmented>
           <div class="prompt-card" id="prompt-card">
               <div class="choice-list prompt-fixed" id="prompt-list" role="list"></div>
+          </div>
+          <div class="btn-row list-add" id="prompt-actions">
+            <yakit-button id="prompt-create" size="sm" variant="primary" icon="../icons/plus.svg">新建提示词</yakit-button>
           </div>
         </yakit-collapse>
         <yakit-collapse id="api-entry-assistants" title="助手" icon="../icons/sparkle.svg" hidden>
@@ -553,6 +561,7 @@
   <!-- API 管理：编辑固定提示词 -->
   <yakit-drawer id="prompt-drawer" title="编辑提示词">
     <p class="field-note" id="prompt-target-note"></p>
+    <yakit-input id="prompt-name" label="名称" maxlength="30" placeholder="给这条提示词起个名字"></yakit-input>
     <section class="drawer-section">
       <yakit-input id="prompt-text" label="正文" multiline rows="12" placeholder="写下提示词内容"></yakit-input>
     </section>

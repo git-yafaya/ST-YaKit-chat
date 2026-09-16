@@ -18,17 +18,20 @@
  *  9. apiUI.testConnection(draft) → { message }        用抽屉里填写的内容试连，失败 reject 中文原因
  * 10. apiUI.fetchModels(draft) → string[]
  *
- * 固定提示词（三条，顺序固定，不能新建、删除）
- *   corePrompt 的形状：{ id: 'jailbreak' | 'regex' | 'polish', name, target: 'system' | 'user', text, defaultText, modified: boolean }
- *   jailbreak = 通用破限词（单独一条 system，正文为空时不发送）；
- *   regex / polish = 正则提示词 / 润色提示词（user 消息开头的规则和要求，后面由程序接上本次任务材料和输出格式）
- *   defaultText = 默认正文；编辑抽屉里边输入边和它比较，决定「恢复默认」能不能点（没提供时按 modified 判断）
- *   modified = 已保存的正文和默认内容不同
+ * 自定义提示词：破限词（jailbreak）、正则助手（regex）、润色助手（polish）三类，每类是一个提示词库，
+ *   各自可以存好几条、选一条在用；每类有一条内置的默认提示词，可以改、可以「恢复默认」，但不能删。
+ *   prompt 的形状：{ id, name, target: 'system' | 'user', text, builtin: boolean }
+ *   破限词单独作为 system 消息发送，正文为空时这次不发；正则、润色的正文是 user 消息开头的规则，
+ *   后面由程序接上本次任务材料和输出格式。
  *
- * 11. apiUI.listCorePrompts() → [corePrompt]，按 通用破限词 / 正则提示词 / 润色提示词 排列
- * 12. apiUI.saveCorePrompt(id, text) → 保存后的 corePrompt   正则、润色提示词正文为空时 reject
- * 13. apiUI.resetCorePrompt(id) → 恢复默认后的 corePrompt
- *      三个函数没全提供时，卡片照样显示三行，摘要写「还没接入」，不能点开编辑
+ * 11. apiUI.listPrompts(kind) → [prompt]，按加入顺序
+ * 12. apiUI.getActivePromptId(kind) → id | null；apiUI.activatePrompt(kind, id) → id
+ * 13. apiUI.checkPrompt(kind, draft) → { errors: { name?, text? } }   draft 为 { id?, name, text }
+ * 14. apiUI.savePrompt(kind, draft) → 保存后的 prompt（不带 id 就是新建）
+ * 15. apiUI.duplicatePrompt(kind, id) → 复制出来的 prompt；apiUI.removePrompt(kind, id) → true（内置那条 reject）
+ * 16. apiUI.listCorePrompts() → [{ id: kind, name, target, text, defaultText, modified }]
+ *      每一类正在用的那条；界面只用它的 defaultText 做「恢复默认」，和 modified 做行尾状态
+ *      这些函数没全提供时，卡片照样显示，摘要写「还没接入」，不能点开编辑
  *
  * 助手（kind 为 'regex' 正则助手 | 'polish' 润色助手）：只选接口，profile 取值 'follow' 跟随使用中 / 'main' 主 API / 具体配置 id
  *
@@ -59,7 +62,9 @@
   ];
   // 固定提示词在编辑抽屉里的说明：只有通用破限词显示
   const PROMPT_NOTES = {
-    jailbreak: '固定单独作为 system 消息发送；正文空着时不发送。',
+    jailbreak: '单独作为 system 消息发送；正文空着时这次就不发破限词。',
+    regex: '正文会放在 user 消息开头，后面由程序接上本次的材料和输出格式。',
+    polish: '正文会放在 user 消息开头，后面由程序接上本次的材料和输出格式。',
   };
   let profiles = [];
   let activeProfileId = null;
@@ -112,8 +117,9 @@
     const active = profiles.find((profile) => profile.id === activeProfileId);
     $('api-entry-profiles').setAttribute('summary', available ? (active?.name || '主 API（跟随ST）') : '还没接入');
     $('api-entry-prompts').hidden = !available;
-    const modified = prompts.filter((prompt) => prompt.modified).length;
-    $('api-entry-prompts').setAttribute('summary', modified ? `已修改 ${modified} 条` : '默认');
+    // 行尾写三类里有几类不是用的默认那条
+    const custom = prompts.filter((prompt) => prompt.modified).length;
+    $('api-entry-prompts').setAttribute('summary', custom ? `自定义 ${custom} 类` : '默认');
     $('api-entry-assistants').hidden = $('assistant-card').hidden;
     if (assistantSummary) {
       const follow = Object.values(assistantSummary).every((item) => item?.profile === 'follow');
@@ -381,130 +387,199 @@
 
   $('api-create').addEventListener('click', () => openProfileDrawer());
 
-  /* ---------- 固定提示词：通用破限词 / 正则提示词 / 润色提示词 ---------- */
+  /* ---------- 自定义提示词：破限词 / 正则助手 / 润色助手，每类一个库 ---------- */
 
-  const hasCorePrompts = () => ['listCorePrompts', 'saveCorePrompt', 'resetCorePrompt'].every((name) => typeof service()?.[name] === 'function');
+  const PROMPT_KINDS = [
+    { kind: 'jailbreak', label: '破限词' },
+    { kind: 'regex', label: '正则助手' },
+    { kind: 'polish', label: '润色助手' },
+  ];
+  const PROMPT_API = ['listPrompts', 'getActivePromptId', 'activatePrompt', 'savePrompt', 'removePrompt', 'listCorePrompts'];
+  const hasCorePrompts = () => PROMPT_API.every((name) => typeof service()?.[name] === 'function');
+
+  let promptKind = 'jailbreak';
+  let promptItems = [];
+  let promptActiveId = null;
+  let promptDefaults = {};   // 每一类的默认正文，用于「恢复默认」
+
   const promptSummary = (prompt) => {
     const text = String(prompt.text || '').replace(/\s+/g, ' ').trim();
-    return `${prompt.target} · ${text || '空着，不发送'}`;
+    return text || (prompt.target === 'system' ? '空着，不发送' : '还没写正文');
   };
-
-  // 业务没接上时照样显示三行，方便先看界面
-  const PLACEHOLDER_PROMPTS = [
-    { id: 'jailbreak', name: '通用破限词', target: 'system' },
-    { id: 'regex', name: '正则提示词', target: 'user' },
-    { id: 'polish', name: '润色提示词', target: 'user' },
-  ];
 
   async function loadPrompts() {
     if (!hasCorePrompts()) {
-      prompts = [];
+      promptItems = [];
       renderPrompts();
       return;
     }
     try {
-      const list = await service().listCorePrompts();
-      prompts = Array.isArray(list) ? list : [];
+      const [list, activeId, core] = await Promise.all([
+        service().listPrompts(promptKind),
+        service().getActivePromptId(promptKind),
+        service().listCorePrompts(),
+      ]);
+      promptItems = Array.isArray(list) ? list : [];
+      promptActiveId = activeId ?? null;
+      prompts = Array.isArray(core) ? core : [];
+      promptDefaults = Object.fromEntries(prompts.map((item) => [item.id, item.defaultText]));
     } catch (error) {
       YaKitErrorLog.warn('读取提示词失败', error);
+      promptItems = [];
       prompts = [];
     }
     renderPrompts();
   }
 
   function renderPrompts() {
-    if (!hasCorePrompts()) {
-      $('prompt-list').replaceChildren(...PLACEHOLDER_PROMPTS.map((prompt) => {
-        const row = YaKitChoice.row({ name: prompt.name, summary: `${prompt.target} · 还没接入` });
+    const available = hasCorePrompts();
+    $('prompt-actions').hidden = !available;
+    if (!available) {
+      $('prompt-list').replaceChildren(...PROMPT_KINDS.map(({ label }) => {
+        const row = YaKitChoice.row({ name: label, summary: '还没接入' });
         row.querySelector('.choice-main').disabled = true;
         return row;
       }));
       return;
     }
-    $('prompt-list').replaceChildren(...prompts.map((prompt) => {
+    $('prompt-list').replaceChildren(...promptItems.map((prompt) => {
+      const actions = [{ action: 'edit', label: '编辑', icon: '../icons/edit.svg' },
+        { action: 'duplicate', label: '复制', icon: '../icons/copy.svg' }];
+      // 内置那条是每一类的底子，不能删
+      if (!prompt.builtin) actions.push({ action: 'delete', label: '删除', icon: '../icons/trash.svg' });
       const row = YaKitChoice.row({
         name: prompt.name,
         summary: promptSummary(prompt),
-        onPick: () => openPromptDrawer(prompt),
-        actions: [{ action: 'edit', label: '编辑', icon: '../icons/edit.svg' }],
-        onAction: () => openPromptDrawer(prompt),
+        active: prompt.id === promptActiveId,
+        onPick: () => usePrompt(prompt),
+        actions,
+        onAction: (action) => onPromptAction(prompt, action),
       });
-      if (prompt.modified) row.tools.innerHTML = '<span class="choice-state">已修改</span>';
+      if (prompt.id === promptActiveId) row.tools.innerHTML = '<span class="choice-state">使用中</span>';
       return row;
     }));
     renderEntries();
   }
 
-  /* ---------- 提示词抽屉 ---------- */
+  async function usePrompt(prompt) {
+    if (busy || prompt.id === promptActiveId) return;
+    await run(null, async () => {
+      try {
+        await service().activatePrompt(promptKind, prompt.id);
+        YaKitToast.show(`已换成「${prompt.name}」`, 'success');
+      } catch (error) {
+        showError(error, '切换提示词失败');
+      }
+    });
+    await loadPrompts();
+  }
+
+  async function onPromptAction(prompt, action) {
+    if (action === 'edit') return openPromptDrawer(prompt);
+    if (action === 'duplicate') {
+      await run(null, async () => {
+        try {
+          await service().duplicatePrompt(promptKind, prompt.id);
+        } catch (error) {
+          showError(error, '复制提示词失败');
+        }
+      });
+      return loadPrompts();
+    }
+    const ok = await YaKitModal.confirm({
+      title: '删除提示词？',
+      message: prompt.id === promptActiveId
+        ? `「${prompt.name}」正在使用，删除后会换回默认那条。删除后不能找回。`
+        : `删除「${prompt.name}」后不能找回。`,
+      confirmText: '删除',
+    });
+    if (!ok) return;
+    await run(null, async () => {
+      try {
+        await service().removePrompt(promptKind, prompt.id);
+        YaKitToast.show('已删除', 'success');
+      } catch (error) {
+        showError(error, '删除提示词失败');
+      }
+    });
+    return loadPrompts();
+  }
+
+  $('prompt-kind').addEventListener('change', (event) => {
+    promptKind = event.detail.value;
+    loadPrompts();
+  });
+  $('prompt-create').addEventListener('click', () => openPromptDrawer(null));
+
+  /* ---------- 提示词抽屉：新建和编辑同一个 ---------- */
 
   let editingPrompt = null;
 
   function openPromptDrawer(prompt) {
     if (busy) return;
     editingPrompt = prompt;
-    $('prompt-drawer').setAttribute('title', `编辑${prompt.name}`);
-    $('prompt-target-note').innerHTML = PROMPT_NOTES[prompt.id] || '';
-    $('prompt-target-note').hidden = !PROMPT_NOTES[prompt.id];
-    $('prompt-text').value = prompt.text ?? '';
+    const label = PROMPT_KINDS.find((item) => item.kind === promptKind)?.label || '提示词';
+    $('prompt-drawer').setAttribute('title', prompt ? `编辑${label}` : `新建${label}`);
+    $('prompt-target-note').innerHTML = PROMPT_NOTES[promptKind] || '';
+    $('prompt-target-note').hidden = !PROMPT_NOTES[promptKind];
+    $('prompt-name').value = prompt?.name ?? '';
+    $('prompt-name').removeAttribute('error');
+    $('prompt-text').value = prompt?.text ?? '';
     $('prompt-text').removeAttribute('error');
+    // 只有每类内置的那条才谈得上「恢复默认」
+    $('prompt-drawer-reset').hidden = !prompt?.builtin;
     syncResetButton();
     $('prompt-drawer').show();
+    // 新建时光标落在名称上；编辑时不自动聚焦，免得一打开就滚到正文中间
+    if (!prompt) $('prompt-name').focus();
   }
 
   // 「恢复默认」：输入框里的内容和默认正文一样时不能点，边输入边判断
   function syncResetButton() {
-    const prompt = editingPrompt;
-    if (!prompt) return;
-    const same = typeof prompt.defaultText === 'string'
-      ? $('prompt-text').value === prompt.defaultText
-      : !prompt.modified;
-    $('prompt-drawer-reset').toggleAttribute('disabled', same);
+    if (!editingPrompt?.builtin) return;
+    const fallback = promptDefaults[promptKind];
+    $('prompt-drawer-reset').toggleAttribute('disabled', typeof fallback !== 'string' || $('prompt-text').value === fallback);
   }
 
   $('prompt-text').addEventListener('input', () => {
     $('prompt-text').removeAttribute('error');
     syncResetButton();
   });
+  $('prompt-name').addEventListener('input', () => $('prompt-name').removeAttribute('error'));
   $('prompt-drawer-cancel').addEventListener('click', () => $('prompt-drawer').close());
 
   $('prompt-drawer-save').addEventListener('click', async (event) => {
-    const prompt = editingPrompt;
-    if (!prompt) return;
+    const draft = { id: editingPrompt?.id, name: $('prompt-name').value, text: $('prompt-text').value };
     await run(event.currentTarget, async () => {
       try {
-        await service().saveCorePrompt(prompt.id, $('prompt-text').value);
+        const { errors } = await service().checkPrompt(promptKind, draft);
+        if (errors?.name) $('prompt-name').setAttribute('error', errors.name);
+        if (errors?.text) $('prompt-text').setAttribute('error', errors.text);
+        if (errors?.name || errors?.text) return;
+        const saved = await service().savePrompt(promptKind, draft);
+        // 新建的直接用起来，省一步
+        if (!editingPrompt && saved?.id) await service().activatePrompt(promptKind, saved.id);
         $('prompt-drawer').close();
-        YaKitToast.show(`已保存${prompt.name}`, 'success');
+        YaKitToast.show(editingPrompt ? '已保存' : `已添加「${saved?.name || draft.name}」`, 'success');
       } catch (error) {
-        // 正文不合格时提示在输入框下面
         $('prompt-text').setAttribute('error', error?.message || '保存提示词失败');
       }
     });
     await loadPrompts();
   });
 
-  $('prompt-drawer-reset').addEventListener('click', async (event) => {
-    const prompt = editingPrompt;
-    if (!prompt) return;
+  $('prompt-drawer-reset').addEventListener('click', async () => {
+    const fallback = promptDefaults[promptKind];
+    if (typeof fallback !== 'string') return;
     const ok = await YaKitModal.confirm({
-      title: `恢复默认${prompt.name}？`,
-      message: '改过的正文会换回默认内容，不能找回。',
+      title: '恢复默认正文？',
+      message: '正文会换回纪实自带的内容，保存后不能找回。',
       confirmText: '恢复默认',
     });
     if (!ok) return;
-    await run(event.currentTarget, async () => {
-      try {
-        const saved = await service().resetCorePrompt(prompt.id);
-        editingPrompt = saved || prompt;
-        $('prompt-text').value = saved?.text ?? '';
-        $('prompt-text').removeAttribute('error');
-        syncResetButton();
-        YaKitToast.show(`已恢复默认${prompt.name}`, 'success');
-      } catch (error) {
-        showError(error, '恢复默认失败');
-      }
-    });
-    await loadPrompts();
+    $('prompt-text').value = fallback;
+    $('prompt-text').removeAttribute('error');
+    syncResetButton();
   });
 
   /* ---------- 助手：各个 AI 功能用哪个接口 ---------- */

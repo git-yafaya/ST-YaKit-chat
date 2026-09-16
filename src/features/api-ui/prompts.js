@@ -2,13 +2,24 @@ import {
     getPromptTemplates, savePromptTemplate, selectPromptTemplate, deletePromptTemplate,
 } from '../prompt-management/index.js';
 import { createDuplicateName, validateRecordName } from '../../shared/validation.js';
-import { isBuiltinJailbreak } from '../../shared/builtin-prompts.js';
+import { isBuiltinJailbreak, ASSIST_KINDS, assistGroupKey, isBuiltinAssist } from '../../shared/builtin-prompts.js';
+
+// 界面说的类型：破限词、文风、正则助手、润色助手；后两类各自是一个提示词库
+const CATEGORIES = {
+    jailbreak: 'jailbreak',
+    style: 'style',
+    ...Object.fromEntries(ASSIST_KINDS.map(kind => [kind, assistGroupKey(kind)])),
+};
 
 function categoryFor(kind) {
-    if (!['jailbreak', 'style'].includes(kind)) {
+    if (!Object.hasOwn(CATEGORIES, kind)) {
         throw new Error('请选择提示词类型');
     }
-    return kind;
+    return CATEGORIES[kind];
+}
+
+function kindOf(category) {
+    return Object.keys(CATEGORIES).find(kind => CATEGORIES[kind] === category) ?? category;
 }
 
 function findRecord(group, id) {
@@ -19,9 +30,10 @@ function findRecord(group, id) {
 }
 
 function publicRecord(category, record) {
+    const kind = kindOf(category);
     return {
         id: record.id, name: record.name, target: record.target, text: record.content,
-        builtin: isBuiltinJailbreak(category, record.id),
+        builtin: isBuiltinJailbreak(category, record.id) || isBuiltinAssist(kind, record.id),
     };
 }
 

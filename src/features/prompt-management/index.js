@@ -1,12 +1,15 @@
 import { readSettings, updateSettings } from '../../shared/settings.js';
 import { createRecordId, validateRecordName } from '../../shared/validation.js';
 import { resetAssistantReferences } from '../assistant-management/index.js';
-import { isBuiltinJailbreak } from '../../shared/builtin-prompts.js';
+import { isBuiltinJailbreak, ASSIST_KINDS, assistGroupKey, assistBuiltinId, isBuiltinAssist } from '../../shared/builtin-prompts.js';
 
 const metadataDefaults = {
     jailbreak: { target: 'system', anchor: 'start', priority: 100 },
     style: { target: 'user', anchor: 'end', priority: 50 },
+    // 正则助手、润色助手的提示词库：内容作为用户需求发送
+    ...Object.fromEntries(ASSIST_KINDS.map(kind => [assistGroupKey(kind), { target: 'user', anchor: 'end', priority: 50 }])),
 };
+const assistCategories = new Map(ASSIST_KINDS.map(kind => [assistGroupKey(kind), kind]));
 const categories = Object.keys(metadataDefaults);
 
 function getMetadata(category, record, previous = {}) {
@@ -23,7 +26,7 @@ function getMetadata(category, record, previous = {}) {
 
 function assertCategory(category) {
     if (!categories.includes(category)) {
-        throw new TypeError('提示词类别仅支持 jailbreak 或 style');
+        throw new TypeError(`提示词类别仅支持 ${categories.join(' 或 ')}`);
     }
 }
 
@@ -113,10 +116,14 @@ export function savePromptTemplate(template) {
 export function deletePromptTemplate(category, id) {
     assertCategory(category);
     if (isBuiltinJailbreak(category, id)) throw new Error('内置破限词不能删除');
+    const assistKind = assistCategories.get(category);
+    if (assistKind && isBuiltinAssist(assistKind, id)) throw new Error('默认提示词不能删除');
     return updateSettings(settings => {
         const group = settings.prompts[category];
         group.items.splice(findRecordIndex(group.items, id), 1);
-        if (group.activeId === id) group.activeId = null;
+        // 助手提示词删掉正在用的那条时回到默认那条，不会变成不使用
+        if (group.activeId === id) group.activeId = assistKind ? assistBuiltinId(assistKind) : null;
+        if (assistKind) return true;
         // 删除与助手回退一起保存，失败时一起回滚。
         if (category === 'jailbreak') resetAssistantReferences(settings, 'jailbreak', id);
         else resetAssistantReferences(settings, 'prompt', id, 'polish');

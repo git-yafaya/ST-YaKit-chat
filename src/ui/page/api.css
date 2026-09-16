@@ -21,8 +21,6 @@
 .sampling-cell yakit-input { width: 96px; min-width: 0; }
 .assistant-card .sampling-grid + .field-note { margin-top: 8px; }
 
-/* 固定提示词：不是「选一个用」的列表，不显示小圆点 */
-.prompt-fixed .choice-dot { display: none; }
 #prompt-target-note { margin: 0 0 14px; }
 /* 恢复默认放左边，取消和保存放右边 */
 .prompt-drawer-footer { flex: 1; }
@@ -40,3 +38,7 @@
   .assistant-card yakit-select { --select-height: 34px; --select-font: 13px; }
   .sampling-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 自定义提示词：分段选在看哪一类，下面是这一类的提示词列表 */
+#prompt-kind { margin-bottom: 10px; }
+#prompt-name { margin-bottom: 14px; }

@@ -116,7 +116,8 @@ export function getAssistantSelection(kind) {
     return {
         sampling: selection.sampling,
         api: config ? { source: 'secondary', config } : { source: 'main' },
-        jailbreak: resolvePrompt(settings, 'jailbreak', 'builtin-jailbreak-universal'),
+        // 用破限词库里正在用的那条（默认是内置那条）
+        jailbreak: resolvePrompt(settings, 'jailbreak', 'follow'),
         ...(kind === 'polish' ? { prompt: resolvePrompt(settings, 'prompt', 'follow') } : {}),
     };
 }

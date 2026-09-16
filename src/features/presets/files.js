@@ -5,6 +5,7 @@ import { createExportFilename } from '../text-export/export-common.js';
 import { normalizeSettings } from '../text-export/export-ui-settings.js';
 import { normalizeName, normalizeContent, normalizeCollection, cloneUiPrefs } from './schema.js';
 import { list, create } from './store.js';
+import { assistGroupKey, assistBuiltinId } from '../../shared/builtin-prompts.js';
 
 function parseFile(text, type) {
     if (typeof text !== 'string') throw new Error();
@@ -51,6 +52,35 @@ export async function importPreset(text) {
     return create(name, content);
 }
 
+// 破限词、正则助手、润色助手各是一个提示词库
+const PROMPT_KINDS = ['jailbreak', 'regex', 'polish'];
+const libraryKey = (kind) => (kind === 'jailbreak' ? 'jailbreak' : assistGroupKey(kind));
+
+function libraryOf(settings, kind) {
+    const group = settings.prompts[libraryKey(kind)];
+    return {
+        activeId: group.activeId,
+        items: group.items.map(item => ({ id: item.id, name: item.name, text: item.content })),
+    };
+}
+
+function readLibraries(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error();
+    return Object.fromEntries(PROMPT_KINDS.map(kind => {
+        const group = value[kind];
+        if (!group || typeof group !== 'object' || !Array.isArray(group.items)
+            || !(group.activeId === null || typeof group.activeId === 'string')) throw new Error();
+        const items = group.items.map(item => {
+            if (!item || typeof item.id !== 'string' || !item.id.trim()
+                || typeof item.name !== 'string' || !item.name.trim() || typeof item.text !== 'string') throw new Error();
+            return { id: item.id, name: item.name.trim(), content: item.text };
+        });
+        if (new Set(items.map(item => item.id)).size !== items.length) throw new Error();
+        if (!items.some(item => item.id === assistBuiltinId(kind) || item.id === 'builtin-jailbreak-universal')) throw new Error();
+        return [kind, { items, activeId: group.activeId }];
+    }));
+}
+
 export async function exportBackup(uiPrefs) {
     const settings = readSettings();
     return downloadFile({
@@ -61,6 +91,8 @@ export async function exportBackup(uiPrefs) {
         uiPrefs: cloneUiPrefs(uiPrefs),
         styles: { items: styles.list(), activeId: styles.getActiveId() },
         corePrompts: Object.fromEntries(listCorePrompts().map(item => [item.id, item.text])),
+        // 三类提示词各自的整个库（自己建的那些也一起备份）
+        promptLibraries: Object.fromEntries(PROMPT_KINDS.map(kind => [kind, libraryOf(settings, kind)])),
     }, createExportFilename('纪实备份', 'yakit-backup.json'));
 }
 
@@ -70,6 +102,7 @@ export function restoreBackup(text) {
     let uiPrefs;
     let stylePresets;
     let corePrompts;
+    let libraries;
     try {
         const value = parseFile(text, 'backup');
         if (!['presets', 'exportSettings', 'uiPrefs'].every(key => Object.hasOwn(value, key))) throw new Error();
@@ -90,6 +123,7 @@ export function restoreBackup(text) {
                 && (id === 'jailbreak' || prompts[id].trim()))) throw new Error();
             corePrompts = Object.fromEntries(['jailbreak', 'regex', 'polish'].map(id => [id, prompts[id]]));
         }
+        if (Object.hasOwn(value, 'promptLibraries')) libraries = readLibraries(value.promptLibraries);
     } catch {
         throw new Error('这不是纪实的备份文件');
     }
@@ -102,11 +136,30 @@ export function restoreBackup(text) {
                 items: stylePresets.items.map(({ id, name, text }) => ({ id, name, content: text, target: 'user' })) };
             settings.styleSelectionMigrated = true;
         }
-        if (corePrompts) {
-            settings.corePrompts = { regex: corePrompts.regex, polish: corePrompts.polish };
-            const universal = settings.prompts.jailbreak.items.find(item => item.id === 'builtin-jailbreak-universal');
-            universal.content = corePrompts.jailbreak;
-            universal.contentEdited = true;
+        // 新备份带整个提示词库就整库恢复；旧备份只有三条正文，写进各自正在用的那条
+        if (libraries) {
+            for (const kind of PROMPT_KINDS) {
+                const group = libraries[kind];
+                settings.prompts[libraryKey(kind)] = {
+                    activeId: group.activeId,
+                    items: group.items.map(item => ({
+                        ...item,
+                        contentEdited: true,
+                        ...(kind === 'jailbreak'
+                            ? { target: 'system', anchor: 'start', priority: 100 }
+                            : { target: 'user', anchor: 'end', priority: 50 }),
+                    })),
+                };
+            }
+        } else if (corePrompts) {
+            for (const kind of PROMPT_KINDS) {
+                const group = settings.prompts[libraryKey(kind)];
+                const builtin = kind === 'jailbreak' ? 'builtin-jailbreak-universal' : assistBuiltinId(kind);
+                const record = group.items.find(item => item.id === group.activeId)
+                    ?? group.items.find(item => item.id === builtin);
+                record.content = corePrompts[kind];
+                record.contentEdited = true;
+            }
         }
         return { presetCount: presets.items.length, uiPrefs };
     });
