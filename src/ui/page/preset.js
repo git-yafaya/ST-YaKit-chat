@@ -6,7 +6,8 @@
  *
  * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat 上提供，界面通过 parent.YaKitChat 调用）─────────
  *
- * content 的形状：{ types: { ai, user, system }, format, labels, illustrated, mode, rules }（含义同导出设置 settings；旧预设没有 illustrated 时按 false）
+ * content 的形状：{ types: { ai, user, system }, format, labels, illustrated, mode, rules, keepRules, replaceRules, tagPlan }
+ *   （含义同导出设置 settings；旧预设缺的项按默认值补）
  * 函数都可以返回 Promise；失败时 reject Error，message 是给用户看的中文原因，界面直接显示。
  *
  *  1. presets.list() → [{ id, name, content }]，按创建顺序
@@ -56,6 +57,11 @@
       illustrated: Boolean(settings.illustrated),
       mode: settings.mode,
       rules: Array.isArray(settings.rules) ? [...settings.rules] : [],
+      keepRules: Array.isArray(settings.keepRules) ? [...settings.keepRules] : [],
+      replaceRules: Array.isArray(settings.replaceRules)
+        ? settings.replaceRules.map(({ find, to }) => ({ find, to })) : [],
+      tagPlan: Array.isArray(settings.tagPlan)
+        ? settings.tagPlan.map(({ name, action }) => ({ name, action })) : [],
     };
   }
 

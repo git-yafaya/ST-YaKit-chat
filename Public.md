@@ -137,7 +137,7 @@ ST-YaKit-chat/
    - 进度、限速倒计时（`waitUntil`）、首段完成 / 结束 / 自动停止的提示由界面根据任务快照完成；弹窗关着时用宿主 `toastr`
 8. 预设（`src/ui/page/preset.js` 导出预设、`src/ui/page/style-preset.js` 文风预设）：
    - 卡片右上角分段切换「导出预设 / 文风预设」；「备份全部」「从备份恢复」在卡片上方
-   - 导出预设：打开面板和切到预设页时 `list()` + `getActiveIds()`；点一行把这一套加进来或拿掉 → `activate(ids)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）；只用一套且有未保存改动时换预设先确认；「已修改」「保存」「还原」只在单套时显示，多套时行尾写「叠加中」；「更新预设」→ `update(activeId, content)`；叠加时底部按钮变成「存为新预设」；存为新预设：`suggestName()` 预填 → `create(name, content)` → `activate(新 id)`
+   - 导出预设：界面存进预设的内容是 `types / format / labels / illustrated / mode / rules / keepRules / replaceRules / tagPlan`，「已修改」按这几项比对；打开面板和切到预设页时 `list()` + `getActiveIds()`；点一行把这一套加进来或拿掉 → `activate(ids)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）；只用一套且有未保存改动时换预设先确认；「已修改」「保存」「还原」只在单套时显示，多套时行尾写「叠加中」；「更新预设」→ `update(activeId, content)`；叠加时底部按钮变成「存为新预设」；存为新预设：`suggestName()` 预填 → `create(name, content)` → `activate(新 id)`
    - 导出页底部下拉是多选（`<yakit-select multiple>`），按钮上写「N 套叠加」，`change` 事件取 `detail.values`
    - 文风预设：`styles.list()` + `getActiveId()`；点一行 `activate(id|null)`；新建 / 编辑抽屉输入时 `check(draft)`，保存 `save(draft)`；复制 `duplicate`、导出 `exportStyle`、删除 `remove`、导入 `importStyle(text)`；变化后派发 `yakit-style-change`，润色页刷新文风下拉
    - 导入 / 从备份恢复：界面选文件读文字 → `importPreset(text)` / 确认后 `restoreBackup(text)`；恢复后 `exportUI.loadSettings()` 刷新导出页，并应用返回的 `uiPrefs`
