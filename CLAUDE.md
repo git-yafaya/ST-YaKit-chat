@@ -1,1 +1,0 @@
-/home/yafaya/桌面/CLAUDE.md
