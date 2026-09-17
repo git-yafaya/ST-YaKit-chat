@@ -246,10 +246,36 @@
       const index = messages.findIndex((message) => message.floor >= previewFloor);
       if (index >= 0) {
         while (fullShown <= index) appendBatch();
-        box.children[index]?.scrollIntoView({ block: 'start' });
+        // 前面的段落滚过去后才按真实高度排版，目标会被往下推；
+        // 跳转后 1.5 秒内内容一变高就重新对齐，用户自己滚动就不再管
+        const target = box.children[index];
+        target?.scrollIntoView({ block: 'start' });
+        keepAligned(target, token);
       }
     }
     fullObserver.observe(sentinel);
+  }
+  let stopAligning = null;
+  function keepAligned(target, token) {
+    stopAligning?.();
+    if (!target) return;
+    const box = $('preview-drawer-body');
+    const align = () => {
+      if (token !== fullToken || !target.isConnected) stop();
+      else target.scrollIntoView({ block: 'start' });
+    };
+    const observer = new ResizeObserver(align);
+    const userEvents = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+    const timer = setTimeout(() => stop(), 1500);
+    function stop() {
+      observer.disconnect();
+      clearTimeout(timer);
+      for (const name of userEvents) window.removeEventListener(name, stop, true);
+      if (stopAligning === stop) stopAligning = null;
+    }
+    for (const name of userEvents) window.addEventListener(name, stop, true);
+    observer.observe(box);
+    stopAligning = stop;
   }
   const FULL_BATCH = 20;
   const sentinel = document.createElement('div');
@@ -397,6 +423,49 @@
     $('rule-count').textContent = rules.length ? `${rules.length} 条规则` : '';
     renderModeCounts();
     renderTagEntry();
+    renderRuleResize();
+  }
+
+  /* ---------- 规则列表拖动调高度：列表装不下或拖过高度时才显示拖动条 ---------- */
+
+  const RULE_LIST_MIN = 100;
+  let ruleListHeight = null;           // 拖过的最高高度，这次打开网页期间一直保持
+
+  function renderRuleResize() {
+    const list = $('rule-list');
+    if (ruleListHeight !== null) list.style.maxHeight = `${ruleListHeight}px`;
+    $('rule-resize').hidden = ruleListHeight === null && list.scrollHeight <= list.clientHeight + 1;
+  }
+
+  // 窗口变宽变窄时一行放得下的内容不同，重新判断要不要显示拖动条
+  new ResizeObserver(() => renderRuleResize()).observe($('rule-list'));
+
+  {
+    const handle = $('rule-resize');
+    let startY = 0;
+    let startHeight = 0;
+    const move = (event) => {
+      const max = Math.max(RULE_LIST_MIN, window.innerHeight * 0.6);
+      ruleListHeight = Math.round(Math.min(max, Math.max(RULE_LIST_MIN, startHeight + event.clientY - startY)));
+      $('rule-list').style.maxHeight = `${ruleListHeight}px`;
+    };
+    const end = (event) => {
+      handle.classList.remove('dragging');
+      handle.releasePointerCapture?.(event.pointerId);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', end);
+      handle.removeEventListener('pointercancel', end);
+    };
+    handle.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      startY = event.clientY;
+      startHeight = $('rule-list').getBoundingClientRect().height;
+      handle.classList.add('dragging');
+      handle.setPointerCapture?.(event.pointerId);
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', end);
+      handle.addEventListener('pointercancel', end);
+    });
   }
 
   // 叠加时：输入框只读、删不掉、也不能加新规则，卡片上写清楚为什么
@@ -423,11 +492,11 @@
   const canOpenTags = () => typeof service()?.scanTagTree === 'function';
 
   function renderTagEntry() {
-    const row = $('tag-scan');
-    row.hidden = !(ready() && canOpenTags() && chatInfo().status === 'ok');
-    if (row.hidden) return;
+    const button = $('tag-open');
+    button.hidden = !(ready() && canOpenTags() && chatInfo().status === 'ok');
+    if (button.hidden) return;
     const count = currentTagPlan().length;
-    $('tag-scan-state').textContent = count ? `已处理 ${count} 个` : '还没处理';
+    button.textContent = count ? `整理标签 · ${count}` : '整理标签';
   }
 
   /* ---------- 标签抽屉：识别楼层 + 嵌套结构 + 每个标签怎么处理 ---------- */
@@ -841,16 +910,21 @@
     });
 
     $('export-settings').addEventListener('click', () => $('export-drawer').show());
-    $('preview-floor').addEventListener('change', (event) => {
-      const input = event.currentTarget;
-      const text = input.value.trim();
+    // 卡片上和放大抽屉里的「看第几楼」是同一个值，改哪边两边一起变
+    const setPreviewFloor = (text) => {
       const value = text === '' ? null : Math.trunc(Number(text));
       previewFloor = value === null || !Number.isFinite(value) ? null : Math.max(0, value);
-      input.value = previewFloor === null ? '' : String(previewFloor);
+      const shown = previewFloor === null ? '' : String(previewFloor);
+      $('preview-floor').value = shown;
+      $('preview-drawer-floor').value = shown;
       $('preview-card').setAttribute('subtitle', previewFloor === null ? PREVIEW_SUBTITLE : `第 ${previewFloor} 楼导出后的样子`);
       renderPreview();
-    });
+    };
+    for (const id of ['preview-floor', 'preview-drawer-floor']) {
+      $(id).addEventListener('change', (event) => setPreviewFloor(event.currentTarget.value.trim()));
+    }
     $('preview-expand').addEventListener('click', () => {
+      $('preview-drawer-floor').value = previewFloor === null ? '' : String(previewFloor);
       renderFullPreview();
       $('preview-drawer').show();
     });

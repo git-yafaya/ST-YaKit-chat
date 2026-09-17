@@ -45,11 +45,24 @@
 /* 叠加多套预设时：规则只能看，卡片上写明原因 */
 .stack-note { margin: 0 0 10px; }
 
-/* 标签：卡片上只留一行入口，完整的处理方式在「整理标签」抽屉里 */
-.tag-scan { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.tag-scan-label { flex: none; font-size: 12px; color: var(--text-muted); }
-.tag-scan-state { flex: 1; min-width: 0; font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#tag-open { flex: none; }
+/* 标题行右边：整理标签入口 + 匹配方式；放不下时换行，靠右排 */
+.rule-extra { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; min-width: 0; }
+.rule-extra > * { flex: none; }
+
+/* 规则列表底边的拖动条：拖动调整列表最多显示多高 */
+.rule-resize {
+  position: relative;
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 2px;
+  background: var(--divider);
+  cursor: ns-resize;
+  touch-action: none;
+  transition: background .2s ease;
+}
+.rule-resize::before { content: ''; position: absolute; inset: -8px -40px; }
+.rule-resize:hover, .rule-resize.dragging { background: var(--text-muted); }
 
 .rule-empty { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
 .rule-add { margin-top: 8px; }
@@ -101,8 +114,22 @@
 .preview-extra { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .preview-floor { width: 96px; flex: none; }
 
-/* 放大查看导出预览的宽抽屉 */
-.preview-drawer-note { margin: 0 0 12px; }
+/* 放大查看导出预览的宽抽屉：顶部一行说明小字 + 看第几楼 */
+/* 这一行吸在抽屉顶部，跳到某一楼后也能接着改楼号 */
+.preview-drawer-bar {
+  position: sticky;
+  top: -16px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -16px -20px 12px;
+  padding: 10px 20px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--divider);
+}
+.preview-drawer-body > * { scroll-margin-top: 64px; }
+.preview-drawer-note { flex: 1; min-width: 0; margin: 0; }
 .preview-drawer-body .preview-empty { min-height: 160px; }
 .preview-sentinel { height: 1px; }
 .export-summary {
@@ -151,7 +178,8 @@
   .preview-extra { display: contents; }
   .export-summary { order: 1; flex-basis: 100%; }
   /* 看第几楼放到摘要下面一行，不挤标题 */
-  .preview-floor { order: 2; width: 120px; --input-height: 34px; }
+  .preview-extra .preview-floor { order: 2; width: 120px; --input-height: 34px; }
+  .rule-card::part(header) { flex-wrap: wrap; row-gap: 8px; }
   .export-page { height: auto; min-height: 0; }
   .export-page > .preview-card { flex: none; }
   .preview-card::part(body) { max-height: 280px; }
