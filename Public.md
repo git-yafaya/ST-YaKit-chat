@@ -2,7 +2,7 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.5。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.6。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。入口目前直接引用多个业务模块，尚未收敛为「UI 总文件 + 业务总文件」两个引用。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
@@ -135,7 +135,7 @@ ST-YaKit-chat/
    - 进度、限速倒计时（`waitUntil`）、首段完成 / 结束 / 自动停止的提示由界面根据任务快照完成；弹窗关着时用宿主 `toastr`
 8. 预设（`src/ui/page/preset.js` 导出预设、`src/ui/page/style-preset.js` 文风预设）：
    - 卡片右上角分段切换「导出预设 / 文风预设」；「备份全部」「从备份恢复」在卡片上方
-   - 导出预设：界面存进预设的内容是 `types / format / labels / illustrated / mode / rules / keepRules / replaceRules / tagPlan`，「已修改」按这几项比对；打开面板和切到预设页时 `list()` + `getActiveIds()`；点一行把这一套加进来或拿掉 → `activate(ids)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）；只用一套且有未保存改动时换预设先确认；「已修改」「保存」「还原」只在单套时显示，多套时行尾写「叠加中」；「更新预设」→ `update(activeId, content)`；叠加时底部按钮变成「存为新预设」；存为新预设：`suggestName()` 预填 → `create(name, content)` → `activate(新 id)`
+   - 导出预设：界面存进预设的内容是 `types / format / labels / illustrated / stripComments / commentText / mode / rules / keepRules / replaceRules / tagPlan`，「已修改」按这几项比对；打开面板和切到预设页时 `list()` + `getActiveIds()`；点一行把这一套加进来或拿掉 → `activate(ids)` → 用返回的 settings 刷新导出页（`window.YaKitExportPage.replaceState`）；只用一套且有未保存改动时换预设先确认；「已修改」「保存」「还原」只在单套时显示，多套时行尾写「叠加中」；「更新预设」→ `update(activeId, content)`；叠加时底部按钮变成「存为新预设」；存为新预设：`suggestName()` 预填 → `create(name, content)` → `activate(新 id)`
    - 导出页底部下拉是多选（`<yakit-select multiple>`），按钮上写「N 套叠加」，`change` 事件取 `detail.values`
    - 文风预设：`styles.list()` + `getActiveId()`；点一行 `activate(id|null)`；新建 / 编辑抽屉输入时 `check(draft)`，保存 `save(draft)`；复制 `duplicate`、导出 `exportStyle`、删除 `remove`、导入 `importStyle(text)`；变化后派发 `yakit-style-change`，润色页刷新文风下拉
    - 导入 / 从备份恢复：界面选文件读文字 → `importPreset(text)` / 确认后 `restoreBackup(text)`；恢复后 `exportUI.loadSettings()` 刷新导出页，并应用返回的 `uiPrefs`
@@ -225,9 +225,9 @@ ST-YaKit-chat/
 
 | 情况 | 实际行为 |
 | --- | --- |
-| 内容 | `content` 必须完整包含 `types`（三个开关都要有）、`format`、`labels`、`mode`、`rules`；可选 `illustrated`、`keepRules`、`replaceRules`、`tagPlan`（旧预设缺省补默认）；额外字段（含 `includeHidden`、`tagScan`）不进入预设，切换预设保留当前 `includeHidden`；允许三类全关、空规则、语法无效的正则文字 |
+| 内容 | `content` 必须完整包含 `types`（三个开关都要有）、`format`、`labels`、`mode`、`rules`；可选 `illustrated`、`keepRules`、`replaceRules`、`tagPlan`、`stripComments`、`commentText`（旧预设缺省补默认）；额外字段（含 `includeHidden`、`tagScan`）不进入预设，切换预设保留当前 `includeHidden`；允许三类全关、空规则、语法无效的正则文字 |
 | 切换 | `activate(id)` 或 `activate([id,…])` 保存正在用的几套并把内容写入导出设置，保留 `allFloors/start/end/fileName`；尚无导出设置时先补默认值；其中任一 id 不存在时整体 reject `找不到指定预设`，已保存的选择不变 |
-| 叠加 | 多套时按预设在 `list()` 里的先后合并（与传入顺序无关）：`rules`、`keepRules` 拼接去重，`replaceRules` 按 `find`+`to` 去重，`tagPlan` 按标签名后者覆盖，`types`/`format`/`labels`/`illustrated`/`mode` 由靠后的一套决定 |
+| 叠加 | 多套时按预设在 `list()` 里的先后合并（与传入顺序无关）：`rules`、`keepRules` 拼接去重，`replaceRules` 按 `find`+`to` 去重，`tagPlan` 按标签名后者覆盖，`types`/`format`/`labels`/`illustrated`/`stripComments`/`commentText`/`mode` 由靠后的一套决定 |
 | 取消预设 | `activate(null)` 或 `activate([])` 只清空选择，返回当前导出设置副本，不创建或改写已保存的 `exportUI` |
 | 存储 | 预设库存 `{items, activeIds}`；旧数据里的单个 `activeId` 自动当成一套，备份文件同样兼容；`remove(id)` 只把这一套从 `activeIds` 里去掉，其余继续生效 |
 | 新建 / 导入 / 复制 | 都不自动激活（界面在新建后自己调用 `activate`）；`update` 覆盖当前预设时不再改写导出设置 |
@@ -407,6 +407,8 @@ ST-YaKit-chat/
 | `tagPlan` | `[]` | 标签处理方式 `[{name, action}]`，`action` 为 `keep` / `delete` / `strip`；进导出预设 |
 | `tagScan` | `{start:'', end:''}` | 「整理标签」上次填的识别楼层，只存界面状态，不进导出预设 |
 | `includeHidden` | `true` | 是否导出隐藏楼层；非布尔值报「导出设置 includeHidden 类型不正确」；旧设置缺项补 true |
+| `stripComments` | `true` | 去掉所有 HTML 注释 `<!-- … -->`；进导出预设，旧设置和旧预设缺项补 true |
+| `commentText` | `false` | `stripComments` 为 false 时生效：只去掉 `<!--` 和 `-->`，里面的文字留下；进导出预设 |
 
 EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面。
 
@@ -477,6 +479,7 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 | --- | --- |
 | `getChatInfo()` | 同步返回 `{status, floorCount}`，`status` 只有 `ok` / `none`。有角色 ID 且聊天为数组时为 `ok/实际条数`，空聊天为 `ok/0`；无宿主、未选角色或缺少聊天数组为 `none/0`。宿主读取异常向调用方抛出。 |
 | `previewMessages(settings={}, count=2)` | 同步返回最后 `count` 条 `{floor,type,name,text}`，保持原顺序。`count` 必须为非负整数，0 返回空数组，否则非法值抛中文 `TypeError`。无聊天、空聊天及三类全关返回 `[]`；参数或消息结构错误抛出。 |
+| `countComments(settings={})` | 同步返回 number：按设置读取并清洗完三组规则后、处理注释之前，导出范围里闭合的 HTML 注释 `<!-- … -->` 共几处（没闭合的 `<!--` 不算），不受 `stripComments` / `commentText` 影响。无聊天返回 0；设置非法抛出。只读。 |
 | `isValidRule(source)` | 同步返回 boolean。非字符串、空白或无效正则返回 false。 |
 | `exportFile(settings={})` | 返回 `Promise<{count}>`，触发宿主下载后返回实际导出消息数。全空或全关类型 reject `Error('无内容')`；无聊天 reject `Error('请先在酒馆里打开一个聊天')`；其余校验、生成和下载错误原样传播。 |
 | `onChatChanged(callback)` | 同步返回幂等 `unsubscribe()`；非函数抛中文 `TypeError`。宿主未提供事件系统时返回空操作卸载函数。回调无参数，在微任务中执行；同步异常和 Promise 拒绝记入控制台，不阻塞宿主。 |
@@ -1194,6 +1197,12 @@ await polish.saveTaskInputs({ references: [{ kind: 'context', text: '宋青书�
 console.log(await polish.getTaskInputs());
 ```
 
+**HTML 注释**（导出设置与导出预设字段 `stripComments`、`commentText`）
+
+- `commentMode(settings)`（`export-ui-settings.js`）：`stripComments !== false` 为 `strip`；否则 `commentText === true` 为 `unwrap`，其余为 `keep`。
+- `cleanByGroups(messages, delete, keep, replace, { comments })` 在三组规则都处理完后再处理注释，规则仍能用注释定位正文；`comments` 缺省 `keep`（AI 辅助的样本不处理注释）。`strip` 把 `/<!--([\s\S]*?)-->/g` 换成空，`unwrap` 换成里面的文字；没闭合的 `<!--` 不动。没有消息真的变化时返回原数组，此时不整理空行；有变化时照常合并多余空行、去掉首尾空白。
+- 预览、放大预览、四种导出格式和润色分段都按设置处理；润色按所选导出预设（或导出页当前设置）的这两项。
+
 **插画小说**（导出设置与导出预设字段 `illustrated: boolean`，默认 `false`，旧预设缺省按 `false`）
 
 - 只在 `format === 'epub'` 时生效。清洗前把生图标签换成私用区占位符（`\uE000编号\uE001`），正则清洗不会删掉占位符（删除或未保留区间里的占位符按原位置补回）；EPUB 中换成 `<img class="illustration">`，图片存 `EPUB/images/编号.扩展名` 并登记 manifest；读不到的图片直接略过。
@@ -1259,7 +1268,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.8.5 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.8.6 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 
 ## 开发与验证
 

@@ -41,7 +41,7 @@ export async function saveTxt(messages, format = 'speaker') {
 }
 
 globalThis.YaKitChat = Object.freeze({
-    version: '0.8.5',
+    version: '0.8.6',
     exportUI,
     updater,
     presets,
