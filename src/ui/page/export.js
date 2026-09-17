@@ -411,9 +411,11 @@
     for (const button of $('rule-list').querySelectorAll('yakit-button')) {
       button.toggleAttribute('disabled', locked);
     }
-    for (const id of ['rule-add', 'ai-open', 'tag-apply']) {
+    for (const id of ['rule-add', 'ai-open']) {
       $(id).toggleAttribute('disabled', locked);
     }
+    // 标签抽屉开着时跟着当前规则刷新
+    if ($('tag-drawer').open) renderTagTree();
   }
 
   /* ---------- 卡片上的标签入口：写当前处理了几个标签，点开抽屉整理 ---------- */
@@ -424,7 +426,7 @@
     const row = $('tag-scan');
     row.hidden = !(ready() && canOpenTags() && chatInfo().status === 'ok');
     if (row.hidden) return;
-    const count = state.tagPlan.length;
+    const count = currentTagPlan().length;
     $('tag-scan-state').textContent = count ? `已处理 ${count} 个` : '还没处理';
   }
 
@@ -441,7 +443,6 @@
 
   let tagTree = [];                  // 识别到的嵌套结构
   let manualTags = [];               // 手动输入加进来的标签，排在最前面
-  let tagDraft = new Map();          // 抽屉里的草稿：标签名 → 处理方式
   const folded = new Set();          // 收起来的标签名
   let treeToken = 0;
 
@@ -473,6 +474,52 @@
     if (action === 'delete') return { replace: [{ find: node.rule, to: '\n\n' }] };
     if (action === 'strip') return { replace: (node.shellRules || []).map((find) => ({ find, to: '' })) };
     return {};
+  }
+
+  const hasReplace = (rule) => state.replaceRules.some((item) => item.find === rule.find && item.to === rule.to);
+
+  // 从当前规则反推这个标签现在是怎么处理的，规则被删掉或改掉就算不处理
+  function actionInRules(node) {
+    if (!node) return '';
+    for (const { value: action } of TAG_ACTIONS) {
+      if (!action) continue;
+      const made = rulesFor(node, action);
+      const keep = made.keep || [];
+      const replace = made.replace || [];
+      if (!keep.length && !replace.length) continue;
+      if (keep.every((rule) => state.keepRules.includes(rule)) && replace.every(hasReplace)) return action;
+    }
+    return '';
+  }
+
+  // 记下来的标签里，规则还在的那些
+  const currentTagPlan = () => state.tagPlan.filter((item) => actionInRules(nodeFor(item.name)) === item.action);
+
+  // 选了就直接改规则：先撤掉这个标签生成过的规则，再按新的处理方式写进去
+  function setTagAction(name, action) {
+    if (isStacked()) return;
+    const node = nodeFor(name);
+    if (!node) return;
+    for (const { value } of TAG_ACTIONS) {
+      const made = rulesFor(node, value);
+      if (made.keep) state.keepRules = state.keepRules.filter((rule) => !made.keep.includes(rule));
+      if (made.replace) {
+        state.replaceRules = state.replaceRules
+          .filter((rule) => !made.replace.some((item) => item.find === rule.find && item.to === rule.to));
+      }
+    }
+    const made = rulesFor(node, action);
+    for (const rule of made.keep || []) {
+      if (!state.keepRules.includes(rule)) state.keepRules.push(rule);
+    }
+    for (const rule of made.replace || []) {
+      if (!hasReplace(rule)) state.replaceRules.push(rule);
+    }
+    state.tagPlan = state.tagPlan.filter((item) => item.name !== name);
+    if (action) state.tagPlan.push({ name, action });
+    save();
+    renderRules();
+    renderPreview();
   }
 
   function renderTagTree() {
@@ -534,27 +581,21 @@
     select.setAttribute('size', 'sm');
     select.setAttribute('aria-label', `${node.label} 怎么处理`);
     select.innerHTML = TAG_ACTIONS.map((item) => `<option value="${item.value}">${item.label}</option>`).join('');
-    select.setAttribute('value', tagDraft.get(node.name) || '');
-    select.addEventListener('change', (event) => {
-      const value = event.detail.value;
-      if (value) tagDraft.set(node.name, value);
-      else tagDraft.delete(node.name);
-      // 同名标签在别处也显示同一个选择
-      renderTagTree();
-    });
+    select.setAttribute('value', actionInRules(node));
+    select.toggleAttribute('disabled', isStacked());
+    select.addEventListener('change', (event) => setTagAction(node.name, event.detail.value));
     row.append(select);
     return row;
   }
 
   function renderTagPlanCount() {
     const counts = { 保留: 0, 替换: 0 };
-    for (const action of tagDraft.values()) {
+    for (const { action } of currentTagPlan()) {
       const group = ACTION_GROUP[action];
       if (group) counts[group] += 1;
     }
     const parts = Object.entries(counts).filter(([, count]) => count).map(([group, count]) => `${group} ${count}`);
-    $('tag-plan-count').textContent = parts.length ? `将写入：${parts.join(' · ')}` : '还没选怎么处理';
-    $('tag-apply').toggleAttribute('disabled', false);
+    $('tag-plan-count').textContent = parts.length ? `已写入：${parts.join(' · ')}` : '还没选怎么处理';
   }
 
   async function loadTagTree() {
@@ -581,52 +622,21 @@
   }
 
   function openTagDrawer() {
-    tagDraft = new Map(state.tagPlan.map((item) => [item.name, item.action]));
-    // 方案里选过、这次没识别到的标签，也要能看到和改
+    // 记下来、这次没识别到的标签，也要能看到和改
     const known = new Set([...manualTags, ...flattenTree(tagTree)].map((node) => node.name));
-    for (const name of tagDraft.keys()) {
+    for (const { name } of state.tagPlan) {
       if (known.has(name)) continue;
       const node = nodeFor(name);
-      if (node) manualTags.push(node);
+      if (node) {
+        manualTags.push(node);
+        known.add(name);
+      }
     }
     $('tag-from').value = state.tagScan.start;
     $('tag-to').value = state.tagScan.end;
     $('tag-drawer').show();
     renderTagTree();
     if (!tagTree.length) loadTagTree();
-  }
-
-  function applyTagPlan() {
-    if (isStacked()) return;
-    // 先撤掉上次由标签写进去的规则，手写的和 AI 加的不动
-    for (const item of state.tagPlan) {
-      const made = rulesFor(nodeFor(item.name), item.action);
-      if (made.keep) state.keepRules = state.keepRules.filter((rule) => !made.keep.includes(rule));
-      if (made.replace) {
-        state.replaceRules = state.replaceRules
-          .filter((rule) => !made.replace.some((item2) => item2.find === rule.find && item2.to === rule.to));
-      }
-    }
-    // 再按这次选的写进去
-    const plan = [...tagDraft].map(([name, action]) => ({ name, action }));
-    for (const { name, action } of plan) {
-      const made = rulesFor(nodeFor(name), action);
-      for (const rule of made.keep || []) {
-        if (!state.keepRules.includes(rule)) state.keepRules.push(rule);
-      }
-      for (const rule of made.replace || []) {
-        if (!state.replaceRules.some((item) => item.find === rule.find && item.to === rule.to)) {
-          state.replaceRules.push(rule);
-        }
-      }
-    }
-    state.tagPlan = plan;
-    save();
-    renderRules();
-    renderPreview();
-    renderTagEntry();
-    $('tag-drawer').close();
-    YaKitToast.show(plan.length ? `已按 ${plan.length} 个标签更新规则` : '已清掉标签生成的规则', 'success');
   }
 
   $('tag-open').addEventListener('click', () => openTagDrawer());
@@ -653,7 +663,7 @@
     renderTagTree();
   });
   $('tag-manual').addEventListener('input', () => $('tag-manual').removeAttribute('error'));
-  $('tag-apply').addEventListener('click', () => applyTagPlan());
+  $('tag-done').addEventListener('click', () => $('tag-drawer').close());
 
   $('rule-add').addEventListener('click', () => {
     if (state.mode === 'replace') groupRules('replace').push({ find: '', to: '' });

@@ -370,7 +370,7 @@
   </yakit-drawer>
 
   <!-- 文本导出：标签（识别楼层 + 嵌套结构 + 每个标签怎么处理） -->
-  <yakit-drawer id="tag-drawer" title="标签" width="440">
+  <yakit-drawer id="tag-drawer" title="标签" side="bottom">
     <section class="drawer-section">
       <div class="tag-range">
         <yakit-input id="tag-from" type="number" size="sm" placeholder="第一层" aria-label="识别起始楼层"></yakit-input>
@@ -391,7 +391,7 @@
     </section>
     <div slot="footer" class="tag-footer">
       <span class="card-extra" id="tag-plan-count"></span>
-      <yakit-button id="tag-apply" variant="primary">应用到规则</yakit-button>
+      <yakit-button id="tag-done" variant="primary">完成</yakit-button>
     </div>
   </yakit-drawer>
 
