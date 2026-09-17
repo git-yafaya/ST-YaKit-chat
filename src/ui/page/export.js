@@ -73,6 +73,8 @@
     end: '',
     types: { ai: true, user: true, system: true },
     includeHidden: true,
+    stripComments: true,
+    commentText: false,
     format: 'txt',
     labels: 'with',
     illustrated: false,
@@ -790,6 +792,7 @@
 
   function changed() {
     $('type-warning').hidden = anyType();
+    syncComments();
     save();
     renderSummary();
     schedulePreview();
@@ -819,8 +822,40 @@
     syncFormatOptions();
     toggle.checked = Boolean(state.illustrated);
     toggle.toggleAttribute('disabled', !illustratedReady);
-    if (illustratedReady) toggle.removeAttribute('description');
-    else toggle.setAttribute('description', '还没接入');
+    toggle.setAttribute('description', illustratedReady ? '可导出柏宝绘和智绘姬的文生图' : '还没接入');
+  }
+
+  // HTML 注释：去掉时不用管；保留时出现「只去掉注释符号」，当前导出范围里有注释才提醒
+  let commentToken = 0;
+  async function syncComments() {
+    const strip = state.stripComments !== false;
+    $('opt-comments').value = strip ? 'strip' : 'keep';
+    $('opt-comment-text').checked = Boolean(state.commentText);
+    $('comment-keep').hidden = strip;
+    const warning = $('comment-warning');
+    if (strip || chatInfo().status !== 'ok') {
+      warning.hidden = true;
+      return;
+    }
+    const token = ++commentToken;
+    let count = null;
+    if (typeof service()?.countComments === 'function') {
+      try {
+        count = await service().countComments(structuredClone(state));
+      } catch (error) {
+        YaKitErrorLog.warn('统计 HTML 注释失败', error);
+      }
+      if (token !== commentToken) return;
+      if (!(count > 0)) {
+        warning.hidden = true;
+        return;
+      }
+    }
+    const where = count === null ? '有注释（统计处数还没接入）' : `有 ${count} 处注释`;
+    $('comment-warning-text').textContent = state.commentText
+      ? `当前导出范围里${where}，注释里的文字会变成普通正文。`
+      : `当前导出范围里${where}，在酒馆里看不见，导出后会原样显示成 <!-- … -->。`;
+    warning.hidden = false;
   }
 
   // 把 state 写回各个控件（初始化、换成另一份设置时用）
@@ -835,6 +870,7 @@
     $('opt-format').value = state.format;
     $('opt-labels').value = state.labels;
     syncIllustrated();
+    syncComments();
     $('opt-file-name').value = state.fileName;
     $('type-warning').hidden = anyType();
     renderFormatExample();
@@ -904,6 +940,15 @@
       changed();
     });
 
+    $('opt-comments').addEventListener('change', (event) => {
+      state.stripComments = event.detail.value !== 'keep';
+      changed();
+    });
+    $('opt-comment-text').addEventListener('change', (event) => {
+      state.commentText = event.detail.checked;
+      changed();
+    });
+
     $('opt-file-name').addEventListener('input', (event) => {
       state.fileName = event.currentTarget.value;
       save();
@@ -956,6 +1001,7 @@
       renderSummary();
       schedulePreview();
       renderTagEntry();
+      syncComments();
     });
     if (typeof unsubscribe === 'function') window.addEventListener('pagehide', unsubscribe);
   }

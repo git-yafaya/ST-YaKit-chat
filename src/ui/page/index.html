@@ -359,6 +359,21 @@
         <figcaption>示例</figcaption>
         <pre id="format-example-text"></pre>
       </figure>
+      <!-- HTML 注释：默认去掉；保留时有注释才提醒，并可以只去掉注释符号 -->
+      <div class="comment-options">
+        <yakit-segmented id="opt-comments" block aria-label="HTML 注释" value="strip">
+          <option value="strip">去掉所有 HTML 注释</option>
+          <option value="keep">保留 HTML 注释</option>
+        </yakit-segmented>
+        <div id="comment-keep" hidden>
+          <yakit-switch id="opt-comment-text" label="只去掉注释符号" description="去掉 &lt;!-- 和 --&gt;，里面的文字留在正文里"></yakit-switch>
+          <p class="field-note comment-note">注意：若预设中有打草稿的条目，开启后正文会混乱，草稿会跳出来！</p>
+          <div class="notice is-warning" id="comment-warning" role="status" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>
+            <span id="comment-warning-text"></span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="drawer-section">

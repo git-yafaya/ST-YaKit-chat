@@ -149,6 +149,12 @@
 .range-inputs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 6px; }
 .drawer-stack > * + * { margin-top: 10px; }
 
+/* HTML 注释：和上面的示例卡片隔开一点 */
+.comment-options { margin-top: 14px; }
+#comment-keep { margin-top: 10px; }
+/* 注意小字和开关的说明文字对齐（开关 38px + 间距 10px） */
+.comment-note { margin: 2px 0 0 48px; }
+
 /* 带类别标注 / 仅正文 的小示例卡片 */
 .format-example {
   margin: 10px 0 0;
