@@ -16,6 +16,8 @@ export function normalizeSettings(value = {}) {
         format: 'txt',
         labels: 'with',
         illustrated: false,
+        stripComments: true,
+        commentText: false,
         fileName: '',
         mode: 'delete',
         rules: [],
@@ -24,7 +26,7 @@ export function normalizeSettings(value = {}) {
         tagPlan: [],
         tagScan: { start: '', end: '' },
     };
-    for (const key of ['allFloors', 'includeHidden', 'illustrated', 'start', 'end', 'fileName']) {
+    for (const key of ['allFloors', 'includeHidden', 'illustrated', 'stripComments', 'commentText', 'start', 'end', 'fileName']) {
         if (!Object.hasOwn(value, key)) continue;
         if (typeof value[key] !== typeof settings[key]) {
             throw new TypeError(`导出设置 ${key} 类型不正确`);
@@ -115,6 +117,12 @@ export function isValidRule(source) {
 }
 
 // 替换组：查找写法同其他规则，{{match}} 换成整段匹配内容（正则替换里的 $&）。
+// 导出设置里的 HTML 注释处理方式：strip 去掉、unwrap 只去掉注释符号、keep 原样保留。
+export function commentMode(settings) {
+    if (settings?.stripComments !== false) return 'strip';
+    return settings.commentText === true ? 'unwrap' : 'keep';
+}
+
 export function parseReplaceRule(rule) {
     const parsed = parseRule(rule?.find);
     if (parsed === null || typeof rule?.to !== 'string') return null;

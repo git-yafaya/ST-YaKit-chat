@@ -1,10 +1,10 @@
 import { readChat } from './read-chat.js';
 import { filterMessages, getMessageType } from './filter-messages.js';
-import { cleanByGroups } from './clean-messages.js';
+import { cleanByGroups, countComments as countMessageComments } from './clean-messages.js';
 import { saveExport } from './save-export.js';
 import { scanTagTree as buildTagTree, tagRules } from './scan-recent-tags.js';
 import { getAiContext, suggestRules, cancelSuggestRules } from './ai-assist.js';
-import { normalizeSettings, parseRule, parseReplaceRule, isValidRule, loadSettings, saveSettings } from './export-ui-settings.js';
+import { normalizeSettings, parseRule, parseReplaceRule, isValidRule, loadSettings, saveSettings, commentMode } from './export-ui-settings.js';
 import { replaceImageTags, loadIllustrations, TOKEN_PATTERN } from './illustrations.js';
 
 function chatInfo(context) {
@@ -42,7 +42,8 @@ async function scanTagTree(range = {}) {
 }
 
 // 插画小说只对 EPUB 生效：清洗前把生图标签换成占位符，refs 记录每张图的来源。
-function readMessages(context, settings, refs = null) {
+// comments 不传时按设置处理注释。
+function readMessages(context, settings, refs = null, comments = commentMode(settings)) {
     if (!context.chat.length || !Object.values(settings.types).some(Boolean)) return [];
 
     let range = 'all';
@@ -65,7 +66,15 @@ function readMessages(context, settings, refs = null) {
     if (refs) messages = messages.map(message => ({ ...message, mes: replaceImageTags(message.mes, context.chat[message.floor - 1], message.floor - 1, context, refs) }));
     const parse = list => list.map(parseRule).filter(rule => rule !== null);
     const replacements = settings.replaceRules.map(parseReplaceRule).filter(rule => rule !== null);
-    return cleanByGroups(messages, parse(settings.rules), parse(settings.keepRules), replacements);
+    return cleanByGroups(messages, parse(settings.rules), parse(settings.keepRules), replacements, { comments });
+}
+
+// 按当前设置清洗完规则后，导出范围里还剩几处 HTML 注释（不管注释开关怎么选）。
+function countComments(settings = {}) {
+    const normalized = normalizeSettings(settings);
+    const context = globalThis.SillyTavern?.getContext?.();
+    if (chatInfo(context).status !== 'ok') return 0;
+    return countMessageComments(readMessages(context, normalized, null, 'keep'));
 }
 
 function previewMessages(settings = {}, count = 2) {
@@ -131,6 +140,6 @@ function onChatChanged(callback) {
 }
 
 export const exportUI = Object.freeze({
-    getChatInfo, previewMessages, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanTagTree, tagRules,
+    getChatInfo, previewMessages, countComments, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanTagTree, tagRules,
     getAiContext, suggestRules, cancelSuggestRules,
 });

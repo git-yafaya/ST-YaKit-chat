@@ -2,7 +2,7 @@ import { readSettings, updateSettings } from '../../shared/settings.js';
 import { readChat } from '../text-export/read-chat.js';
 import { filterMessages } from '../text-export/filter-messages.js';
 import { cleanByGroups } from '../text-export/clean-messages.js';
-import { loadSettings as loadExportSettings, normalizeSettings as normalizeExportSettings, parseRule, parseReplaceRule } from '../text-export/export-ui-settings.js';
+import { loadSettings as loadExportSettings, normalizeSettings as normalizeExportSettings, parseRule, parseReplaceRule, commentMode } from '../text-export/export-ui-settings.js';
 import { list as listPresets } from '../presets/store.js';
 import { replaceImageTags, takeImages } from '../text-export/illustrations.js';
 
@@ -116,7 +116,7 @@ export function buildPlan(value = {}, context = globalThis.SillyTavern?.getConte
     if (refs) messages = messages.map(message => ({ ...message, mes: replaceImageTags(message.mes, context.chat[message.floor - 1], message.floor - 1, context, refs) }));
     const parse = list => (Array.isArray(list) ? list : []).map(parseRule).filter(rule => rule !== null);
     const replacements = (Array.isArray(source.replaceRules) ? source.replaceRules : []).map(parseReplaceRule).filter(rule => rule !== null);
-    messages = cleanByGroups(messages, parse(source.rules), parse(source.keepRules), replacements);
+    messages = cleanByGroups(messages, parse(source.rules), parse(source.keepRules), replacements, { comments: commentMode(source) });
 
     const segments = [];
     const floors = [];

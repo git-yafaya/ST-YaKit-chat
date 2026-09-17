@@ -1,8 +1,8 @@
 import { normalizeSettings } from '../text-export/export-ui-settings.js';
 
 const CONTENT_KEYS = ['types', 'format', 'labels', 'mode', 'rules'];
-// 插画小说开关后加入，旧预设缺省按关闭。
-const OPTIONAL_KEYS = ['illustrated', 'keepRules', 'replaceRules', 'tagPlan'];
+// 这些项后加入，旧预设缺省按默认值补（插画小说关闭、注释去掉）。
+const OPTIONAL_KEYS = ['illustrated', 'keepRules', 'replaceRules', 'tagPlan', 'stripComments', 'commentText'];
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export function normalizeName(value) {

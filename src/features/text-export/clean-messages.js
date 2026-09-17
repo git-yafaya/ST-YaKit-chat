@@ -115,12 +115,39 @@ function tidyBlankLines(messages) {
     }));
 }
 
+const COMMENT_PATTERN = /<!--([\s\S]*?)-->/g;
+
+// 数 HTML 注释（<!-- … -->）有几处，没闭合的开头不算。
+export function countComments(messages) {
+    if (!Array.isArray(messages)) throw new TypeError('messages 必须是数组');
+    return messages.reduce((total, message) => total + (typeof message?.mes === 'string' ? [...message.mes.matchAll(COMMENT_PATTERN)].length : 0), 0);
+}
+
+// HTML 注释：strip 整个去掉，unwrap 只去掉 <!-- 和 -->、留下里面的文字，keep 原样保留。
+// 没有消息真的变化时返回原数组。
+export function handleComments(messages, mode = 'keep') {
+    if (!['strip', 'unwrap', 'keep'].includes(mode)) throw new TypeError('注释处理方式不受支持');
+    if (!Array.isArray(messages)) throw new TypeError('messages 必须是数组');
+    if (mode === 'keep') return messages;
+    let changed = false;
+    const result = messages.map(message => {
+        if (typeof message?.mes !== 'string' || !message.mes.includes('<!--')) return message;
+        const mes = message.mes.replace(COMMENT_PATTERN, mode === 'strip' ? '' : (_, inner) => inner);
+        if (mes === message.mes) return message;
+        changed = true;
+        return { ...message, mes };
+    });
+    return changed ? result : messages;
+}
+
 // 三组规则：先按保留组只留下匹配到的内容，再按替换组依次替换，最后删除删除组匹配到的内容。
-export function cleanByGroups(messages, deleteRules = [], keepRules = [], replaceRules = []) {
+// 规则都处理完后再按 comments 处理 HTML 注释，规则里仍能用注释定位正文。
+export function cleanByGroups(messages, deleteRules = [], keepRules = [], replaceRules = [], { comments = 'keep' } = {}) {
     let result = keepRules.length ? cleanMessages(messages, keepRules, 'keep') : messages;
     if (replaceRules.length) result = replaceMessages(result, replaceRules);
     if (deleteRules.length) result = cleanMessages(result, deleteRules, 'remove');
-    // 没有任何规则时是原文导出，不动格式。
+    result = handleComments(result, comments);
+    // 没有任何规则、注释也没动时是原文导出，不动格式。
     return result === messages ? result : tidyBlankLines(result);
 }
 
