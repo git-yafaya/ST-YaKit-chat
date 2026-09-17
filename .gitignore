@@ -20,3 +20,8 @@ sillytavern_API.md
 .DS_Store
 Thumbs.db
 *.log
+
+# 本地协议文档（指向本机的链接）
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
