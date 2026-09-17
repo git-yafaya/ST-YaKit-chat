@@ -2,7 +2,7 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.2。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.3。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。入口目前直接引用多个业务模块，尚未收敛为「UI 总文件 + 业务总文件」两个引用。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
@@ -103,7 +103,6 @@ ST-YaKit-chat/
 ├── src/ui/components/embed-frame.js、icon.js、segmented.js、card.js、collapse.js、drawer.js、button.js、input.js、select.js、switch.js、toast.js、scrollbar.js、modal.js、error-log.js、theme-list.js、themes.css
 ├── src/ui/icons/*.svg、src/ui/icons/theme/*.svg
 ├── README.md / Public.md / NOTICE.md
-├── CLAUDE.md / AGENTS.md / CLAUDE.local.md
 ├── AGENT_LOG.md
 └── .gitignore
 ```
@@ -124,11 +123,11 @@ ST-YaKit-chat/
    - 设置或规则变化：`saveSettings(settings)`，200ms 防抖后重新 `previewMessages`
    - 起止楼层输入框 change：按 `floorCount` 收回越界值、颠倒时对调，写回输入框再保存
    - 放大查看：`previewMessages(settings, floorCount)`，界面每批渲染 20 条，滑到底部附近加载下一批；设置变化时重新获取；标题行「看第几楼」填了楼号时只显示该楼与前一条，放大预览自动滚到该楼
-   - 整理标签抽屉：打开时按 `tagScan` 调 `scanTagTree({start,end})`（首次打开才识别，之后留着上次结果），每行一个下拉选处理方式，选择先存进草稿；「应用到规则」按上一次 `tagPlan` 撤掉旧规则、写入新规则并 `saveSettings`；手动输入的标签名走 `tagRules(name)`，识别结果里已有的不重复加
+   - 整理标签抽屉：打开时按 `tagScan` 调 `scanTagTree({start,end})`（首次打开才识别，之后留着上次结果），抽屉为底部抽屉（`resizable`，初始高 50dvh）；每行一个下拉，显示值由当前 `keepRules` / `replaceRules` 反推（规则不全在就算不处理）；改下拉即撤掉该标签三种处理方式生成的规则、写入新规则、更新 `tagPlan` 并 `saveSettings`，随后刷新规则列表与预览；规则列表或叠加状态变化时，抽屉开着就跟着重画；底部计数与入口行只算规则仍在的 `tagPlan` 条目；手动输入的标签名走 `tagRules(name)`，识别结果里已有的不重复加
    - AI 辅助（`src/ui/page/ai-rules.js`）：打开抽屉 `getAiContext()`；生成 `suggestRules({request, mode, rules})`，期间锁住需求输入框；候选用 `isValidRule` 标无效，`previewMessages({...settings, rules: [...rules, ...有效候选]}, 2)` 预览；「添加到规则」由界面去重后写入并保存。关闭抽屉或弹窗不调用 `cancelSuggestRules`，生成继续，结果留在抽屉；抽屉关着时结束会提示，弹窗开着用面板提示消息，弹窗关着用宿主 `toastr`
    - 点击导出：`exportFile(settings)` → 成功提示「已导出 N 条消息」
    - `onChatChanged` 回调：刷新摘要、预览、标签入口行
-   - 叠加多套预设时（预设页调用 `window.YaKitExportPage.setStacked(n)`）：规则输入框只读、删不掉，「添加规则」「AI 辅助」「应用到规则」禁用，卡片上写明原因
+   - 叠加多套预设时（预设页调用 `window.YaKitExportPage.setStacked(n)`）：规则输入框只读、删不掉，「添加规则」「AI 辅助」禁用、整理标签抽屉的下拉不能改，卡片上写明原因
 7. 润色页（`src/ui/page/polish.js`）：
    - 打开时 `loadSettings()`、`getContext()`、`presets.list()`、`styles.list()` + `getActiveId()`、`getJob()`；没有任务时 `planSegments(settings)` 显示按楼层的原文预览与「约 N 次请求」（段数），设置或导出页设置变化时重新分段
    - 首次 `getJob()` 可能同步返回 null 而服务器结果仍在读取，读回后由 `onJobChange` 推送；界面据此切换到结果视图
@@ -221,7 +220,7 @@ ST-YaKit-chat/
 | 删掉整块 | 替换组：`{find: rule, to: 换行 + 换行}`，删掉的位置留一个空行 |
 | 只删标签 | 替换组：`shellRules` 每条替换成空 |
 
-界面把选择存进 `tagPlan`，「应用到规则」时先按上一次的 `tagPlan` 撤掉标签生成的规则，再写入这次的；手写和 AI 加的规则不受影响。
+界面在下拉改动时写规则：先撤掉这个标签三种处理方式生成的规则，再写入新选的，并把选择记进 `tagPlan`；手写和 AI 加的规则不受影响。
 
 **预设（`presets`）**
 
@@ -1230,7 +1229,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 - 导出预设：列表、切换、重命名、复制、导出、删除、导入、备份全部、从备份恢复，导出页底部下拉框与「更新预设」（单套切换部分已复测，叠加为 v0.7.0 新增）
 
 **已实现并接入界面，未经整体复测（v0.7.0 新增，不需要 AI 请求）**
-- 整理标签抽屉：指定楼层识别、嵌套结构、四种处理方式、手动加标签、应用到规则。真实页面只读核对通过（210 层聊天识别出 20 项、无重复、嵌套正确，下拉与折叠正常）；「应用到规则」会写用户设置，未在真实环境执行，导出结果未验证
+- 整理标签抽屉：指定楼层识别、嵌套结构、四种处理方式（选了即写入规则）、手动加标签、底部抽屉拖动调高度。真实页面只读核对通过（210 层聊天识别出 20 项、无重复、嵌套正确，下拉与折叠正常，下拉值与现有规则一致，拖动调高度正常）；改下拉会写用户设置，未在真实环境执行，导出结果未验证
 - 三组规则（保留 → 替换 → 删除）与删块留空行、多余空行合并：只有离线测试与预览核对，真实导出文件未验证
 - 酒馆聊天（JSONL）导出：只有离线测试，导出文件能否被酒馆导入未验证；润色导出不支持这个格式，会给中文错误提示
 - 导出预览「看第几楼」：真实页面核对过渲染，放大预览跳转未逐项验证
@@ -1261,7 +1260,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.8.2 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.8.3 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 
 ## 开发与验证
 
