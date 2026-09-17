@@ -15,6 +15,8 @@
  *   title    标题
  *   side     从哪边出来：right（默认）/ left / bottom
  *   width    左右抽屉的宽度，单位像素，默认 400
+ *   底部抽屉的初始高度用 CSS 变量 --drawer-height 设，不设就按内容高度
+ *   resizable  底部抽屉可以拖顶上的小横条调高度（最矮 30%，最高 85%）
  *
  * 事件：
  *   open / close
@@ -68,7 +70,7 @@
     :host([side="bottom"]) dialog {
       inset: auto 0 0 0;
       width: 100vw;
-      height: auto;
+      height: var(--drawer-height, auto);
       max-height: 85dvh;
       border-radius: 16px 16px 0 0;
     }
@@ -106,6 +108,20 @@
       border-radius: 2px;
       background: var(--divider, #DFE2E5);
     }
+    /* 可拖动时：横条周围留出好按的范围 */
+    :host([side="bottom"][resizable]) .handle {
+      position: relative;
+      cursor: ns-resize;
+      touch-action: none;
+      transition: background .2s ease;
+    }
+    :host([side="bottom"][resizable]) .handle::before {
+      content: '';
+      position: absolute;
+      inset: -8px -40px -6px;
+    }
+    :host([side="bottom"][resizable]) .handle:hover,
+    :host([side="bottom"][resizable]) .handle.dragging { background: var(--text-muted, #6E737A); }
 
     .header {
       display: flex;
@@ -203,6 +219,37 @@
         this.close();
       });
       this.$('slot[name="footer"]').addEventListener('slotchange', () => this.render());
+      this.bindResize();
+    }
+
+    // 底部抽屉拖小横条调高度，这次打开网页期间一直保持拖过的高度
+    bindResize() {
+      const handle = this.$('.handle');
+      let startY = 0;
+      let startHeight = 0;
+      const move = (event) => {
+        const view = window.innerHeight;
+        const height = Math.min(view * 0.85, Math.max(view * 0.3, startHeight + startY - event.clientY));
+        this.style.setProperty('--drawer-height', `${Math.round(height)}px`);
+      };
+      const end = (event) => {
+        handle.classList.remove('dragging');
+        handle.releasePointerCapture?.(event.pointerId);
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', end);
+        handle.removeEventListener('pointercancel', end);
+      };
+      handle.addEventListener('pointerdown', (event) => {
+        if (!this.hasAttribute('resizable') || this.getAttribute('side') !== 'bottom') return;
+        event.preventDefault();
+        startY = event.clientY;
+        startHeight = this.dialog.getBoundingClientRect().height;
+        handle.classList.add('dragging');
+        handle.setPointerCapture?.(event.pointerId);
+        handle.addEventListener('pointermove', move);
+        handle.addEventListener('pointerup', end);
+        handle.addEventListener('pointercancel', end);
+      });
     }
 
     connectedCallback() {

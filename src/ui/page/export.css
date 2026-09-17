@@ -158,7 +158,7 @@
 }
 
 /* 标签抽屉：识别楼层 + 嵌套结构 + 每个标签怎么处理；从底部上拉半页 */
-#tag-drawer::part(panel) { height: 50dvh; }
+#tag-drawer { --drawer-height: 50dvh; }
 .tag-range { display: flex; align-items: center; gap: 8px; }
 .tag-range yakit-input { flex: 1 1 80px; min-width: 0; }
 .tag-range-to { flex: none; font-size: 13px; color: var(--text-muted); }
