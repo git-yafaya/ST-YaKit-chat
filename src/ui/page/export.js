@@ -46,6 +46,10 @@
  *      没提供这个函数时，不显示「标签」这一行
  *    exportUI.tagRules(name) → 同上单个节点，名字不合法时返回 null
  *      手动输入标签名时用，拿到和识别结果一样的三套规则
+ * 8. YaKitChat.getEpubPreferences() → { floorsPerChapter: number, chapterNames: string[] }
+ *    YaKitChat.saveEpubPreferences(patch) → 保存后的完整偏好（可局部更新，失败抛中文异常）
+ *      EPUB 分章设置：每章几条消息、每章的标题（按章排，留空用默认标题）
+ *      这两个函数在 YaKitChat 上（不在 exportUI 里）；没提供时「EPUB 章节」区域显示「章节设置还没接入」
  *
  * 接口没提供时，界面显示「文本导出还没接入」，不报错。
  *
@@ -316,7 +320,10 @@
   let previewTimer = null;
   const schedulePreview = () => {
     clearTimeout(previewTimer);
-    previewTimer = setTimeout(renderPreview, 200);
+    previewTimer = setTimeout(() => {
+      renderPreview();
+      renderChapterSummary();
+    }, 200);
   };
 
   /* ---------- 正则规则列表 ---------- */
@@ -820,9 +827,143 @@
     const toggle = $('opt-illustrated');
     toggle.hidden = state.format !== 'epub';
     syncFormatOptions();
+    syncEpubChapters();
     toggle.checked = Boolean(state.illustrated);
     toggle.toggleAttribute('disabled', !illustratedReady);
     toggle.setAttribute('description', illustratedReady ? '可导出柏宝绘和智绘姬的文生图' : '还没接入');
+  }
+
+  /* ---------- EPUB 章节 ---------- */
+
+  // 章节设置存在业务的 EPUB 偏好里（YaKitChat.getEpubPreferences / saveEpubPreferences），页面不另存一份
+  const CHAPTER_DEFAULTS = { floorsPerChapter: 2, chapterNames: [] };
+  const chapterApi = () => parent.YaKitChat;
+  let epubPrefs = structuredClone(CHAPTER_DEFAULTS);
+
+  const chapterSize = () => {
+    const value = Math.trunc(Number(epubPrefs.floorsPerChapter));
+    return Number.isFinite(value) && value > 0 ? value : CHAPTER_DEFAULTS.floorsPerChapter;
+  };
+
+  const epubReady = (() => {
+    const api = chapterApi();
+    if (typeof api?.getEpubPreferences !== 'function' || typeof api?.saveEpubPreferences !== 'function') return false;
+    try {
+      const saved = api.getEpubPreferences() || {};
+      epubPrefs = {
+        floorsPerChapter: saved.floorsPerChapter,
+        chapterNames: Array.isArray(saved.chapterNames) ? saved.chapterNames.map((name) => (typeof name === 'string' ? name : '')) : [],
+      };
+      return true;
+    } catch (error) {
+      YaKitErrorLog.warn('读取 EPUB 章节设置失败', error);
+      return false;
+    }
+  })();
+
+  function saveEpub(patch) {
+    if (!epubReady) return;
+    try {
+      const saved = chapterApi().saveEpubPreferences(patch) || {};
+      epubPrefs = {
+        floorsPerChapter: saved.floorsPerChapter,
+        chapterNames: Array.isArray(saved.chapterNames) ? saved.chapterNames.map((name) => (typeof name === 'string' ? name : '')) : [],
+      };
+    } catch (error) {
+      YaKitErrorLog.warn('保存 EPUB 章节设置失败', error);
+    }
+  }
+
+  // 默认章节标题「第一章、第二章……」：一百以内写中文，再多就写数字
+  const CN_DIGITS = '零一二三四五六七八九';
+  const cnTens = (value) => (value < 10
+    ? CN_DIGITS[value]
+    : `${CN_DIGITS[Math.floor(value / 10)]}十${value % 10 ? CN_DIGITS[value % 10] : ''}`);
+  function cnNumber(value) {
+    if (value < 10) return CN_DIGITS[value];
+    if (value < 20) return value === 10 ? '十' : `十${CN_DIGITS[value % 10]}`; // 十一、十二，开头不说「一十」
+    if (value < 100) return cnTens(value);
+    if (value < 1000) {
+      const rest = value % 100;
+      const hundreds = `${CN_DIGITS[Math.floor(value / 100)]}百`;
+      if (!rest) return hundreds;
+      return `${hundreds}${rest < 10 ? `零${CN_DIGITS[rest]}` : cnTens(rest)}`;
+    }
+    return String(value);
+  }
+  const defaultChapterTitle = (number) => `第${cnNumber(number)}章`;
+
+  // 只在 EPUB 时显示；每章消息数取已保存的偏好
+  function syncEpubChapters() {
+    const box = $('epub-chapters');
+    box.hidden = state.format !== 'epub';
+    if (box.hidden) return;
+    $('opt-chapter-size').value = epubReady ? String(chapterSize()) : '';
+    $('opt-chapter-size').toggleAttribute('disabled', !epubReady);
+    renderChapterSummary();
+  }
+
+  // 章节标题输入框：只摆出预计的章数，填过的标题都留在偏好里，章数变多时自动回来
+  function renderChapterNames(chapters) {
+    const list = $('chapter-name-list');
+    const names = epubPrefs.chapterNames || [];
+    const filled = names.slice(0, chapters).filter((name) => String(name || '').trim() !== '').length;
+    $('chapter-names').setAttribute('summary', filled ? `已填 ${filled} 个` : '默认标题');
+
+    while (list.childElementCount > chapters) list.lastElementChild.remove();
+    for (let index = list.childElementCount; index < chapters; index += 1) {
+      const input = document.createElement('yakit-input');
+      input.setAttribute('size', 'sm');
+      input.setAttribute('placeholder', defaultChapterTitle(index + 1));
+      input.setAttribute('aria-label', `第 ${index + 1} 章的标题`);
+      input.dataset.index = String(index);
+      input.addEventListener('input', () => {
+        const next = [...(epubPrefs.chapterNames || [])];
+        while (next.length <= index) next.push('');
+        next[index] = input.value;
+        saveEpub({ chapterNames: next });
+        renderChapterNames(list.childElementCount);
+      });
+      list.append(input);
+    }
+    for (const input of list.children) {
+      const saved = names[Number(input.dataset.index)] ?? '';
+      if (input.value !== saved) input.value = saved;
+    }
+  }
+
+  // 分章摘要：按筛选、清洗后还有正文的消息算，最后不足一章的也单独成章
+  let chapterToken = 0;
+  async function renderChapterSummary() {
+    // 这一段只在抽屉里看得到，抽屉关着就不跑整段清洗，打开时再算
+    if (state.format !== 'epub' || !$('export-drawer').open) return;
+    const summary = $('chapter-summary');
+    if (!epubReady) {
+      summary.textContent = '章节设置还没接入';
+      renderChapterNames(0);
+      return;
+    }
+    const info = chatInfo();
+    if (info.status !== 'ok' || !anyType()) {
+      summary.textContent = '当前没有可导出的消息';
+      renderChapterNames(0);
+      return;
+    }
+    const token = ++chapterToken;
+    let messages;
+    try {
+      messages = await service().previewMessages(structuredClone(state), Math.max(info.floorCount || 0, 0));
+    } catch (error) {
+      if (token !== chapterToken) return;
+      summary.textContent = '分章统计失败';
+      YaKitErrorLog.warn('统计分章消息数失败', error);
+      return;
+    }
+    if (token !== chapterToken) return;
+    const count = (messages || []).filter((message) => String(message?.text ?? '').trim() !== '').length;
+    const chapters = count ? Math.ceil(count / chapterSize()) : 0;
+    summary.textContent = count ? `共 ${count} 条消息，预计 ${chapters} 章` : '当前没有可导出的消息';
+    renderChapterNames(chapters);
   }
 
   // HTML 注释：去掉时不用管；保留时出现「只去掉注释符号」，当前导出范围里有注释才提醒
@@ -940,6 +1081,20 @@
       changed();
     });
 
+    // 每章消息数只收正整数：边输边存，输完离开时把空的、零和小数收回上一个有效值
+    const chapterInput = $('opt-chapter-size');
+    chapterInput.addEventListener('input', () => {
+      const value = Math.trunc(Number(chapterInput.value));
+      if (!chapterInput.value.trim() || !Number.isFinite(value) || value < 1) return;
+      saveEpub({ floorsPerChapter: value });
+      renderChapterSummary();
+    });
+    chapterInput.addEventListener('change', () => {
+      const tidy = String(chapterSize());
+      if (chapterInput.value !== tidy) chapterInput.value = tidy;
+      renderChapterSummary();
+    });
+
     $('opt-comments').addEventListener('change', (event) => {
       state.stripComments = event.detail.value !== 'keep';
       changed();
@@ -955,6 +1110,7 @@
     });
 
     $('export-settings').addEventListener('click', () => $('export-drawer').show());
+    $('export-drawer').addEventListener('open', renderChapterSummary);
     // 卡片上和放大抽屉里的「看第几楼」是同一个值，改哪边两边一起变
     const setPreviewFloor = (text) => {
       const value = text === '' ? null : Math.trunc(Number(text));
@@ -1015,6 +1171,7 @@
       renderRules();
       renderSummary();
       renderPreview();
+      renderChapterSummary();
       notifyChange();
     },
     addRules(rules = [], group = state.mode) {
@@ -1040,6 +1197,7 @@
   renderRules();
   renderSummary();
   renderPreview();
+  renderChapterSummary();
   renderTagEntry();
   watchChat();
 })();

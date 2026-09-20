@@ -155,6 +155,12 @@
 /* 注意小字和开关的说明文字对齐（开关 38px + 间距 10px） */
 .comment-note { margin: 2px 0 0 48px; }
 
+/* EPUB 章节：每章消息数和楼层输入框一样宽，章节标题收在折叠项里 */
+.epub-chapters { margin-top: 14px; }
+.chapter-size { max-width: calc(50% - 5px); }
+#chapter-names { margin-top: 10px; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); }
+.chapter-name-list { display: grid; gap: 8px; }
+
 /* 带类别标注 / 仅正文 的小示例卡片 */
 .format-example {
   margin: 10px 0 0;

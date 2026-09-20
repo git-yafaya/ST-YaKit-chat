@@ -354,6 +354,16 @@
         <option value="plain">仅正文</option>
       </yakit-segmented>
       <yakit-switch id="opt-illustrated" label="插画小说" hidden></yakit-switch>
+      <!-- EPUB 章节：只在选 EPUB 时显示，设置存在业务的 EPUB 偏好里 -->
+      <div class="epub-chapters" id="epub-chapters" hidden>
+        <div class="chapter-size">
+          <yakit-input id="opt-chapter-size" label="每章消息数" type="number" size="sm" placeholder="2"></yakit-input>
+        </div>
+        <p class="field-note" id="chapter-summary"></p>
+        <yakit-collapse id="chapter-names" title="自定义章节标题" summary="默认标题">
+          <div class="chapter-name-list" id="chapter-name-list"></div>
+        </yakit-collapse>
+      </div>
       <p class="field-note" id="opt-jsonl-note" hidden>导出成酒馆能直接导入的聊天文件，正文按规则清洗，其他信息原样保留。<br>建议先导出一份，导入后可以反复清洗。</p>
       <figure class="format-example" id="format-example" aria-label="导出效果示例">
         <figcaption>示例</figcaption>
