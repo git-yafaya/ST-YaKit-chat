@@ -1,8 +1,10 @@
-// 插画小说：识别柏宝绘、智绘姬的生图标签，清洗和润色期间用占位符代替，导出 EPUB 时换成图片。
+// 插画小说：识别生图标签与酒馆 Markdown 图片，独立保存图片记录，导出 EPUB 时回插。
 const TOKEN_OPEN = '\uE000';
 const TOKEN_CLOSE = '\uE001';
 export const TOKEN_PATTERN = /\uE000(\d+)\uE001/g;
 const BBI_TAG = /<bbi_image>[\s\S]+?<\/bbi_image>/gi;
+// ponytail: 仅识别酒馆根路径的内联图片；需要完整 Markdown 语法时再接解析器。
+const MARKDOWN_IMAGE = /(?<!\\)!\[[^\]\r\n]*\]\((\/user\/images\/[^\s()<>]+)\)/g;
 const CHATU8_KEY = 'st-chatu8';
 const IMAGE_TYPES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
 
@@ -37,6 +39,12 @@ export function replaceImageTags(text, chatMessage, floor, context, refs) {
         if (!link) return match;
         const id = refs.length;
         refs.push({ kind: 'chatu8', floor, link });
+        return makeToken(id);
+    });
+    // Markdown 已直接提供图片路径，无需查找其他插件的生图记录。
+    result = result.replace(MARKDOWN_IMAGE, (_, path) => {
+        const id = refs.length;
+        refs.push({ kind: 'markdown', floor, path });
         return makeToken(id);
     });
     return result;
@@ -92,6 +100,7 @@ export function placeImages(text, images, refs) {
 export function isImageRef(ref) {
     if (!ref || typeof ref !== 'object' || !Number.isInteger(ref.floor) || ref.floor < 0) return false;
     if (ref.kind === 'bbi') return Number.isInteger(ref.swipeId) && Number.isInteger(ref.seq) && typeof ref.tag === 'string';
+    if (ref.kind === 'markdown') return typeof ref.path === 'string' && /^\/user\/images\/[^\s()<>]+$/.test(ref.path);
     return ref.kind === 'chatu8' && typeof ref.link === 'string' && Boolean(ref.link);
 }
 
@@ -238,6 +247,8 @@ export async function loadIllustrations(refs, context = globalThis.SillyTavern?.
             if (ref.kind === 'bbi') {
                 const path = bbiPath(ref, context);
                 if (path) loaded = await fetchImage(path);
+            } else if (ref.kind === 'markdown' && isImageRef(ref)) {
+                loaded = await fetchImage(ref.path);
             } else if (ref.kind === 'chatu8') {
                 const found = await chatu8Image(ref, context, state);
                 if (found?.path) loaded = await fetchImage(found.path);
