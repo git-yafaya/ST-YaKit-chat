@@ -4,10 +4,10 @@
 
 - **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.6。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
-- **入口文件**：`src/index.js`（`manifest.json` 的 `js`），组装并冻结 `globalThis.YaKitChat`，再调用界面总文件 `src/ui/panel/index.js` 的 `initPanelUI(api, getContext)`；样式入口 `src/ui/style.css`。入口目前直接引用多个业务模块，尚未收敛为「UI 总文件 + 业务总文件」两个引用。
+- **入口文件**：`src/index.js`（`manifest.json` 的 `js`），只引用两个总文件——业务总文件 `src/business.js` 与界面总文件 `src/ui/panel/index.js`；入口自己只做三件事：写 `version`、组装并冻结 `globalThis.YaKitChat`、调用 `initPanelUI(api, getContext)`，另用 `export * from './business.js'` 透传业务侧的模块级导出；样式入口 `src/ui/style.css`。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
 - **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出、标签识别与正则 AI 辅助，11 个）；`polishUI`（润色，20 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、自定义提示词三类各一个库、助手、请求参数）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
-- **当前还没做什么**：v0.7.0 的整理标签、三组规则、酒馆聊天导出与预设叠加只有离线测试和真实页面的只读核对，写入规则、叠加切换与导出文件都没在真实环境跑过（这些不需要 AI 请求，小主复测即可）；润色功能仍在测试中，已知可能出现回复格式不对、被模型拒绝、字数变少或效果不理想，世界书开关与重写后的提示词未经真实 API 对照测试；插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口文件结构未收敛。
+- **当前还没做什么**：v0.7.0 的整理标签、三组规则、酒馆聊天导出与预设叠加只有离线测试和真实页面的只读核对，写入规则、叠加切换与导出文件都没在真实环境跑过（这些不需要 AI 请求，小主复测即可）；润色功能仍在测试中，已知可能出现回复格式不对、被模型拒绝、字数变少或效果不理想，世界书开关与重写后的提示词未经真实 API 对照测试；插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 分章偏好没有界面；入口两总文件拆分（新增 `src/business.js`）已完成业务迁移、54 项离线检查通过，待小主整体复测。
 
 ## 仓库结构
 
@@ -16,7 +16,8 @@ ST-YaKit-chat/
 ├── manifest.json           扩展声明：js 指向 src/index.js，css 指向 src/ui/style.css
 ├── NOTICE.md               更新公告，按版本从新到旧
 ├── src/
-│   ├── index.js            入口：组装 YaKitChat，初始化界面
+│   ├── index.js            入口：引用两个总文件，组装 YaKitChat，初始化界面
+│   ├── business.js         业务总文件：汇总全部业务模块，导出 { api, getContext }
 │   ├── features/
 │   │   ├── text-export/        读取、类型过滤、正则清洗、三种格式生成与下载、文本导出页接口、标签扫描
 │   │   ├── presets/            纪实预设的增删改查、单套文件导入导出、整体备份与恢复
@@ -45,6 +46,7 @@ ST-YaKit-chat/
 ST-YaKit-chat/
 ├── manifest.json
 ├── src/index.js
+├── src/business.js
 ├── src/features/text-export/read-chat.js
 ├── src/features/text-export/filter-messages.js
 ├── src/features/text-export/clean-messages.js
@@ -113,7 +115,7 @@ ST-YaKit-chat/
 ## 加载与数据流
 
 1. 酒馆按 `manifest.json` 加载 `src/index.js` 与 `src/ui/style.css`。
-2. `src/index.js` 把公开函数和 `exportUI` 组装进冻结的 `globalThis.YaKitChat`，然后调用 `initPanelUI`。
+2. `src/index.js` 从业务总文件 `src/business.js` 取 `{ api, getContext }`，把 `version` 与业务字段组装进冻结的 `globalThis.YaKitChat`，然后调用界面总文件的 `initPanelUI(globalThis.YaKitChat, getContext)`。
 3. `initPanelUI` 在魔法棒菜单（`#extensionsMenu`）加入「纪实」；菜单未就绪时等待宿主 `APP_READY`。
 4. 点击后创建居中 `<dialog>`，内容区用 iframe 加载 `src/ui/page/index.html`。
 5. 弹窗与 iframe 之间用消息通信：弹窗发 `yakit:tab`、`yakit:theme`、`yakit:nav`、`yakit:preload-font`、`yakit:closed`（弹窗关闭时，面板收起全部抽屉；面板加载完后直接调用面板的 `window.yakitReceive`，加载前用 `postMessage`）；面板用 `postMessage` 发 `yakit:set-theme`、`yakit:set-nav`。
@@ -473,7 +475,11 @@ EPUB 偏好默认 `{ floorsPerChapter: 2, chapterNames: [] }`，目前无界面�
 
 ## 公开 API
 
-以下代码在已启用插件的酒馆顶层控制台运行。`exportUI` 的参数、返回与错误：
+以下代码在已启用插件的酒馆顶层控制台运行。
+
+`globalThis.YaKitChat` 的业务字段来自业务总文件 `src/business.js`（默认导出 `{ api, getContext }`，`api` 就是下面这些字段，不含 `version`；`getContext()` 每次返回当前宿主上下文）。`src/index.js` 还有模块级导出，由 `export * from './business.js'` 原样透传：`readCurrentChat`、`saveTxt`、`filterMessages`、`cleanMessages`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences`，以及 api-management、prompt-management 两个模块的全部导出（不透传 default）。无宿主时读取类接口仍抛原来的中文异常，`saveTxt([])` 不需要宿主、返回 `无内容`。
+
+`exportUI` 的参数、返回与错误：
 
 | 接口 | 参数、返回与错误 |
 | --- | --- |
@@ -1264,7 +1270,6 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 - assistant 预填充消息与预填充开关
 - 群聊润色
 - 「备份全部」覆盖 API 配置与密钥、助手接口与采样、请求参数、润色设置与服务器润色结果
-- 入口文件收敛为「UI 总文件 + 业务总文件」两个引用
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
@@ -1272,7 +1277,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 
 ## 开发与验证
 
-- **分工**：Claude 负责界面代码（`src/ui/`）、README.md / Public.md / DESIGN.md 与设计一致性核对；Codex 负责业务逻辑（`src/features/`、`src/shared/`）与业务测试；入口文件改动由小主协调；界面与业务通过接口说明对接，不共同修改同一文件。
+- **分工**：Claude 负责界面代码（`src/ui/`）、README.md / Public.md / DESIGN.md 与设计一致性核对；Codex 负责业务逻辑（`src/features/`、`src/shared/`、业务总文件 `src/business.js`）与业务测试；入口文件改动由小主协调；界面与业务通过接口说明对接，不共同修改同一文件。
 - **验收方式**：业务由 Codex 自测（不使用浏览器）；界面在业务接好后由 Claude 在酒馆里接真实业务自测（避开发模型请求和写入用户数据的操作），再由小主整体复测。
 - **构建**：不涉及，浏览器直接加载 ES 模块；插件须在酒馆扩展设置中启用。
 - **协作记录**：关键节点见 `AGENT_LOG.md`。
