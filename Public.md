@@ -2,7 +2,7 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.6。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬图片和正文里的 Markdown 图片）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.6。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬和瑟瑟灵感状态栏的文生图）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），只引用两个总文件——业务总文件 `src/business.js` 与界面总文件 `src/ui/panel/index.js`；入口自己只做三件事：写 `version`、组装并冻结 `globalThis.YaKitChat`、调用 `initPanelUI(api, getContext)`，另用 `export * from './business.js'` 透传业务侧的模块级导出；样式入口 `src/ui/style.css`。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
@@ -65,7 +65,7 @@ ST-YaKit-chat/
 ├── src/features/text-export/ai-rules.js
 ├── src/features/text-export/ai-client.js
 ├── src/features/text-export/ai-legacy-client.js
-├── src/features/text-export/illustrations.js      插画小说：识别柏宝绘 / 智绘姬标签与 Markdown 图片、占位符、读取图片、润色时取出与补回
+├── src/features/text-export/illustrations.js      插画小说：识别柏宝绘 / 智绘姬 / 瑟瑟灵感状态栏的图片、占位符、读取图片、润色时取出与补回
 ├── src/features/presets/index.js
 ├── src/features/presets/store.js
 ├── src/features/presets/schema.js
@@ -1222,7 +1222,7 @@ console.log(await polish.getTaskInputs());
 - 只在 `format === 'epub'` 时生效。清洗前把生图标签换成私用区占位符（`\uE000编号\uE001`），正则清洗不会删掉占位符（删除或未保留区间里的占位符按原位置补回）；EPUB 中换成 `<img class="illustration">`，图片存 `EPUB/images/编号.扩展名` 并登记 manifest；读不到的图片直接略过。
 - 柏宝绘：标签 `/<bbi_image>[\s\S]+?<\/bbi_image>/gi`；按消息 `extra.bbiImage[swipe_id ?? 0][promptHash(整段标签)]` 中 `slotSeq`（缺省 0）等于该楼第几个标签的最后一条非 `error` 记录取 `path`。
 - 智绘姬：按 `extensionSettings['st-chatu8']` 的 `startTag` / `endTag`（缺省 `image###` / `###`）识别，外层 `<image>` 一并替换；key 为 `MD5(内容.trim() 后把《》换回 <>、去掉换行)`；合并 `jiuguanStorage[key].images`（服务器路径）与浏览器数据库 `chatu8_gallery` / `tupianhuancun` 中 `tupianshuju` 的记录（只读，不创建数据库），按日期排序后取其记住的序号；视频略过。
-- Markdown 图片：正文里的 `![说明](/user/images/…)` 内联写法，说明可以为空，路径支持中文；只认 `/user/images/` 下不含空白、括号、尖括号的地址；正文里实际换行或字面的换行转义都不影响识别，普通链接和转义过的图片标记原样留着。内部图片引用记为 `{ kind: 'markdown', floor, path }`。
+- 瑟瑟灵感状态栏：正文里的 `![说明](/user/images/…)` Markdown 内联写法，说明可以为空，路径支持中文；只认 `/user/images/` 下不含空白、括号、尖括号的地址；正文里实际换行或字面的换行转义都不影响识别，普通链接和转义过的图片标记原样留着。内部图片引用记为 `{ kind: 'markdown', floor, path }`。
 - 图片一律按站点根路径 `fetch` 读取，不依赖 docker / 非 docker 的文件系统前缀；只接受 PNG、JPEG、WebP、GIF。
 - `exportUI.exportFile` 在插画模式下返回 `{ count, images, missingImages }`；`previewMessages` 中占位符显示为「〔插图〕」。
 - 润色：所选导出预设 `illustrated` 且为 EPUB 时，分段前取出占位符，楼层记 `images: [{ ref, at }]`（`at` 为去掉标签后文字里的相对位置 0–1），发给模型的原文不含标签；导出 EPUB 时放回最近的段落开头或首尾。只有图片没有文字的楼层不进入润色；结果不属于当前聊天时柏宝绘图片读不到。
@@ -1264,7 +1264,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 - 默认章名与自定义章名、插图楼计数、标注不影响章名，业务侧 54 项离线检查通过；界面占位与业务的默认章名写法一致（1–999 中文数词、1000 起阿拉伯数字）
 - 实际下载的 EPUB 文件（章节数、目录与正文标题）待小主复测
 - 润色 EPUB 不受影响，仍是每个润色段一章，不读这份偏好
-- 插画小说识别正文里的 Markdown 图片（`![说明](/user/images/…)`）：直接 EPUB 导出、润色图片缓存、存档恢复与成品导出都已接入，业务侧 54 项离线检查通过（含样本 JSONL 第 8 楼两处图片全部识别、清空正文后仍保留两张图、原文件未改动）；本机没有样本对应的原图，图片入包用模拟响应验证，实际显示待小主在有原图的酒馆复测。导出设置里「插画小说」的说明小字已写「可导出柏宝绘、智绘姬和正文里的 Markdown 图片」
+- 插画小说识别瑟瑟灵感状态栏的文生图（正文里的 `![说明](/user/images/…)`）：直接 EPUB 导出、润色图片缓存、存档恢复与成品导出都已接入，业务侧 54 项离线检查通过（含样本 JSONL 第 8 楼两处图片全部识别、清空正文后仍保留两张图、原文件未改动）；本机没有样本对应的原图，图片入包用模拟响应验证，实际显示待小主在有原图的酒馆复测。导出设置里「插画小说」的说明小字已写「可导出柏宝绘、智绘姬和瑟瑟灵感状态栏的文生图」
 
 **已实现并接入界面，未经真实 API 与整体复测**
 - 润色页：`polishUI` 18 个接口已装配；已接真实业务核对无结果状态、按楼层分段预览（104 层在 5 / 10 / 20 / 自定义 7 层下为 21 / 11 / 6 / 15 段）与自定义 0 层错误；首段 review→继续、65535 额度是否被服务接受、超长单楼、截断续写、429 倒计时、停止、格式重试、短文提醒与真实内容质量均未验证

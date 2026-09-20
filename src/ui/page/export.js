@@ -830,7 +830,7 @@
     syncEpubChapters();
     toggle.checked = Boolean(state.illustrated);
     toggle.toggleAttribute('disabled', !illustratedReady);
-    toggle.setAttribute('description', illustratedReady ? '可导出柏宝绘、智绘姬和正文里的 Markdown 图片' : '还没接入');
+    toggle.setAttribute('description', illustratedReady ? '可导出柏宝绘、智绘姬和瑟瑟灵感状态栏的文生图' : '还没接入');
   }
 
   /* ---------- EPUB 章节 ---------- */
