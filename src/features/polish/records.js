@@ -28,13 +28,8 @@ export function newSegments(record, context, settings) {
     }
     const offset = record.sourcePrefix.length;
     if (context.chat.length <= offset) return [];
-    const normalized = normalizeSettings(settings);
-    // 在原楼号上筛选新增楼层，不让范围夹紧把已有末楼当成新增。
-    const plan = buildPlan(normalized, context).segments;
-    const selected = new Set(plan.flatMap(segment => segment.floors).filter(item => item.floor >= offset).map(item => item.floor));
-    if (!selected.size) return [];
-    const chat = context.chat.map((message, floor) => selected.has(floor) ? message : { ...message, mes: '' });
-    return buildPlan({ ...normalized, allFloors: true }, { ...context, chat }).segments;
+    // 只读取新增楼层的副本，原楼号和宿主聊天保持不变。
+    return buildPlan(settings, context, offset).segments;
 }
 
 export function restoreRecord(value) {

@@ -60,6 +60,17 @@ export function takeImages(text, refs) {
     return { text: stripped, images: images.map(({ ref, offset }) => ({ ref, at: length ? offset / length : 0 })) };
 }
 
+// 清洗前把插画单独存进消息副本，正文规则只接触去掉生图标签后的文字。
+export function extractMessageImages(messages, context) {
+    return messages.map(message => {
+        const refs = [];
+        const floor = message.floor - 1;
+        const tagged = replaceImageTags(message.mes, context.chat[floor], floor, context, refs);
+        const { text, images } = takeImages(tagged, refs);
+        return { ...message, mes: text, images };
+    });
+}
+
 // 按相对位置放回润色后的文字，落在最近的段落开头或全文首尾，不插进句子中间。
 export function placeImages(text, images, refs) {
     if (!Array.isArray(images) || !images.length) return text;

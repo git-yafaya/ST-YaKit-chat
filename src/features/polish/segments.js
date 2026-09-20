@@ -4,7 +4,7 @@ import { filterMessages } from '../text-export/filter-messages.js';
 import { cleanByGroups } from '../text-export/clean-messages.js';
 import { loadSettings as loadExportSettings, normalizeSettings as normalizeExportSettings, parseRule, parseReplaceRule, commentMode } from '../text-export/export-ui-settings.js';
 import { list as listPresets } from '../presets/store.js';
-import { replaceImageTags, takeImages } from '../text-export/illustrations.js';
+import { extractMessageImages } from '../text-export/illustrations.js';
 
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const CHUNK_FLOORS = { fewer: 20, balanced: 10, quality: 5 };
@@ -83,7 +83,7 @@ export function getChunkFloors(value = {}) {
 }
 
 // 界面和任务共用段内楼层，保留旧的请求快照返回值。
-export function buildPlan(value = {}, context = globalThis.SillyTavern?.getContext?.()) {
+export function buildPlan(value = {}, context = globalThis.SillyTavern?.getContext?.(), firstFloor = 0) {
     const { settings, source } = resolveSettings(value);
     const chunkFloors = getChunkFloors(settings);
     if (context?.characterId == null || !Array.isArray(context.chat) || !context.chat.length
@@ -106,23 +106,21 @@ export function buildPlan(value = {}, context = globalThis.SillyTavern?.getConte
         if (!isObject(context.chat[floor])) throw new TypeError(`第 ${floor} 楼消息格式不正确，无法润色`);
     }
     const included = readChat(context, { start: start + 1, end: end + 1 })
-        .filter(message => source.includeHidden || !message.is_system);
+        .filter(message => message.floor - 1 >= firstFloor && (source.includeHidden || !message.is_system));
     let messages = filterMessages(included, source.types);
     for (const message of messages) {
         if (typeof message.mes !== 'string') throw new TypeError(`第 ${message.floor - 1} 楼正文不是文字，无法润色`);
     }
     // 插画小说：生图标签不发给模型，记下位置，导出 EPUB 时补回。
-    const refs = source.illustrated === true && source.format === 'epub' ? [] : null;
-    if (refs) messages = messages.map(message => ({ ...message, mes: replaceImageTags(message.mes, context.chat[message.floor - 1], message.floor - 1, context, refs) }));
+    if (source.illustrated === true && source.format === 'epub') messages = extractMessageImages(messages, context);
     const parse = list => (Array.isArray(list) ? list : []).map(parseRule).filter(rule => rule !== null);
     const replacements = (Array.isArray(source.replaceRules) ? source.replaceRules : []).map(parseReplaceRule).filter(rule => rule !== null);
     messages = cleanByGroups(messages, parse(source.rules), parse(source.keepRules), replacements, { comments: commentMode(source) });
 
     const segments = [];
     const floors = [];
-    for (const taken of messages) {
-        const { text, images } = refs ? takeImages(taken.mes, refs) : { text: taken.mes, images: [] };
-        const message = { ...taken, mes: text };
+    for (const message of messages) {
+        const images = message.images ?? [];
         if (!message.mes.trim()) continue;
         const chars = Array.from(message.mes).length;
         const previous = segments.at(-1);
