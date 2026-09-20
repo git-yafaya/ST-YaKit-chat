@@ -19,8 +19,10 @@ export function createEpubChapters(messages, preferences = {}) {
     for (let offset = 0; offset < messages.length; offset += floorsPerChapter) {
         const index = chapters.length;
         const customName = chapterNames[index];
+        // 默认标题与界面占位一致：999 章以内用中文，1000 章起用数字。
+        const number = index + 1;
         chapters.push({
-            name: customName?.trim() ? customName : chineseNumber(index + 1).replace(/^一十/, '十'),
+            name: customName?.trim() ? customName : `第${number < 1000 ? chineseNumber(number).replace(/^一十/, '十') : number}章`,
             messages: messages.slice(offset, offset + floorsPerChapter),
         });
     }
