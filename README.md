@@ -2,6 +2,8 @@
 
 纪实是 YaKit 系列里的 SillyTavern 聊天记录扩展 (｡･ω･｡)ﾉ 先预览导出效果，点几下就能去掉思维链、状态栏这些不想要的内容（也可以让 AI 帮你写规则），再把当前聊天导出成 TXT、Markdown、EPUB 或酒馆聊天文件；还能让 AI 按你喜欢的文风，把聊天润色成连贯的正文再导出～
 
+> 第一次用？看这份一步一张图的 **[新手上手指南](https://git-yafaya.github.io/ST-YaKit-chat/)**，照着点就能导出第一份文件。
+
 <details open>
 <summary><b>快速使用</b></summary>
 
