@@ -4,7 +4,7 @@ import { initPanelUI } from './ui/panel/index.js';
 export * from './business.js';
 
 globalThis.YaKitChat = Object.freeze({
-    version: '0.8.8',
+    version: '0.8.9',
     ...business.api,
 });
 
