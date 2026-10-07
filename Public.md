@@ -2,12 +2,12 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.7。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬和瑟瑟灵感状态栏的文生图）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v0.8.8。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬和瑟瑟灵感状态栏的文生图）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），只引用两个总文件——业务总文件 `src/business.js` 与界面总文件 `src/ui/panel/index.js`；入口自己只做三件事：写 `version`、组装并冻结 `globalThis.YaKitChat`、调用 `initPanelUI(api, getContext)`，另用 `export * from './business.js'` 透传业务侧的模块级导出；样式入口 `src/ui/style.css`。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
 - **公开 API 一览**（均在 `globalThis.YaKitChat` 上，对象已冻结）：`version`；`exportUI`（文本导出、标签识别与正则 AI 辅助，11 个）；`polishUI`（润色，20 个）；`presets`（导出预设与备份，13 个）；`styles`（文风预设，9 个）；`apiUI`（API 配置、自定义提示词三类各一个库、助手、请求参数）；`updater.{checkUpdate, update}`；`notice.{listInstalled, fetchNewer}`；既有函数 `readCurrentChat`、`filterMessages`、`cleanMessages`、`saveTxt`、`saveExport`、`getEpubPreferences`、`saveEpubPreferences` 及底层副 API 配置与提示词管理函数。
-- **当前还没做什么**：v0.7.0 的整理标签、三组规则、酒馆聊天导出与预设叠加只有离线测试和真实页面的只读核对，写入规则、叠加切换与导出文件都没在真实环境跑过（这些不需要 AI 请求，小主复测即可）；润色功能仍在测试中，已知可能出现回复格式不对、被模型拒绝、字数变少或效果不理想，世界书开关与重写后的提示词未经真实 API 对照测试；插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 章节设置界面与业务都已完成（54 项离线检查通过），实际导出的 EPUB 文件待小主复测；入口两总文件拆分（新增 `src/business.js`）已完成业务迁移、54 项离线检查通过，待小主整体复测。
+- **当前还没做什么**：v0.7.0 的整理标签、三组规则、酒馆聊天导出与预设叠加只有离线测试和真实页面的只读核对，写入规则、叠加切换与导出文件都没在真实环境跑过（这些不需要 AI 请求，小主复测即可）；润色功能仍在测试中，已知可能出现回复格式不对、被模型拒绝、字数变少或效果不理想，世界书开关与重写后的提示词未经真实 API 对照测试；插画小说带图导出（含润色导出）、本次任务写入与请求组装、正则 AI 清洗后样本均只有离线测试和只读接入检查，未经真实 API 与整体复测；助手请求没有控制模型思考强度，带思考的模型在正则任务上可能消耗大量输出额度；真实模型润色全流程、服务器结果读写、文风与提示词写操作、采样参数实际送达、润色导出下载均未经真实 API 与整体复测（只有离线测试和只读接入核对）；插画位置固定（锚点流程）只有业务侧离线检查与 Codex 的带图验证，小主本机没有带图聊天，未做整体复测，发布说明里已请用户遇到偏移反馈；远端更新公告读取未测通（本机 SSH 远端返回 HTTP 500）；assistant 预填充未实现；润色不支持群聊；「备份全部」不含 API 配置与密钥、助手接口与采样、请求参数、润色设置与结果；EPUB 章节设置界面与业务都已完成（54 项离线检查通过），实际导出的 EPUB 文件待小主复测；入口两总文件拆分（新增 `src/business.js`）已完成业务迁移、54 项离线检查通过，待小主整体复测。
 
 ## 仓库结构
 
@@ -65,7 +65,8 @@ ST-YaKit-chat/
 ├── src/features/text-export/ai-rules.js
 ├── src/features/text-export/ai-client.js
 ├── src/features/text-export/ai-legacy-client.js
-├── src/features/text-export/illustrations.js      插画小说：识别柏宝绘 / 智绘姬 / 瑟瑟灵感状态栏的图片、占位符、读取图片、润色时取出与补回
+├── src/features/text-export/illustrations.js      插画小说：识别柏宝绘 / 智绘姬 / 瑟瑟灵感状态栏的图片、锚点、读取图片、润色时取出与补回
+├── src/features/text-export/anchored-text.js      带插画锚点的正文：把正文按锚点切成文字片段，清洗只编辑文字、锚点是固定边界
 ├── src/features/presets/index.js
 ├── src/features/presets/store.js
 ├── src/features/presets/schema.js
@@ -1219,13 +1220,14 @@ console.log(await polish.getTaskInputs());
 
 **插画小说**（导出设置与导出预设字段 `illustrated: boolean`，默认 `false`，旧预设缺省按 `false`）
 
-- 只在 `format === 'epub'` 时生效。清洗前把生图标签换成私用区占位符（`\uE000编号\uE001`），正则清洗不会删掉占位符（删除或未保留区间里的占位符按原位置补回）；EPUB 中换成 `<img class="illustration">`，图片存 `EPUB/images/编号.扩展名` 并登记 manifest；读不到的图片直接略过。
+- 只在 `format === 'epub'` 时生效。清洗前把生图标签换成插画锚点，正文按锚点切成若干文字片段（`anchored-text.js`）：三组规则、整理标签的四种处理、HTML 注释的三种处理和空白收尾都只编辑文字片段，锚点是片段之间的固定边界，原样留在原位，不摘出也不补回。删除只清空命中的文字（`前A〔图1〕B〔图2〕C后` 删掉 `ABC` 得到 `前〔图1〕〔图2〕后`，两图仍独立、顺序不变）；整段替换把替换文字写在匹配起点，区间里的锚点与顺序保留；`{{match}}`（等价于 `$&`）和捕获组只复制文字，重复引用不会复制出多余的图；能匹配空串的规则按原生规则推进。EPUB 里锚点换成 `<img class="illustration">`，图片存 `EPUB/images/编号.扩展名` 并登记 manifest；读不到的图片移除对应锚点，只略过该图。
+- 锚点只在「EPUB + 开启插画小说」这条路径的消息副本里生成；TXT、Markdown、酒馆聊天以及关掉开关时都不生成锚点、也不复用这份副本，导出正文里不会出现锚点字符。
 - 柏宝绘：标签 `/<bbi_image>[\s\S]+?<\/bbi_image>/gi`；按消息 `extra.bbiImage[swipe_id ?? 0][promptHash(整段标签)]` 中 `slotSeq`（缺省 0）等于该楼第几个标签的最后一条非 `error` 记录取 `path`。
 - 智绘姬：按 `extensionSettings['st-chatu8']` 的 `startTag` / `endTag`（缺省 `image###` / `###`）识别，外层 `<image>` 一并替换；key 为 `MD5(内容.trim() 后把《》换回 <>、去掉换行)`；合并 `jiuguanStorage[key].images`（服务器路径）与浏览器数据库 `chatu8_gallery` / `tupianhuancun` 中 `tupianshuju` 的记录（只读，不创建数据库），按日期排序后取其记住的序号；视频略过。
 - 瑟瑟灵感状态栏：正文里的 `![说明](/user/images/…)` Markdown 内联写法，说明可以为空，路径支持中文；只认 `/user/images/` 下不含空白、括号、尖括号的地址；正文里实际换行或字面的换行转义都不影响识别，普通链接和转义过的图片标记原样留着。内部图片引用记为 `{ kind: 'markdown', floor, path }`。
 - 图片一律按站点根路径 `fetch` 读取，不依赖 docker / 非 docker 的文件系统前缀；只接受 PNG、JPEG、WebP、GIF。
-- `exportUI.exportFile` 在插画模式下返回 `{ count, images, missingImages }`；`previewMessages` 中占位符显示为「〔插图〕」。
-- 润色：所选导出预设 `illustrated` 且为 EPUB 时，分段前取出占位符，楼层记 `images: [{ ref, at }]`（`at` 为去掉标签后文字里的相对位置 0–1），发给模型的原文不含标签；导出 EPUB 时放回最近的段落开头或首尾。只有图片没有文字的楼层不进入润色；结果不属于当前聊天时柏宝绘图片读不到。
+- `exportUI.exportFile` 在插画模式下返回 `{ count, images, missingImages }`；`previewMessages` 中锚点显示为「〔插图〕」。
+- 润色（仍是近似回插，不走锚点流程）：所选导出预设 `illustrated` 且为 EPUB 时，分段前取出占位符，楼层记 `images: [{ ref, at }]`（`at` 为去掉标签后文字里的相对位置 0–1），发给模型的原文不含标签；导出 EPUB 时放回最近的段落开头或首尾。只有图片没有文字的楼层不进入润色；结果不属于当前聊天时柏宝绘图片读不到。
 
 ### 世界书、助手重置与默认温度（v0.6.2）
 
@@ -1264,6 +1266,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 - 默认章名与自定义章名、插图楼计数、标注不影响章名，业务侧 54 项离线检查通过；界面占位与业务的默认章名写法一致（1–999 中文数词、1000 起阿拉伯数字）
 - 实际下载的 EPUB 文件（章节数、目录与正文标题）待小主复测
 - 润色 EPUB 不受影响，仍是每个润色段一章，不读这份偏好
+- 直接导出 EPUB 的插画位置固定（`anchored-text.js`）：锚点作为文字片段之间的固定边界，删除、替换、只保留、整理标签删块、注释清理和空白收尾都不会移动图片。业务侧全量 47 个测试文件、55 项离线检查通过（原有 54 项加锚点测试 1 项），Codex 用带图聊天验证过实际导出正文，组合用例（同层两图叠加只保留 → 全文替换 → 删块 → 注释清理）结果为 `图0【甲图1乙丙】`。小主本机没有带图聊天，整体复测由用户在实际使用中反馈；润色成品导出仍是按相对位置的近似回插
 - 插画小说识别瑟瑟灵感状态栏的文生图（正文里的 `![说明](/user/images/…)`）：直接 EPUB 导出、润色图片缓存、存档恢复与成品导出都已接入，业务侧 54 项离线检查通过（含样本 JSONL 第 8 楼两处图片全部识别、清空正文后仍保留两张图、原文件未改动）；本机没有样本对应的原图，图片入包用模拟响应验证，实际显示待小主在有原图的酒馆复测。导出设置里「插画小说」的说明小字已写「可导出柏宝绘、智绘姬和瑟瑟灵感状态栏的文生图」
 
 **已实现并接入界面，未经真实 API 与整体复测**
@@ -1288,7 +1291,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 
 **依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
-**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.8.7 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
+**版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.8.8 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 
 ## 开发与验证
 
