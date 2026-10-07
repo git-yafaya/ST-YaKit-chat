@@ -1,3 +1,5 @@
+import { editAnchoredText, matchingText, replaceAnchoredText } from './anchored-text.js';
+
 // 校验规则结构，仅跳过正则自身的语法错误。
 function compileRules(rules) {
     const regexes = [];
@@ -20,11 +22,12 @@ function compileRules(rules) {
 
 function cleanText(text, regexes, mode) {
     if (regexes.length === 0) return text;
+    const plain = matchingText(text);
 
     // 每条规则都匹配原文；matchAll 会自动推进零长度匹配。
     const ranges = [];
     for (const regex of regexes) {
-        for (const match of text.matchAll(regex)) {
+        for (const match of plain.matchAll(regex)) {
             if (match[0].length > 0) {
                 ranges.push([match.index, match.index + match[0].length]);
             }
@@ -43,40 +46,15 @@ function cleanText(text, regexes, mode) {
         }
     }
 
-    const parts = [];
+    // 保留组删补集，删除组删命中区间；锚点边界始终不参与裁剪。
+    const edits = [];
     let cursor = 0;
     for (const [start, end] of merged) {
-        parts.push(mode === 'keep' ? text.slice(start, end) : text.slice(cursor, start));
+        edits.push(mode === 'keep' ? { start: cursor, end: start } : { start, end });
         cursor = end;
     }
-    if (mode === 'remove') parts.push(text.slice(cursor));
-    if (!text.includes('\uE000')) return parts.join('');
-
-    // 插画占位符不受清洗影响：被删掉或没被保留的占位符按原位置补回。
-    const pieces = [];
-    cursor = 0;
-    for (const [start, end] of merged) {
-        if (mode === 'keep') pieces.push({ at: start, text: text.slice(start, end) });
-        else pieces.push({ at: cursor, text: text.slice(cursor, start) });
-        cursor = end;
-    }
-    if (mode === 'remove') pieces.push({ at: cursor, text: text.slice(cursor) });
-    const kept = mode === 'keep' ? merged : (() => {
-        const outside = [];
-        let from = 0;
-        for (const [start, end] of merged) { outside.push([from, start]); from = end; }
-        outside.push([from, text.length]);
-        return outside;
-    })();
-    for (const match of text.matchAll(/\uE000\d+\uE001/g)) {
-        const at = match.index;
-        const inside = kept.some(([start, end]) => at >= start && at + match[0].length <= end);
-        if (!inside) pieces.push({ at, text: match[0] });
-    }
-    pieces.sort((x, y) => x.at - y.at);
-    return pieces.map(piece => piece.text).join('')
-        // 区间切分时可能把占位符截断，残留的半个符号去掉。
-        .replace(/\uE000(?!\d+\uE001)\d*|(?<!\uE000\d+)\uE001/g, '');
+    if (mode === 'keep') edits.push({ start: cursor, end: plain.length });
+    return editAnchoredText(text, edits);
 }
 
 // 替换组：按顺序依次替换，和酒馆的正则替换一致；替换文字里的 $1、$& 照正则规则展开。
@@ -100,7 +78,7 @@ export function replaceMessages(messages, replacements = []) {
         if (message === null || typeof message !== 'object' || Array.isArray(message)) throw new TypeError('messages 中的消息必须是对象');
         if (typeof message.mes !== 'string') throw new TypeError('每条消息的 mes 必须是字符串');
         let text = message.mes;
-        for (const [regex, to] of compiled) text = text.replace(regex, to);
+        for (const [regex, to] of compiled) text = replaceAnchoredText(text, regex, to);
         return { ...message, mes: text };
     });
 }
@@ -131,8 +109,18 @@ export function handleComments(messages, mode = 'keep') {
     if (mode === 'keep') return messages;
     let changed = false;
     const result = messages.map(message => {
-        if (typeof message?.mes !== 'string' || !message.mes.includes('<!--')) return message;
-        const mes = message.mes.replace(COMMENT_PATTERN, mode === 'strip' ? '' : (_, inner) => inner);
+        if (typeof message?.mes !== 'string') return message;
+        const plain = matchingText(message.mes);
+        if (!plain.includes('<!--')) return message;
+        const edits = [];
+        for (const match of plain.matchAll(COMMENT_PATTERN)) {
+            const start = match.index;
+            const end = start + match[0].length;
+            // 只去符号时裁掉两端，里面的文字与锚点不换位置。
+            if (mode === 'strip') edits.push({ start, end });
+            else edits.push({ start, end: start + 4 }, { start: end - 3, end });
+        }
+        const mes = editAnchoredText(message.mes, edits);
         if (mes === message.mes) return message;
         changed = true;
         return { ...message, mes };

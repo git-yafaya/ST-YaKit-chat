@@ -1,4 +1,4 @@
-// 插画小说：识别生图标签与酒馆 Markdown 图片，独立保存图片记录，导出 EPUB 时回插。
+// 插画小说：图片标签原地变成锚点，来源记录供 EPUB 读取；润色单独使用近似回插。
 const TOKEN_OPEN = '\uE000';
 const TOKEN_CLOSE = '\uE001';
 export const TOKEN_PATTERN = /\uE000(\d+)\uE001/g;
