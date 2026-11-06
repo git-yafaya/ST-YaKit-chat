@@ -23,8 +23,7 @@
 | 文本导出 | `export` | `icons/ouput.svg` | 已搭好（见 3.1） |
 | 润色 | `polish` | `icons/edit.svg` | 占位 |
 | 预设 | `preset` | `icons/bookmark.svg` | 占位 |
-| API 管理 | `api` | `icons/link.svg` | 占位 |
-| 设置 | `settings` | `icons/settings.svg` | 已搭好（见 3.2） |
+| 设置 | `settings` | `icons/settings.svg` | 已搭好（见 3.2）；原「API 管理」页的 API 配置、自定义提示词、助手、参数放在「更新」下面 |
 
 - 上方文字页签和下方图标页签是**同一组**，切换导航位置时保留当前页签。
 - 切换页签时，面板里开着的抽屉自动收起。

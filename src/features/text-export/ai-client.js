@@ -74,7 +74,7 @@ export async function generateSecondary(config, messages, signal, { maxTokens = 
         if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password
             || /[?#\u0000-\u001f\u007f-\u009f]/u.test(config.baseUrl)) throw new Error();
     } catch {
-        throw new Error('副 API 服务地址不正确，请在 API 管理中重新填写');
+        throw new Error('副 API 服务地址不正确，请到「设置 → API 配置」重新填写');
     }
     if (![undefined, '', 'auto', 'openai', 'local'].includes(config.provider)
         || typeof config.key !== 'string' || /[\u0000-\u001f\u007f-\u009f]/u.test(config.key.trim())) {

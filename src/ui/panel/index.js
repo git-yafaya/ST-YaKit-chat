@@ -36,7 +36,6 @@ const TABS = [
     { id: 'export', label: '文本导出', icon: 'ouput' },
     { id: 'polish', label: '润色', icon: 'edit' },
     { id: 'preset', label: '预设', icon: 'bookmark' },
-    { id: 'api', label: 'API 管理', icon: 'link' },
     { id: 'settings', label: '设置', icon: 'settings' },
 ];
 

@@ -1,5 +1,5 @@
 /**
- * 「API 管理」页：副 API 配置 + 助手接口 + 请求参数 + 固定提示词（只管界面，数据、校验和连接都交给业务层）
+ * 设置页里的 API 部分（原「API 管理」页）：副 API 配置 + 助手接口 + 请求参数 + 固定提示词（只管界面，数据、校验和连接都交给业务层）
  *
  * ───────── 界面需要的业务接口（YaKitChat，界面通过 parent.YaKitChat 调用）─────────
  *
@@ -49,7 +49,7 @@
  * 22. apiUI.setRequestSettings(patch) → 保存后的完整对象；值不合法时 reject 中文原因
  *      两个函数都提供时才显示参数卡片
  *
- * 没提供 apiUI 时，页面显示「API 管理还没接入」。
+ * 没提供 apiUI 时，显示「API 管理还没接入」。
  */
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -795,7 +795,7 @@
   /* ---------- 切到本页时刷新 ---------- */
 
   window.addEventListener('yakit-tab', (event) => {
-    if (event.detail.tab !== 'api') return;
+    if (event.detail.tab !== 'settings') return;
     loadProfiles();
     loadPrompts();
     loadRequestSettings();

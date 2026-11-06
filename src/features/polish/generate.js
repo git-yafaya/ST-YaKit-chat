@@ -16,7 +16,7 @@ export async function getContext() {
             styleName: prompt?.content?.trim() ? prompt.name : null,
         };
     } catch {
-        throw new Error('无法读取当前 API 和提示词，请检查 API 管理设置后重试');
+        throw new Error('无法读取当前 API 和提示词，请到「设置」检查 API 配置后重试');
     }
 }
 

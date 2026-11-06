@@ -138,85 +138,7 @@
             <span></span>
           </div>
         </yakit-collapse>
-        <yakit-collapse id="set-theme" title="主题">
-          <div class="setting-field">
-            <span class="setting-label">切换方式</span>
-            <yakit-segmented id="theme-switch-mode" size="sm" aria-label="主题切换方式" value="auto">
-              <option value="auto">自动</option>
-              <option value="icon">图标</option>
-              <option value="select">下拉框</option>
-            </yakit-segmented>
-          </div>
-          <p class="field-note" id="theme-switch-note">选主题时显示插画还是下拉框。<br>建议选自动：电脑看插画，手机用下拉框。</p>
-          <div class="themes" id="themes" role="radiogroup" aria-label="主题"></div>
-          <yakit-select id="theme-select" aria-label="主题" hidden></yakit-select>
-        </yakit-collapse>
-        <yakit-collapse id="set-nav" title="导航栏位置" icon="../icons/menu.svg">
-          <div class="setting-field">
-            <span class="setting-label">显示位置</span>
-            <yakit-segmented id="nav-mode" size="sm" aria-label="导航栏位置" value="auto">
-              <option value="auto">自动</option>
-              <option value="top">上方</option>
-              <option value="bottom">下方</option>
-            </yakit-segmented>
-          </div>
-          <p class="field-note">页签放在顶部还是底部。<br>建议选自动：电脑放上方，手机放下方。</p>
-        </yakit-collapse>
-        <!-- 组件示例：开发时对照用，平时隐藏；浏览器里 localStorage 的 yakit-demo 设为 on 才显示 -->
-        <yakit-collapse id="set-demo" title="组件示例" summary="按钮、输入框、开关等" icon="../icons/folder.svg" link hidden></yakit-collapse>
-        <yakit-collapse id="set-errors" title="报错记录" icon="../icons/bell.svg">
-          <p class="field-note error-log-note">纪实最近出过的错，最多保留 50 条。<br>反馈问题时点「复制全部」，把内容发给作者。</p>
-          <div class="error-log" id="error-log"></div>
-          <p class="list-empty" id="error-log-empty">还没有报错。</p>
-          <div class="btn-row error-log-actions" id="error-log-actions">
-            <yakit-button id="error-log-copy" size="sm" icon="../icons/copy.svg">复制全部</yakit-button>
-            <yakit-button id="error-log-clear" size="sm" variant="ghost" icon="../icons/trash.svg">清空</yakit-button>
-          </div>
-        </yakit-collapse>
-      </div>
-    </div>
-
-    <!-- ========== 页签：预设 ========== -->
-    <div data-page="preset" class="preset-page" hidden>
-      <!-- 备份：预设卡片上方单独一行 -->
-      <div class="btn-row backup-actions">
-        <yakit-button id="backup-export" icon="../icons/ouput.svg">备份全部</yakit-button>
-        <yakit-button id="backup-restore" icon="../icons/input.svg">从备份恢复</yakit-button>
-      </div>
-      <!-- 主要内容：预设列表 -->
-      <yakit-card class="preset-card" id="preset-card" title="预设" subtitle="保存导出页的规则、消息类型和格式">
-        <yakit-segmented slot="extra" id="preset-kind" size="sm" aria-label="预设类别" value="export">
-          <option value="export">导出预设</option>
-          <option value="style">文风预设</option>
-        </yakit-segmented>
-        <!-- 导出预设 -->
-        <div id="preset-export-section">
-          <div class="choice-list" id="preset-list" role="list"></div>
-          <p class="list-empty" id="preset-empty" hidden></p>
-          <div class="btn-row list-add" id="preset-actions">
-            <yakit-button id="preset-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
-            <yakit-button id="preset-create" size="sm" variant="primary" icon="../icons/plus.svg">存为新预设</yakit-button>
-          </div>
-        </div>
-        <!-- 文风预设 -->
-        <div id="preset-style-section" hidden>
-          <div class="choice-list" id="style-list" role="list"></div>
-          <p class="list-empty" id="style-empty" hidden></p>
-          <div class="btn-row list-add" id="style-actions">
-            <yakit-button id="style-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
-            <yakit-button id="style-create" size="sm" variant="primary" icon="../icons/plus.svg">新建文风</yakit-button>
-          </div>
-        </div>
-      </yakit-card>
-
-      <input type="file" id="preset-file" hidden>
-      <input type="file" id="style-file" hidden>
-    </div>
-
-    <!-- ========== 页签：API 管理 ========== -->
-    <!-- 折叠项：点一行在原地展开编辑，行尾灰字写当前状态；同一时间只展开一项 -->
-    <div data-page="api" class="api-page" hidden>
-      <div class="settings-list">
+        <!-- 原「API 管理」页：副 API、提示词、助手、请求参数（逻辑在 api.js） -->
         <yakit-collapse id="api-entry-profiles" title="API 配置" icon="../icons/link.svg">
           <p class="field-note api-section-note">纪实的 AI 功能用哪个接口</p>
           <div class="choice-list" id="api-list" role="list"></div>
@@ -317,8 +239,81 @@
               <p class="field-note">润色时每次最多让 AI 写这么多，写不完会自动接着写。<br>模型报错说长度超出上限时调小，比如 8192。</p>
           </div>
         </yakit-collapse>
+        <yakit-collapse id="set-theme" title="主题">
+          <div class="setting-field">
+            <span class="setting-label">切换方式</span>
+            <yakit-segmented id="theme-switch-mode" size="sm" aria-label="主题切换方式" value="auto">
+              <option value="auto">自动</option>
+              <option value="icon">图标</option>
+              <option value="select">下拉框</option>
+            </yakit-segmented>
+          </div>
+          <p class="field-note" id="theme-switch-note">选主题时显示插画还是下拉框。<br>建议选自动：电脑看插画，手机用下拉框。</p>
+          <div class="themes" id="themes" role="radiogroup" aria-label="主题"></div>
+          <yakit-select id="theme-select" aria-label="主题" hidden></yakit-select>
+        </yakit-collapse>
+        <yakit-collapse id="set-nav" title="导航栏位置" icon="../icons/menu.svg">
+          <div class="setting-field">
+            <span class="setting-label">显示位置</span>
+            <yakit-segmented id="nav-mode" size="sm" aria-label="导航栏位置" value="auto">
+              <option value="auto">自动</option>
+              <option value="top">上方</option>
+              <option value="bottom">下方</option>
+            </yakit-segmented>
+          </div>
+          <p class="field-note">页签放在顶部还是底部。<br>建议选自动：电脑放上方，手机放下方。</p>
+        </yakit-collapse>
+        <!-- 组件示例：开发时对照用，平时隐藏；浏览器里 localStorage 的 yakit-demo 设为 on 才显示 -->
+        <yakit-collapse id="set-demo" title="组件示例" summary="按钮、输入框、开关等" icon="../icons/folder.svg" link hidden></yakit-collapse>
+        <yakit-collapse id="set-errors" title="报错记录" icon="../icons/bell.svg">
+          <p class="field-note error-log-note">纪实最近出过的错，最多保留 50 条。<br>反馈问题时点「复制全部」，把内容发给作者。</p>
+          <div class="error-log" id="error-log"></div>
+          <p class="list-empty" id="error-log-empty">还没有报错。</p>
+          <div class="btn-row error-log-actions" id="error-log-actions">
+            <yakit-button id="error-log-copy" size="sm" icon="../icons/copy.svg">复制全部</yakit-button>
+            <yakit-button id="error-log-clear" size="sm" variant="ghost" icon="../icons/trash.svg">清空</yakit-button>
+          </div>
+        </yakit-collapse>
       </div>
     </div>
+
+    <!-- ========== 页签：预设 ========== -->
+    <div data-page="preset" class="preset-page" hidden>
+      <!-- 备份：预设卡片上方单独一行 -->
+      <div class="btn-row backup-actions">
+        <yakit-button id="backup-export" icon="../icons/ouput.svg">备份全部</yakit-button>
+        <yakit-button id="backup-restore" icon="../icons/input.svg">从备份恢复</yakit-button>
+      </div>
+      <!-- 主要内容：预设列表 -->
+      <yakit-card class="preset-card" id="preset-card" title="预设" subtitle="保存导出页的规则、消息类型和格式">
+        <yakit-segmented slot="extra" id="preset-kind" size="sm" aria-label="预设类别" value="export">
+          <option value="export">导出预设</option>
+          <option value="style">文风预设</option>
+        </yakit-segmented>
+        <!-- 导出预设 -->
+        <div id="preset-export-section">
+          <div class="choice-list" id="preset-list" role="list"></div>
+          <p class="list-empty" id="preset-empty" hidden></p>
+          <div class="btn-row list-add" id="preset-actions">
+            <yakit-button id="preset-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
+            <yakit-button id="preset-create" size="sm" variant="primary" icon="../icons/plus.svg">存为新预设</yakit-button>
+          </div>
+        </div>
+        <!-- 文风预设 -->
+        <div id="preset-style-section" hidden>
+          <div class="choice-list" id="style-list" role="list"></div>
+          <p class="list-empty" id="style-empty" hidden></p>
+          <div class="btn-row list-add" id="style-actions">
+            <yakit-button id="style-import" size="sm" variant="ghost" icon="../icons/input.svg">导入</yakit-button>
+            <yakit-button id="style-create" size="sm" variant="primary" icon="../icons/plus.svg">新建文风</yakit-button>
+          </div>
+        </div>
+      </yakit-card>
+
+      <input type="file" id="preset-file" hidden>
+      <input type="file" id="style-file" hidden>
+    </div>
+
   </main>
 
   <!-- 文本导出：导出设置抽屉 -->
@@ -551,7 +546,7 @@
     </div>
   </yakit-drawer>
 
-  <!-- API 管理：新建 / 编辑副 API 配置 -->
+  <!-- 设置 · API 配置：新建 / 编辑副 API 配置 -->
   <yakit-drawer id="api-drawer" title="新建配置">
     <section class="drawer-section drawer-stack">
       <yakit-input id="api-name" label="名称" required maxlength="64" placeholder="例如 DeepSeek"></yakit-input>
@@ -614,7 +609,7 @@
     </div>
   </yakit-drawer>
 
-  <!-- API 管理：编辑固定提示词 -->
+  <!-- 设置 · 自定义提示词：编辑固定提示词 -->
   <yakit-drawer id="prompt-drawer" title="编辑提示词">
     <p class="field-note" id="prompt-target-note"></p>
     <yakit-input id="prompt-name" label="名称" maxlength="30" placeholder="给这条提示词起个名字"></yakit-input>

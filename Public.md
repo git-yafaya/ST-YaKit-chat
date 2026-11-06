@@ -2,7 +2,7 @@
 
 ## 速查区
 
-- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v1.0.0。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬和瑟瑟灵感状态栏的文生图）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「API 管理」页（折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
+- **仓库是什么**：SillyTavern 扩展「纪实」（YaKit 系列），当前版本 v1.0.0。「文本导出」页：导出预览（看第几楼、全部楼层分批查看）、正则匹配（保留 / 替换 / 删除三组同时生效、整理标签抽屉、AI 辅助生成规则）、导出设置抽屉，导出 TXT / Markdown / EPUB / 酒馆聊天 JSONL（EPUB 可开「插画小说」插入柏宝绘、智绘姬和瑟瑟灵感状态栏的文生图）；「润色」页：按楼层分段让 AI 润色、首段试润色、截断续写、限速等待、结果按聊天保存到酒馆服务器、逐楼手改与选楼重做、润色新增楼层、本次任务（补充要求与参考材料）、携带世界书、导出成品；「预设」页：导出预设（可多套叠加）、文风预设、整体备份恢复；「设置」页里的 API 部分（原「API 管理」页，折叠列表）：副 API 配置、正则 / 润色助手接口与采样参数（含一键重置）、请求参数、自定义提示词（破限词 / 正则助手 / 润色助手三类各一个库，可多条、选一条在用）；「设置」页：在线更新本插件、更新公告、主题、导航栏、报错记录，页签右上角有提醒小圆点。
 - **技术栈**：原生 JavaScript（ES Modules）+ 原生 CSS + Web Components（Shadow DOM），无构建步骤，无第三方依赖，酒馆直接加载。
 - **入口文件**：`src/index.js`（`manifest.json` 的 `js`），只引用两个总文件——业务总文件 `src/business.js` 与界面总文件 `src/ui/panel/index.js`；入口自己只做三件事：写 `version`、组装并冻结 `globalThis.YaKitChat`、调用 `initPanelUI(api, getContext)`，另用 `export * from './business.js'` 透传业务侧的模块级导出；样式入口 `src/ui/style.css`。
 - **界面结构**：酒馆页面上是弹窗外壳（标题栏、页签、主题按钮）；面板内容渲染在独立 iframe `src/ui/page/index.html`，通过 `parent.YaKitChat` 调用业务。
@@ -26,7 +26,7 @@ ST-YaKit-chat/
 │   │   ├── polish/             润色：设置与分段、生成与续写、串行执行、逐楼操作、服务器保存、导出
 │   │   ├── styles/             文风预设的增删改查、单套文件导入导出与备份校验
 │   │   ├── notice/             更新公告：本地与仓库 NOTICE.md 读取、解析与版本比较
-│   │   ├── api-ui/             API 管理页接口：配置、固定提示词、助手、获取模型与测试连接
+│   │   ├── api-ui/             API 设置接口（设置页）：配置、固定提示词、助手、获取模型与测试连接
 │   │   ├── api-management/     副 API 配置底层存储、校验与引用清理
 │   │   ├── prompt-management/  提示词底层存储、校验与引用清理
 │   │   └── assistant-management/ 正则 / 润色助手的接口选择、采样参数与请求组装所需解析
@@ -150,8 +150,8 @@ ST-YaKit-chat/
    - 「更新公告」按钮：打开抽屉先 `notice.listInstalled()`，再 `notice.fetchNewer()`，新版本条目标「还没更新」排在最上；读取失败显示危险提示框。面板加载后收到页签消息时，比较 `localStorage` 的 `yakit-notice-seen` 与 `YaKitChat.version`：记录存在且不同、已安装公告里有当前版本时自动弹出一次；没有记录（首次安装）只写入不弹
    - 「报错记录」：`YaKitErrorLog` 记录危险提示、页面脚本捕获的失败、面板与弹窗中未处理的报错（弹窗只记插件文件的错，浏览器 ResizeObserver 布局提示不记），存 `localStorage` 最多 50 条
    - 「设置」页签的提醒小圆点由弹窗外壳（`src/ui/panel/index.js`）管理：报错点比较 `yakit-error-log` 最新一条的时间与 `yakit-error-seen`；更新点在打开面板后空闲调 `updater.checkUpdate()`（一分钟内不重复，失败当作没有新版本且不记进报错记录），有新版本时再调 `notice.fetchNewer()` 取最高版本号，与 `yakit-update-seen` 比较（取不到版本号时退回本插件版本号）；设置页展开「报错记录」或「更新」那一行时只发 `postMessage({type:'yakit:alerts', seen:'error'|'update'})`，由弹窗写入对应的 seen；弹窗还监听 `yakit-error-log-change` 与 `storage` 事件
-10. API 管理页（`src/ui/page/api.js`）：
-   - 打开时 `listProfiles()` + `getActiveProfileId()`、`listCorePrompts()`、`getAssistant('regex'|'polish')`、`getRequestSettings()`
+10. 设置页里的 API 部分（`src/ui/page/api.js`，原「API 管理」页）：
+   - 切到设置页时 `listProfiles()` + `getActiveProfileId()`、`listCorePrompts()`、`getAssistant('regex'|'polish')`、`getRequestSettings()`
    - 配置抽屉：输入时 `checkProfile(draft)`，保存 `saveProfile(draft)`；「获取模型」`fetchModels(draft)`、「测试连接」`testConnection(draft)`
    - 助手卡片：三个下拉分别写 `setAssistant(kind, {profile})`、`{jailbreak}`、`{rules}`，选项来自 `listProfiles()` 与 `listPrompts('jailbreak'|kind)`，「跟随使用中」后面显示各自 `getActivePromptId` 指向那条的名字；采样参数输入框离开时 `setAssistant(kind, {sampling: {某项: 数字|null}})`，空着为 null
    - 自定义提示词卡片：分段切换 `jailbreak` / `regex` / `polish`，切换后 `listPrompts(kind)` + `getActivePromptId(kind)`；点某一行 `activatePrompt(kind, id)`；行尾按钮编辑、复制 `duplicatePrompt`、删除 `removePrompt`（内置那条不显示删除）；「新建提示词」和「编辑」共用一个抽屉（名称 + 正文），保存前 `checkPrompt(kind, draft)`，保存 `savePrompt(kind, draft)`，新建成功后自动 `activatePrompt`；只有内置那条显示「恢复默认」，点了把 `listCorePrompts()` 给的 `defaultText` 填进输入框（不直接写盘，保存才生效）；折叠行尾按 `listCorePrompts()` 的 `modified` 写「自定义 N 类 / 默认」
@@ -333,7 +333,7 @@ ST-YaKit-chat/
 | 首段 | `start` 先建立全部分段并保存服务器任务，再只运行第 1 段；成功为 `review`（只有一段也 review），失败为 stopped 并给原因 |
 | 返回时机 | `start/resume/retrySegment/redoFloors/appendNew` 返回准备完成后的快照，不等整轮生成结束；进度看 `getJob/onJobChange` |
 | `resume` | 处理尚未 done 的楼层；每楼都已有结果时只补保存并归为 done，不请求模型 |
-| 输出额度 | 每次润色请求按 `requestSettings.maxTokens`（默认 65535，API 管理「参数」里可改）token（含续写、格式重试、限速后重试）；不保证服务接受或实际生成这么长；NovelAI 受宿主上限 |
+| 输出额度 | 每次润色请求按 `requestSettings.maxTokens`（默认 65535，「设置 → 参数」里可改）token（含续写、格式重试、限速后重试）；不保证服务接受或实际生成这么长；NovelAI 受宿主上限 |
 | 格式 | `<floor n="实际楼号">正文</floor>` 按输入顺序，每楼非空闭合，不能缺号、错号、重号、嵌套，结果外不能有额外文字 |
 | 截断 | 只接纳此前完整楼层；缺失后续楼层需有 length 依据，半个起始标签或未闭合最后一楼按截断；未闭合局部文字不保存，下次从该楼原文重来；每轮续写至少要得到一个完整楼层，否则这一批失败 |
 | 重试 | 格式失败按共享 retries 重试；网络 / HTTP 失败与超时不自动重发 |

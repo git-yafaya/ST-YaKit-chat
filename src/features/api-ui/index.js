@@ -12,7 +12,7 @@ export const apiUI = Object.freeze(Object.fromEntries(
             return await operation(...args);
         } catch (error) {
             const message = typeof error?.message === 'string' && /[\u3400-\u9fff]/u.test(error.message)
-                ? error.message : 'API 管理操作失败，请稍后重试';
+                ? error.message : 'API 设置操作失败，请稍后重试';
             throw new Error(message);
         }
     }]),

@@ -977,7 +977,7 @@
     }
   }
 
-  // 切到润色页时刷新助手信息和规则来源（API 管理页、导出页、预设页可能改过）
+  // 切到润色页时刷新助手信息和规则来源（设置页、导出页、预设页可能改过）
   window.addEventListener('yakit-tab', (event) => {
     if (event.detail?.tab !== 'polish') return;
     renderContext();
