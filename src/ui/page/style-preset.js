@@ -3,7 +3,7 @@
  *
  * 一套文风预设只存名字和文风要求正文；正在用的那套就是润色时用的文风（润色设置里的「文风」下拉框和这里是同一个选择）。
  *
- * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat.styles 上提供，界面通过 parent.YaKitChat 调用）─────────
+ * ───────── 界面需要的业务接口（YaKitChat.styles，界面通过 parent.YaKitChat 调用）─────────
  *
  * style 的形状：{ id, name, text }（新建时没有 id）
  * 函数都可以返回 Promise；失败时 reject Error，message 是给用户看的中文原因，界面直接显示。

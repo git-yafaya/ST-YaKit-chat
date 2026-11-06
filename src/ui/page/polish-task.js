@@ -3,7 +3,7 @@
  *
  * 按聊天保存，和长期的文风预设分开，不写回文风正文。
  *
- * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat.polishUI 上提供，界面通过 parent.YaKitChat 调用）─────────
+ * ───────── 界面需要的业务接口（YaKitChat.polishUI，界面通过 parent.YaKitChat 调用）─────────
  *
  * taskInputs 的形状：
  *   {

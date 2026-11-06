@@ -2,7 +2,7 @@
  * 文本导出页「AI 辅助」抽屉：用大白话描述要删掉或保留的内容，让 AI 生成正则规则，看过效果再加入规则列表
  * （只管界面，生成规则交给业务层）
  *
- * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat.exportUI 上提供）─────────
+ * ───────── 界面需要的业务接口（YaKitChat.exportUI）─────────
  *
  * 1. exportUI.getAiContext() → { apiName, model, usingMainApi, jailbreakName }
  *      抽屉顶部显示正则助手正在用的接口和破限词；jailbreakName 为 null 表示不使用

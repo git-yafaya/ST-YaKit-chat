@@ -1,7 +1,7 @@
 /**
  * 「API 管理」页：副 API 配置 + 助手接口 + 请求参数 + 固定提示词（只管界面，数据、校验和连接都交给业务层）
  *
- * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat 上提供，界面通过 parent.YaKitChat 调用）─────────
+ * ───────── 界面需要的业务接口（YaKitChat，界面通过 parent.YaKitChat 调用）─────────
  *
  * 函数都可以返回 Promise；失败时 reject Error，message 是给用户看的中文原因，界面直接显示。
  *

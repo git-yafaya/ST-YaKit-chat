@@ -4,7 +4,7 @@
  * 一套预设保存导出页的：消息类型、导出格式、带类别标注 / 仅正文、匹配方式、正则规则；
  * 楼层范围和文件名不进预设。
  *
- * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat 上提供，界面通过 parent.YaKitChat 调用）─────────
+ * ───────── 界面需要的业务接口（YaKitChat，界面通过 parent.YaKitChat 调用）─────────
  *
  * content 的形状：{ types: { ai, user, system }, format, labels, illustrated, stripComments, commentText, mode, rules, keepRules, replaceRules, tagPlan }
  *   （含义同导出设置 settings；旧预设缺的项按默认值补）

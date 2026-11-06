@@ -25,7 +25,7 @@
   try { $('set-demo').hidden = localStorage.getItem('yakit-demo') !== 'on'; } catch {}
 
   /* ---------- 插件更新：打开设置页时检查，有新版本时可点更新，更新完自动刷新网页 ----------
-   * 需要业务层在 YaKitChat 上提供 updater（由 Codex 实现）：
+   * 需要业务层在 YaKitChat 上提供 updater：
    *   updater.checkUpdate() → Promise<{ isUpToDate: boolean, canUpdate: boolean }>
    *     isUpToDate：本插件是否已是仓库最新；canUpdate：能否在线更新（如不是 git 安装则为 false）
    *     检查失败时 reject，message 为给用户看的中文原因

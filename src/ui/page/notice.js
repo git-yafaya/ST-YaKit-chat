@@ -6,7 +6,7 @@
  * 更新后第一次打开纪实，自动打开抽屉显示这一版的公告，只弹一次（记在 localStorage 的 yakit-notice-seen）；
  * 第一次安装时不弹，直接记下当前版本。
  *
- * ───────── 界面需要的业务接口（由 Codex 在 YaKitChat.notice 上提供，界面通过 parent.YaKitChat 调用）─────────
+ * ───────── 界面需要的业务接口（YaKitChat.notice，界面通过 parent.YaKitChat 调用）─────────
  *
  * entry 的形状（仓库根目录 NOTICE.md 里一个「## v版本 · 日期」标题算一条）：
  *   { version: '0.6.0', date: '2026-09-20' | '', lines: [{ type: 'item' | 'text', text }] }
