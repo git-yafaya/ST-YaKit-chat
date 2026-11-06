@@ -62,7 +62,8 @@ export async function buildEpub(chapters, {
         const name = escapeXml(chapter.name, `第 ${index + 1} 章名称`);
         const content = chapter.messages.map((message, messageIndex) => {
             const body = placeImages(escapeXml(message.mes, `第 ${index + 1} 章第 ${messageIndex + 1} 条消息正文`));
-            const label = labelMode === 'speaker' ? `<strong>${escapeXml(getMessageLabel(message), '类别标注')}</strong>` : '';
+            const text = labelMode === 'speaker' ? getMessageLabel(message) : '';
+            const label = text ? `<strong>${escapeXml(text, '类别标注')}</strong>` : '';
             // 空行分段：一段一个 <p>，阅读器才能正常排版；段落里的单换行由 pre-wrap 保留
             const parts = body.split(/\n{2,}/).filter(part => part.trim());
             if (!parts.length) return `<p>${label}</p>`;

@@ -403,7 +403,7 @@ ST-YaKit-chat/
 | `start` / `end` | `''` | 起止楼层（原字符串保存） |
 | `types` | `{ ai: true, user: true }` | 消息类型开关；系统消息一律不导出 |
 | `format` | `'txt'` | `txt` / `md` / `epub` / `jsonl`（酒馆聊天文件） |
-| `labels` | `'with'` | `with` 带类别标注 / `plain` 仅正文 |
+| `labels` | `'with'` | `with` 带类别标注 / `plain` 仅正文；带标注时 AI 消息不加前缀，用户消息前加当前人设名（`name1`，同 `{{user}}`）和全角冒号，取不到写「用户：」；Markdown 加粗、EPUB 用 `<strong>` |
 | `fileName` | `''` | 自定义文件名，空为默认名 |
 | `mode` | `'delete'` | 界面在看哪一组：`delete` 删除 / `keep` 只保留 / `replace` 替换；三组始终同时生效 |
 | `rules` | `[]` | 删除组，规则字符串数组（原样保存） |

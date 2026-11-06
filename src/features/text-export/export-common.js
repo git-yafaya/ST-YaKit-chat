@@ -1,7 +1,10 @@
 import { getMessageType } from './filter-messages.js';
 
+// 类别标注：AI 不加前缀，用户台词前加当前人设名（同 {{user}}），取不到时写「用户」
 export function getMessageLabel(message) {
-    return { ai: 'AI：', user: '用户：', system: '系统：' }[getMessageType(message)];
+    if (getMessageType(message) !== 'user') return '';
+    const name = globalThis.SillyTavern?.getContext?.()?.name1;
+    return `${typeof name === 'string' && name.trim() ? name.trim() : '用户'}：`;
 }
 
 export function validateMessages(messages, labelMode) {
