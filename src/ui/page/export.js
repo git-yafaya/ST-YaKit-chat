@@ -520,7 +520,8 @@
   const ACTION_GROUP = { keep: '保留', delete: '替换', strip: '替换' };
 
   let tagTree = [];                  // 识别到的嵌套结构
-  let manualTags = [];               // 手动输入加进来的标签，排在最前面
+  let manualTags = [];               // 手动输入的，加上存过处理方式但这次没识别到的，排在最前面
+  const typedTags = new Set();       // 这次手动输入的标签名
   const folded = new Set();          // 收起来的标签名
   let treeToken = 0;
 
@@ -616,6 +617,20 @@
     renderTagPlanCount();
   }
 
+  // 存过处理方式、但这次识别范围里没有的标签（多半是别的聊天留下的）；这次手动输入的不算
+  const missingTags = () => manualTags.filter((node) => !node.count && !typedTags.has(node.name));
+
+  // 重新识别后清掉没识别到的标签，连同它们写进的规则一起撤掉
+  function clearMissingTags() {
+    if (isStacked()) return;
+    const missing = missingTags();
+    if (!missing.length) return;
+    for (const node of missing) setTagAction(node.name, '');
+    manualTags = manualTags.filter((node) => !missing.includes(node));
+    renderTagTree();
+    YaKitToast.show(`已清掉 ${missing.length} 个没识别到的标签`, 'success');
+  }
+
   function tagRow(node, depth) {
     const row = document.createElement('div');
     row.className = 'tag-row';
@@ -651,7 +666,7 @@
     meta.className = 'tag-row-meta';
     meta.textContent = node.count
       ? `×${node.count}${node.floors > 1 ? ` · ${node.floors} 层` : ''}`
-      : '自己加的';
+      : typedTags.has(node.name) ? '自己加的' : '这次没识别到';
     row.append(meta);
 
     const select = document.createElement('yakit-select');
@@ -676,27 +691,31 @@
     $('tag-plan-count').textContent = parts.length ? `已写入：${parts.join(' · ')}` : '还没选怎么处理';
   }
 
+  // 识别成功返回 true；失败或被更新的识别取代返回 false
   async function loadTagTree() {
-    if (!canOpenTags()) return;
+    if (!canOpenTags()) return false;
     const token = ++treeToken;
     const button = $('tag-rescan');
     button.setAttribute('loading', '');
     try {
       const result = await service().scanTagTree({ start: state.tagScan.start, end: state.tagScan.end });
-      if (token !== treeToken) return;
+      if (token !== treeToken) return false;
       tagTree = Array.isArray(result?.tags) ? result.tags : [];
       // 识别结果里已有的标签，从「自己加的」里去掉，避免重复两行
       const known = new Set(flattenTree(tagTree).map((node) => node.name));
       manualTags = manualTags.filter((node) => !known.has(node.name));
     } catch (error) {
-      if (token !== treeToken) return;
+      if (token !== treeToken) return false;
       YaKitErrorLog.warn('识别标签失败', error);
       tagTree = [];
       YaKitToast.show('识别标签失败', 'danger');
+      renderTagTree();
+      return false;
     } finally {
       if (token === treeToken) button.removeAttribute('loading');
     }
     renderTagTree();
+    return true;
   }
 
   function openTagDrawer() {
@@ -721,7 +740,7 @@
   $('tag-rescan').addEventListener('click', () => {
     state.tagScan = { start: $('tag-from').value.trim(), end: $('tag-to').value.trim() };
     save();
-    loadTagTree();
+    loadTagTree().then((ok) => { if (ok) clearMissingTags(); });
   });
   $('tag-manual-add').addEventListener('click', () => {
     const input = $('tag-manual');
@@ -737,6 +756,7 @@
       YaKitToast.show(`${node.label} 已经在列表里`, 'warning');
       return;
     }
+    typedTags.add(node.name);
     manualTags.unshift(node);
     renderTagTree();
   });
