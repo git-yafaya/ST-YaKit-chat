@@ -110,7 +110,7 @@ export function restoreBackup(text) {
         // 文件里的导出设置必须完整，不能把缺失字段静默补成默认值。
         if (!saved || !['allFloors', 'start', 'end', 'types', 'format', 'labels', 'fileName', 'mode', 'rules']
             .every(key => Object.hasOwn(saved, key))
-            || !saved.types || !['ai', 'user', 'system'].every(key => Object.hasOwn(saved.types, key))) {
+            || !saved.types || !['ai', 'user'].every(key => Object.hasOwn(saved.types, key))) {
             throw new Error();
         }
         presets = normalizeCollection(value.presets);

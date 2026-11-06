@@ -172,7 +172,7 @@ ST-YaKit-chat/
 
 | 情况 | 实际行为 |
 | --- | --- |
-| 系统提示 | 旁白 `extra.type='narrator'`；以及除下面 AI 例外外的已知宿主系统类型 |
+| 系统消息 | 旁白 `extra.type='narrator'`；以及除下面 AI 例外外的已知宿主系统类型；一律不导出、不润色，没有开关（`types.system` 旧值读入时忽略） |
 | 用户台词 | 其余 `is_user` 真值 |
 | AI 回复 | 助手问候 `assistant_message`、`comment` + `is_name` 真值的具名回复；缺少或未知类型 |
 | 隐藏楼层 | 隐藏状态（`is_system`）不改变类别；历史无类型标记的系统消息无法与隐藏 AI 区分，不按名字或正文猜测 |
@@ -401,7 +401,7 @@ ST-YaKit-chat/
 | --- | --- | --- |
 | `allFloors` | `true` | 导出全部楼层 |
 | `start` / `end` | `''` | 起止楼层（原字符串保存） |
-| `types` | `{ ai: true, user: true, system: true }` | 三种消息类型开关 |
+| `types` | `{ ai: true, user: true }` | 消息类型开关；系统消息一律不导出 |
 | `format` | `'txt'` | `txt` / `md` / `epub` / `jsonl`（酒馆聊天文件） |
 | `labels` | `'with'` | `with` 带类别标注 / `plain` 仅正文 |
 | `fileName` | `''` | 自定义文件名，空为默认名 |
@@ -528,7 +528,7 @@ ST-YaKit-chat/
         allFloors: true,
         start: '',
         end: '',
-        types: { ai: true, user: true, system: true },
+        types: { ai: true, user: true },
         format: 'txt',
         labels: 'with',
         fileName: '',
@@ -570,7 +570,7 @@ ST-YaKit-chat/
     console.table(flatten(tags).map(({ label, count, floors }) => ({ label, count, floors })));
     if (tags.length === 0) return;
     const tag = tags[0];
-    const base = { allFloors: true, types: { ai: true, user: true, system: true } };
+    const base = { allFloors: true, types: { ai: true, user: true } };
     // 只要这段：保留组用 innerRule
     console.table(api.previewMessages({ ...base, keepRules: [tag.innerRule] }, 2));
     // 删掉整块：替换成一个空行，正文不会粘连
@@ -625,7 +625,7 @@ ST-YaKit-chat/
   "schemaVersion": 1,
   "name": "示例预设",
   "content": {
-    "types": { "ai": true, "user": true, "system": true },
+    "types": { "ai": true, "user": true },
     "format": "txt",
     "labels": "with",
     "mode": "delete",
@@ -645,7 +645,7 @@ ST-YaKit-chat/
     "allFloors": true,
     "start": "",
     "end": "",
-    "types": { "ai": true, "user": true, "system": true },
+    "types": { "ai": true, "user": true },
     "format": "txt",
     "labels": "with",
     "fileName": "",
@@ -673,7 +673,7 @@ ST-YaKit-chat/
 (async () => {
     const { presets, exportUI } = globalThis.YaKitChat;
     const settings = exportUI.loadSettings() ?? {
-        types: { ai: true, user: true, system: true },
+        types: { ai: true, user: true },
         format: 'txt', labels: 'with', mode: 'delete', rules: [],
     };
     const content = Object.fromEntries(
@@ -1154,7 +1154,7 @@ async function testDraftModel(draft) {
         presets: { items: await y.presets.list(), activeId: await y.presets.getActiveId() },
         exportSettings: y.exportUI.loadSettings() ?? {
             allFloors: true, includeHidden: true, start: '', end: '',
-            types: { ai: true, user: true, system: true },
+            types: { ai: true, user: true },
             format: 'txt', labels: 'with', fileName: '', mode: 'delete', rules: []
         },
         uiPrefs: {},

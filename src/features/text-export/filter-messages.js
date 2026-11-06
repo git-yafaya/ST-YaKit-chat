@@ -12,8 +12,8 @@ export function getMessageType(message) {
     return SYSTEM_MESSAGE_TYPES.has(type) ? 'system' : 'ai';
 }
 
-// 按宿主标记筛选消息，保留原顺序和消息对象。
-export function filterMessages(messages, types = { ai: true, user: true, system: true }) {
+// 按宿主标记筛选消息，保留原顺序和消息对象；系统消息和旁白一律不导出。
+export function filterMessages(messages, types = { ai: true, user: true }) {
     if (!Array.isArray(messages)) {
         throw new TypeError('messages 必须是数组');
     }
@@ -21,13 +21,14 @@ export function filterMessages(messages, types = { ai: true, user: true, system:
         || ![Object.prototype, null].includes(Object.getPrototypeOf(types))) {
         throw new TypeError('types 必须是消息类型开关对象');
     }
+    // 旧版调用可能还带 system 开关，接受但不再生效。
     for (const key of Reflect.ownKeys(types)) {
         if (!['ai', 'user', 'system'].includes(key) || typeof types[key] !== 'boolean') {
-            throw new TypeError('types 仅支持 ai、user、system 布尔开关');
+            throw new TypeError('types 仅支持 ai、user 布尔开关');
         }
     }
-    const enabled = key => Object.hasOwn(types, key) && types[key] === true;
-    if (!['ai', 'user', 'system'].some(enabled)) {
+    const enabled = key => key !== 'system' && Object.hasOwn(types, key) && types[key] === true;
+    if (!['ai', 'user'].some(enabled)) {
         throw new Error('请至少选择一种消息类型');
     }
 

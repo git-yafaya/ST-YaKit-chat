@@ -27,7 +27,7 @@
  *
  * 1. exportUI.getChatInfo() → { status: 'ok' | 'none', floorCount: number }
  *      none = 没打开聊天
- * 2. exportUI.previewMessages(settings, count) → [{ floor, type: 'ai'|'user'|'system', name, text }]
+ * 2. exportUI.previewMessages(settings, count) → [{ floor, type: 'ai'|'user', name, text }]
  *      按 settings 读取、过滤、正则匹配后，返回最后 count 条；可以是同步值或 Promise
  * 3. exportUI.isValidRule(source) → boolean
  *      这条规则能不能用；界面据此显示「这条规则无效，已忽略」
@@ -65,7 +65,7 @@
   const PREVIEW_COUNT = 2;
   const $ = (id) => document.getElementById(id);
 
-  const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
+  const TYPE_LABELS = { ai: 'AI', user: '用户' };
   const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB', jsonl: '酒馆聊天' };
 
   const service = () => parent.YaKitChat?.exportUI;
@@ -75,7 +75,7 @@
     allFloors: true,
     start: '',
     end: '',
-    types: { ai: true, user: true, system: true },
+    types: { ai: true, user: true },
     includeHidden: true,
     stripComments: true,
     commentText: false,

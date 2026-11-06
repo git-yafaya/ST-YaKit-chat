@@ -15,7 +15,7 @@ export function normalizeName(value) {
 // 内容必须完整，楼层范围、文件名和其他额外字段不进入预设。
 export function normalizeContent(value) {
     if (!isObject(value) || CONTENT_KEYS.some(key => !Object.hasOwn(value, key))
-        || !isObject(value.types) || ['ai', 'user', 'system'].some(key => !Object.hasOwn(value.types, key))) {
+        || !isObject(value.types) || ['ai', 'user'].some(key => !Object.hasOwn(value.types, key))) {
         throw new Error('预设内容不完整');
     }
     const keys = [...CONTENT_KEYS, ...OPTIONAL_KEYS.filter(key => Object.hasOwn(value, key))];

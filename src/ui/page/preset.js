@@ -33,7 +33,7 @@
   const $ = (id) => document.getElementById(id);
   const service = () => parent.YaKitChat?.presets;
 
-  const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
+  const TYPE_LABELS = { ai: 'AI', user: '用户' };
   const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB', jsonl: '酒馆聊天' };
   const NAME_MAX = 30;
   const ACTION_LABELS = { rename: '重命名', duplicate: '复制', export: '导出', delete: '删除' };
@@ -51,7 +51,7 @@
   // 预设只关心这六项
   function pickContent(settings = {}) {
     return {
-      types: { ai: Boolean(settings.types?.ai), user: Boolean(settings.types?.user), system: Boolean(settings.types?.system) },
+      types: { ai: Boolean(settings.types?.ai), user: Boolean(settings.types?.user) },
       format: settings.format,
       labels: settings.labels,
       illustrated: Boolean(settings.illustrated),

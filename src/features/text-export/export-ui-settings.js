@@ -12,7 +12,7 @@ export function normalizeSettings(value = {}) {
         includeHidden: true,
         start: '',
         end: '',
-        types: { ai: true, user: true, system: true },
+        types: { ai: true, user: true },
         format: 'txt',
         labels: 'with',
         illustrated: false,

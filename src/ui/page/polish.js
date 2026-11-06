@@ -77,7 +77,7 @@
   const ready = () => ['loadSettings', 'planSegments', 'start', 'getJob', 'onJobChange'].every((name) => typeof service()?.[name] === 'function');
   const exportPage = () => window.YaKitExportPage;
 
-  const TYPE_LABELS = { ai: 'AI', user: '用户', system: '系统' };
+  const TYPE_LABELS = { ai: 'AI', user: '用户' };
   const FORMAT_LABELS = { txt: 'TXT', md: 'Markdown', epub: 'EPUB', jsonl: '酒馆聊天' };
   const ALERT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>';
   const WARNING_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 2.8 19.5h18.4Z"/><path d="M12 10v4M12 17h.01"/></svg>';
@@ -112,7 +112,7 @@
   let view = 'polished';
   let presetList = [];
 
-  const TYPE_KEYS = ['ai', 'user', 'system'];
+  const TYPE_KEYS = ['ai', 'user'];
   // 所选预设的内容；'export' 时取文本导出页当前设置
   const presetContent = () => (state.presetId === 'export'
     ? exportPage()?.getState()
