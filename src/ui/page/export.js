@@ -46,6 +46,8 @@
  *      没提供这个函数时，不显示「标签」这一行
  *    exportUI.tagRules(name) → 同上单个节点，名字不合法时返回 null
  *      手动输入标签名时用，拿到和识别结果一样的三套规则
+ *    exportUI.getFirstFloorTag() → 首楼正文首尾包着的标签名，没有就是 ''
+ *    exportUI.setFirstFloorTag(name) → Promise<新的标签名>；name 为 '' 时去掉包裹，直接改聊天记录
  * 8. YaKitChat.getEpubPreferences() → { floorsPerChapter: number, chapterNames: string[] }
  *    YaKitChat.saveEpubPreferences(patch) → 保存后的完整偏好（可局部更新，失败抛中文异常）
  *      EPUB 分章设置：每章几条消息、每章的标题（按章排，留空用默认标题）
@@ -615,6 +617,30 @@
     list.replaceChildren(...rows);
     $('tag-tree-empty').hidden = rows.length > 0;
     renderTagPlanCount();
+    renderFirstFloor();
+  }
+
+  // 首楼下拉：可选识别到和手动加的成对标签，当前值从首楼正文里读
+  function renderFirstFloor() {
+    const select = $('tag-first-floor');
+    let current = '';
+    try {
+      current = service()?.getFirstFloorTag?.() || '';
+    } catch (error) {
+      YaKitErrorLog.warn('读取首楼标签失败', error);
+    }
+    const names = [...manualTags, ...flattenTree(tagTree)]
+      .filter((node) => !node.label.endsWith('/>'))
+      .map((node) => node.name);
+    if (current && !names.includes(current)) names.unshift(current);
+    const options = [{ value: '', label: '不加' }, ...[...new Set(names)].map((name) => ({ value: name, label: `<${name}>` }))];
+    select.replaceChildren(...options.map(({ value, label }) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      return option;
+    }));
+    select.setAttribute('value', current);
   }
 
   // 存过处理方式、但这次识别范围里没有的标签（多半是别的聊天留下的）；这次手动输入的不算
@@ -761,6 +787,19 @@
     renderTagTree();
   });
   $('tag-manual').addEventListener('input', () => $('tag-manual').removeAttribute('error'));
+  $('tag-first-floor').addEventListener('change', async (event) => {
+    const name = event.detail.value;
+    try {
+      await service().setFirstFloorTag(name);
+      YaKitToast.show(name ? `首楼已包上 <${name}>` : '首楼已去掉标签', 'success');
+    } catch (error) {
+      YaKitErrorLog.warn('修改首楼标签失败', error);
+      YaKitToast.show(error?.message || '修改首楼标签失败', 'danger');
+    }
+    // 首楼正文变了，重新识别一次让次数跟上
+    loadTagTree();
+    renderPreview();
+  });
   $('tag-done').addEventListener('click', () => $('tag-drawer').close());
 
   $('rule-add').addEventListener('click', () => {

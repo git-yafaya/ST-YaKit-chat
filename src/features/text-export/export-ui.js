@@ -3,6 +3,7 @@ import { filterMessages, getMessageType } from './filter-messages.js';
 import { cleanByGroups, countComments as countMessageComments } from './clean-messages.js';
 import { saveExport } from './save-export.js';
 import { scanTagTree as buildTagTree, tagRules } from './scan-recent-tags.js';
+import { getFirstFloorTag, setFirstFloorTag } from './first-floor-tag.js';
 import { getAiContext, suggestRules, cancelSuggestRules } from './ai-assist.js';
 import { normalizeSettings, parseRule, parseReplaceRule, isValidRule, loadSettings, saveSettings, commentMode } from './export-ui-settings.js';
 import { replaceImageTags, loadIllustrations, TOKEN_PATTERN } from './illustrations.js';
@@ -144,5 +145,6 @@ function onChatChanged(callback) {
 
 export const exportUI = Object.freeze({
     getChatInfo, previewMessages, countComments, isValidRule, exportFile, onChatChanged, loadSettings, saveSettings, scanTagTree, tagRules,
+    getFirstFloorTag, setFirstFloorTag,
     getAiContext, suggestRules, cancelSuggestRules,
 });

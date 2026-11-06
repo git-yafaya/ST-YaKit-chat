@@ -127,7 +127,7 @@ ST-YaKit-chat/
    - 选 EPUB 时导出设置抽屉里出现「EPUB 章节」：初始化读一次 `getEpubPreferences()`，改每章消息数或章节标题即 `saveEpubPreferences(patch)` 局部更新，失败只记进报错记录；两个函数缺一时整块显示「章节设置还没接入」、输入框不能点
    - 起止楼层输入框 change：按 `floorCount` 收回越界值、颠倒时对调，写回输入框再保存
    - 放大查看：`previewMessages(settings, floorCount)`，界面每批渲染 20 条，滑到底部附近加载下一批；设置变化时重新获取；标题行「看第几楼」填了楼号时只显示该楼与前一条；放大抽屉顶部吸顶的 `#preview-drawer-floor` 与卡片上的 `#preview-floor` 共用同一个值，改任一边都更新两边、副标题和两处预览；放大预览滚到该楼后，1.5 秒内抽屉内容尺寸变化（段落 `content-visibility` 补排版）就重新对齐，用户滚轮、触摸、按键或按下指针即停止
-   - 整理标签抽屉：打开时按 `tagScan` 调 `scanTagTree({start,end})`（首次打开才识别，之后留着上次结果），抽屉为底部抽屉（`resizable`，初始高 50dvh）；每行一个下拉，显示值由当前 `keepRules` / `replaceRules` 反推（规则不全在就算不处理）；改下拉即撤掉该标签三种处理方式生成的规则、写入新规则、更新 `tagPlan` 并 `saveSettings`，随后刷新规则列表与预览；规则列表或叠加状态变化时，抽屉开着就跟着重画；底部计数与入口行只算规则仍在的 `tagPlan` 条目；手动输入的标签名走 `tagRules(name)`，识别结果里已有的不重复加
+   - 整理标签抽屉：打开时按 `tagScan` 调 `scanTagTree({start,end})`（首次打开才识别，之后留着上次结果），抽屉为底部抽屉（`resizable`，初始高 50dvh）；每行一个下拉，显示值由当前 `keepRules` / `replaceRules` 反推（规则不全在就算不处理）；改下拉即撤掉该标签三种处理方式生成的规则、写入新规则、更新 `tagPlan` 并 `saveSettings`，随后刷新规则列表与预览；规则列表或叠加状态变化时，抽屉开着就跟着重画；底部计数与入口行只算规则仍在的 `tagPlan` 条目；手动输入的标签名走 `tagRules(name)`，识别结果里已有的不重复加；存过处理方式但这次没识别到、也不是这次手动输入的标签标「这次没识别到」，点「重新识别」且识别成功后对它们逐个 `setTagAction(name,'')` 撤掉规则并移出列表（叠加预设时不清）；底部「首楼」下拉列出成对标签，当前值取 `getFirstFloorTag()`，改选调 `setFirstFloorTag(name)` 后重新识别并刷新预览
    - AI 辅助（`src/ui/page/ai-rules.js`）：打开抽屉 `getAiContext()`；生成 `suggestRules({request, mode, rules})`，期间锁住需求输入框；候选用 `isValidRule` 标无效，`previewMessages({...settings, rules: [...rules, ...有效候选]}, 2)` 预览；「添加到规则」由界面去重后写入并保存。关闭抽屉或弹窗不调用 `cancelSuggestRules`，生成继续，结果留在抽屉；抽屉关着时结束会提示，弹窗开着用面板提示消息，弹窗关着用宿主 `toastr`
    - 点击导出：`exportFile(settings)` → 成功提示「已导出 N 条消息」
    - `onChatChanged` 回调：刷新摘要、预览、整理标签按钮
@@ -503,6 +503,8 @@ ST-YaKit-chat/
 | `saveSettings(settings)` | 同步返回保存后的独立副本。缺项补默认，已提供字段校验类型和枚举，忽略未知字段；错误抛出。整组写入 `extensionSettings['ST-YaKit-chat'].exportUI`，保留其他模块设置，调用 `saveSettingsDebounced()`；排队失败回滚原设置。成功表示已提交给宿主保存队列。 |
 | `scanTagTree({start,end}={})` | 返回 `Promise<{from,to,tags}>`。`tags` 是嵌套结构 `[{name,label,count,floors,rule,innerRule,shellRules,children}]`，见上方标签识别边界。参数不是对象时 reject 中文 `TypeError`。只读，不保存设置或修改聊天。 |
 | `tagRules(name)` | 同步返回与 `tags` 节点同形状的一项，或 `null`（名字不合法）。只读。 |
+| `getFirstFloorTag()` | 同步返回首楼（`chat[0]`）正文首尾包着的标签名，没包、没聊天返回 `''`。首尾须是同一对：中间再出现同名开/闭标签就不算。只读。 |
+| `setFirstFloorTag(name='')` | 返回 `Promise<新的标签名>`。先去掉原包裹，再写成 `<name>\n正文\n</name>`，`''` 只去掉包裹；**直接改聊天记录**：同步当前 `swipes[swipe_id]`、`updateMessageBlock(0)`、依次发 `MESSAGE_EDITED` / `MESSAGE_UPDATED`、`saveChat()`。没有首楼 reject `Error('当前聊天没有首楼')`，名字不合法 reject `Error('这个标签名不能用')`。 |
 | `getAiContext()` | 返回 `Promise<{apiName, model, usingMainApi, jailbreakName}>`，见上方 AI 辅助边界。 |
 | `suggestRules({request, mode, rules})` | 返回 `Promise<{rules:[{rule, explanation}]}>`；失败 reject 中文 `Error`，识别码见下表。 |
 | `cancelSuggestRules()` | 同步返回 undefined；停止正在进行的生成，被停止的调用 reject `已停止生成`（`AI_CANCELLED`）。 |
