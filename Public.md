@@ -346,7 +346,7 @@ ST-YaKit-chat/
 | 情况 | 实际行为 |
 | --- | --- |
 | 身份 | 每个聊天一份：`JSON.stringify([groupId或null,角色avatar,chatId])`；角色文件或聊天文件改名后按新身份查找，不迁移旧文件 |
-| 文件 | `user/files/ST-YaKit-chat-polish-<sha256(chatKey)>.json`（宿主 `/lib.js` 的 sha256）；封套 `{version:1,chatKey,record:{settings,sourcePrefix,job}}`；不写原聊天、不保存 API 密钥、不放浏览器持久存储 |
+| 文件 | `user/files/ST-YaKit-chat-polish-<sha256(chatKey)>.json`（sha256 优先用宿主 `/lib.js`，1.18 以下回退到浏览器 `crypto.subtle`，需 https 或 localhost）；封套 `{version:1,chatKey,record:{settings,sourcePrefix,job}}`；不写原聊天、不保存 API 密钥、不放浏览器持久存储 |
 | 接口 | 上传 `POST /api/files/upload`（`{name,data}`，data 为 UTF-8 JSON 的 Base64）；读取 `/user/files/<文件名>` 禁缓存；删除 `POST /api/files/delete`（`{path:'user/files/<文件名>'}`）；同聊天读写删排队，每次 30 秒期限；读取 / 删除 404 视为不存在 / 已删除 |
 | 保存点 | 新任务、整段重试、手动编辑、重做准备、追加先保存成功再替换内存；各批开始、完整楼层接收后、批结束、整轮结束、停止时保存；完整楼层落盘后才发下一次请求 |
 | 保存失败 | 生成中保存失败停止继续请求，保留本页内存结果，`resume()` 先补保存；未落盘内容刷新后不能恢复；编辑失败不覆盖旧文，删除失败不清空内存 |
@@ -1292,7 +1292,7 @@ polish.saveSettings({ ...(polish.loadSettings() ?? {}), worldInfo: true });
 - 群聊润色
 - 「备份全部」覆盖 API 配置与密钥、助手接口与采样、请求参数、润色设置与服务器润色结果
 
-**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
+**依赖宿主接口**：`SillyTavern.getContext()`（聊天、角色、`powerUserSettings`、`extensionSettings`、`saveSettingsDebounced`、`eventSource` / `eventTypes`）；`/scripts/utils.js` 的下载与 UUID；EPUB 懒加载 `/lib/jszip.min.js`；宿主 `--SmartTheme*` CSS 变量（跟随ST）；预设使用 `crypto.getRandomValues` 生成 ID、`structuredClone` 复制对象，并通过 `/scripts/utils.js` 的 `download` 下载文件；插件更新使用 `/scripts/extensions.js` 导出的 `extensionTypes`、`/scripts/user.js` 的 `isAdmin()`、`getRequestHeaders()`，并调用后端 `POST /api/extensions/version`、`POST /api/extensions/update`；API 管理、AI 辅助与润色使用 `getRequestHeaders()`、宿主生成参数构建器及对应生成后端接口，获取模型调用 `/api/backends/chat-completions/status`；润色结果使用 `POST /api/files/upload`、`/user/files/*`、`POST /api/files/delete` 与宿主 `/lib.js` 的 sha256（缺失时回退 `crypto.subtle`）；更新公告远端读取使用 `POST /api/extensions/version` 与 GitHub Contents API；关闭弹窗后的完成提示使用宿主 `toastr`。无第三方依赖。
 
 **版本门槛**：按本地 SillyTavern 1.18.0 源码核对宿主契约，其他版本未单独验证；v0.6.0–v0.9.0 新增业务尚未完成真实 API 验收。标签扫描使用 Unicode 属性正则，生成规则使用 RegExp 后行断言，AI 请求使用 `AbortController` 与 `structuredClone`，需要支持这些能力的现代浏览器。
 

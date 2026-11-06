@@ -20,29 +20,47 @@ export async function getContext() {
     }
 }
 
-function parseFloors(response, floors) {
+const OPEN_TAG = /^<floor\s+n\s*=\s*["']?(\d+)["']?\s*>/iu;
+const CLOSE_TAG = /<\/floor\s*>/iu;
+const ANY_FLOOR_TAG = /<\/?floor\b/iu;
+// 截断时最后可能只写出半个开始标签
+const PARTIAL_OPEN = /^<(?:f(?:l(?:o(?:o(?:r(?:\s[^>]*)?)?)?)?)?)?$/iu;
+
+// 模型常在楼层外面多包一层：代码围栏、前言、<original> 容器；只去掉这些外壳，楼层内的正文不动
+function stripWrapper(text) {
+    const first = text.search(/<floor\b/iu);
+    let rest = first > 0 ? text.slice(first) : text;
+    rest = rest.replace(/(?:\s*<\/original>)?(?:\s*```)?\s*$/u, '');
+    return rest;
+}
+
+export function parseFloors(response, floors) {
     const completed = [];
-    let rest = typeof response?.text === 'string' ? response.text.trimStart() : '';
+    let rest = stripWrapper(typeof response?.text === 'string' ? response.text.trimStart() : '');
     const length = response?.finishReason === 'length';
-    const invalid = () => Object.assign(new Error('AI 返回的楼层标记、编号或正文不正确，请重新润色这一段'), { code: 'AI_POLISH_FORMAT' });
+    const invalid = reason => Object.assign(
+        new Error(`AI 返回的楼层格式不对（${reason}），请重新润色这一段`), { code: 'AI_POLISH_FORMAT' });
     for (const { floor } of floors) {
-        const open = `<floor n="${floor}">`;
         // 标签只写了一半也保留前缀；完全缺楼仍需 length 作为依据。
-        if ((!rest && length) || (rest && open.startsWith(rest))) return { completed, resumeFloor: floor };
-        if (!rest.startsWith(open)) throw invalid();
-        const body = rest.slice(open.length);
-        const end = body.indexOf('</floor>');
-        if (end < 0) {
+        if ((!rest && length) || (rest && PARTIAL_OPEN.test(rest))) return { completed, resumeFloor: floor };
+        if (!rest) throw invalid(completed.length ? `第 ${floor} 楼没有写出来` : '回复是空的，可能被模型的安全过滤拦下了');
+        const open = OPEN_TAG.exec(rest);
+        if (!open) throw invalid(ANY_FLOOR_TAG.test(rest) ? `第 ${floor} 楼的开头标记不对` : '没有按楼层标记回复，可能是模型拒绝了这段内容');
+        if (Number(open[1]) !== floor) throw invalid(`该写第 ${floor} 楼，却写成了第 ${open[1]} 楼`);
+        const body = rest.slice(open[0].length);
+        const close = CLOSE_TAG.exec(body);
+        if (!close) {
             // 最后一楼未闭合也视为截断，但不能跳楼或嵌套楼层。
-            if (/<\/?floor\b/u.test(body)) throw invalid();
+            if (ANY_FLOOR_TAG.test(body)) throw invalid(`第 ${floor} 楼没有闭合`);
             return { completed, resumeFloor: floor };
         }
-        const text = body.slice(0, end);
-        if (!text.trim() || /<\/?floor\b/u.test(text)) throw invalid();
+        const text = body.slice(0, close.index);
+        if (!text.trim()) throw invalid(`第 ${floor} 楼是空的`);
+        if (ANY_FLOOR_TAG.test(text)) throw invalid(`第 ${floor} 楼里又套了楼层标记`);
         completed.push({ floor, text });
-        rest = body.slice(end + '</floor>'.length).trimStart();
+        rest = body.slice(close.index + close[0].length).trimStart();
     }
-    if (rest) throw invalid();
+    if (rest) throw invalid('最后一楼后面多写了内容');
     return { completed, resumeFloor: null };
 }
 

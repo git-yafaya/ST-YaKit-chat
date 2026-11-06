@@ -87,7 +87,8 @@ function watch() {
     watching = true;
     exportUI.onChatChanged(() => {
         const entry = entryFor();
-        if (entry && !entry.loaded && !entry.loading) void loadEntry(entry).catch(() => {});
+        // 读取失败过就不在每次聊天变动时自动重读，等用户操作时再试，免得反复报错
+        if (entry && !entry.loaded && !entry.loading && !entry.error) void loadEntry(entry).catch(() => {});
         emit();
     });
 }

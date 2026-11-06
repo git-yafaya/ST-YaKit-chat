@@ -14,13 +14,24 @@ function validRecord(record) {
     return record !== null && typeof record === 'object' && !Array.isArray(record);
 }
 
+// 文件名用聊天标识的 SHA-256。酒馆 1.18 起 lib.js 才导出 sha256，旧版退回浏览器自带的
+// crypto.subtle（只在 https 或 localhost 下可用）；两者结果相同，已保存的文件名不变。
+async function sha256Hex(text, kind, file) {
+    const lib = await import('/lib.js').catch(() => null);
+    if (typeof lib?.sha256 === 'function') return lib.sha256(text);
+    if (globalThis.crypto?.subtle) {
+        const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    throw failure(kind, '失败：酒馆版本低于 1.18 时需要用 https 或 localhost 打开酒馆，或者升级酒馆', file);
+}
+
 // 同一聊天的读写删除依次执行，失败后仍允许下一次操作。
 function enqueue(chatKey, kind, operation, file = files.job) {
     if (typeof chatKey !== 'string' || !chatKey) return Promise.reject(failure(kind, '失败：无法识别聊天', file));
     const task = (queues.get(chatKey) || Promise.resolve()).then(async () => {
         try {
-            const { sha256 } = await import('/lib.js');
-            const name = `${file.prefix}-${sha256(chatKey)}.json`;
+            const name = `${file.prefix}-${await sha256Hex(chatKey, kind, file)}.json`;
             return await operation(name, `user/files/${name}`);
         } catch (error) {
             throw error?.code === `POLISH_${kind}` ? error : failure(kind, undefined, file);
@@ -41,13 +52,19 @@ async function request(kind, url, body, consume, file = files.job) {
         if (!headers || typeof headers !== 'object' || Array.isArray(headers)) throw failure(kind, undefined, file);
         return await Promise.race([
             (async () => {
-                const response = await fetch(url, {
-                    method: body === undefined ? 'GET' : 'POST', headers,
-                    ...(body === undefined ? { cache: 'no-store' } : { body: JSON.stringify(body) }),
-                    signal: controller.signal,
-                });
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: body === undefined ? 'GET' : 'POST', headers,
+                        ...(body === undefined ? { cache: 'no-store' } : { body: JSON.stringify(body) }),
+                        signal: controller.signal,
+                    });
+                } catch (error) {
+                    if (controller.signal.aborted) throw error;
+                    throw failure(kind, '失败：连不上酒馆，请检查网络后重试', file);
+                }
                 if (response.status === 404 && kind !== 'SAVE') return null;
-                if (!response.ok) throw failure(kind, undefined, file);
+                if (!response.ok) throw failure(kind, `失败（酒馆返回 HTTP ${response.status}），请重试`, file);
                 return consume ? await consume(response) : undefined;
             })(),
             new Promise((_, reject) => {
