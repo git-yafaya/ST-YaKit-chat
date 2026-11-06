@@ -307,6 +307,14 @@
                 </yakit-segmented>
               </div>
               <p class="field-note">回复里读不到结果时自动再请求，超时和连不上不重试。<br>建议 1 次，每次重试都会再消耗额度。</p>
+              <div class="setting-field request-gap">
+                <span class="setting-label">最大输出</span>
+                <div class="request-timeout">
+                  <yakit-input id="request-max-tokens" type="number" size="sm" aria-label="最大输出（token）" placeholder="65535"></yakit-input>
+                  <span class="request-unit">token</span>
+                </div>
+              </div>
+              <p class="field-note">润色时每次最多让 AI 写这么多，写不完会自动接着写。<br>模型报错说长度超出上限时调小，比如 8192。</p>
           </div>
         </yakit-collapse>
       </div>

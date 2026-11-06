@@ -295,7 +295,7 @@
     el.className = 'polish-floor';
     el.innerHTML = `
       <div class="polish-floor-head">
-        <button type="button" class="tag-chip polish-floor-chip" aria-pressed="false"></button>
+        <button type="button" class="polish-floor-chip" aria-pressed="false"></button>
         <span class="polish-floor-note"></span>
         <yakit-button class="polish-floor-edit" size="sm" variant="ghost" icon="../icons/edit.svg" hidden></yakit-button>
       </div>

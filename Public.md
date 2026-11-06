@@ -333,7 +333,7 @@ ST-YaKit-chat/
 | 首段 | `start` 先建立全部分段并保存服务器任务，再只运行第 1 段；成功为 `review`（只有一段也 review），失败为 stopped 并给原因 |
 | 返回时机 | `start/resume/retrySegment/redoFloors/appendNew` 返回准备完成后的快照，不等整轮生成结束；进度看 `getJob/onJobChange` |
 | `resume` | 处理尚未 done 的楼层；每楼都已有结果时只补保存并归为 done，不请求模型 |
-| 输出额度 | 每次润色请求 65535 token（含续写、格式重试、限速后重试）；不保证服务接受或实际生成这么长；NovelAI 受宿主上限 |
+| 输出额度 | 每次润色请求按 `requestSettings.maxTokens`（默认 65535，API 管理「参数」里可改）token（含续写、格式重试、限速后重试）；不保证服务接受或实际生成这么长；NovelAI 受宿主上限 |
 | 格式 | `<floor n="实际楼号">正文</floor>` 按输入顺序，每楼非空闭合，不能缺号、错号、重号、嵌套，结果外不能有额外文字 |
 | 截断 | 只接纳此前完整楼层；缺失后续楼层需有 length 依据，半个起始标签或未闭合最后一楼按截断；未闭合局部文字不保存，下次从该楼原文重来；每轮续写至少要得到一个完整楼层，否则这一批失败 |
 | 重试 | 格式失败按共享 retries 重试；网络 / HTTP 失败与超时不自动重发 |
@@ -442,7 +442,7 @@ ST-YaKit-chat/
 | `prompts.regexAssist` / `prompts.polishAssist` | 各一条内置条目 | 正则助手、润色助手的提示词库；首次读取时把原来的 `corePrompts.regex` / `.polish` 迁进内置条目，内置条目不能删，删掉正在用的那条会回到内置那条 |
 | `prompts.style` | `[]`，activeId null | 文风预设库（`styles` 接口操作） |
 | `assistants.regex` / `assistants.polish` | `{profile:'follow', sampling:{五项 null}}` | 两个助手独立 |
-| `requestSettings` | `{timeoutSeconds:360, retries:1}` | 超时 30–1800 整数秒，重试 0–3 |
+| `requestSettings` | `{timeoutSeconds:360, retries:1, maxTokens:65535}` | 超时 30–1800 整数秒，重试 0–3，maxTokens（润色每次请求的输出上限）1024–1000000 整数 |
 | `polishUI` | `{allFloors:true,start:'',end:'',presetId:'export',chunkMode:'balanced',chunkFloors:10,fileName:''}` | 润色设置；`loadSettings()` 未保存过返回 null |
 
 **润色其他默认与限制**
@@ -450,7 +450,7 @@ ST-YaKit-chat/
 | 项目 | 默认值 / 规则 |
 | --- | --- |
 | 每次发送 | 重质量 5 层、均衡 10 层、省次数 20 层；自定义正整数，缺省 10，无业务上限 |
-| 输出额度 | 润色每次 65535 token；正则 2048 token |
+| 输出额度 | 润色每次 `maxTokens`（默认 65535）token；正则 2048 token |
 | 衔接参考 | 前末 / 后头各最多 300 个 Unicode 码点 |
 | 短文提醒 | 去空白码点数严格小于原文 50% |
 | 限速等待 | 默认 30 秒；单次最多 300 秒、同批累计最多 900 秒 |
@@ -791,7 +791,7 @@ async function restorePresets(file) {
 | `getAssistant(kind)` | `{profile,sampling}` |
 | `setAssistant(kind,{profile?,sampling?})` | 保存后的该助手配置 |
 | `resolveAssistant(kind)` | 无密钥的 `{profile:{id,name,model,usingMainApi},jailbreak:{id,name}\|null}`；polish 另有 `prompt:{id,name}\|null` 表示当前文风 |
-| `getRequestSettings()` | `{timeoutSeconds,retries}` |
+| `getRequestSettings()` | `{timeoutSeconds,retries,maxTokens}` |
 | `setRequestSettings(patch)` | 保存后的完整参数；空 patch 不保存 |
 
 旧提示词接口（`listPrompts`、`getActivePromptId`、`activatePrompt`、`checkPrompt`、`savePrompt`、`duplicatePrompt`、`removePrompt`）仍保留，操作旧破限词库与文风库，界面不再使用。

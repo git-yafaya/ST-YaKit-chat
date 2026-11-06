@@ -1,6 +1,7 @@
 import { readSettings, updateSettings } from './settings.js';
 
-const defaults = { timeoutSeconds: 360, retries: 1 };
+// maxTokens 是润色每次请求的输出上限，默认沿用以前写死的 65535；有的模型不认这么大，可以调小
+const defaults = { timeoutSeconds: 360, retries: 1, maxTokens: 65535 };
 
 function isObject(value) {
     return value !== null && Object.prototype.toString.call(value) === '[object Object]';
@@ -16,6 +17,9 @@ function normalizeSettings(value = {}) {
     }
     if (!Number.isInteger(settings.retries) || settings.retries < 0 || settings.retries > 3) {
         throw new Error('自动重试次数只能选 0、1、2 或 3');
+    }
+    if (!Number.isInteger(settings.maxTokens) || settings.maxTokens < 1024 || settings.maxTokens > 1000000) {
+        throw new Error('最大输出要在 1024 到 1000000 之间，请填写整数');
     }
     return settings;
 }

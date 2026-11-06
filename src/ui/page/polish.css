@@ -43,6 +43,20 @@
 /* 楼层：楼号按钮点一下选中（点睛色底，同导出页的标签按钮），行尾是说明和修改按钮 */
 .polish-floor + .polish-floor { margin-top: 10px; }
 .polish-floor-head { display: flex; align-items: center; gap: 6px; min-height: 28px; margin-bottom: 2px; }
+/* 楼层号按钮：点一下选中、再点取消，选中用点睛色底 */
+.polish-floor-chip {
+  height: 24px; max-width: 100%; padding: 0 10px; overflow: hidden;
+  border: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--text-title) 6%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-title) 8%, transparent);
+  color: var(--text-body); font: inherit; font-size: 12px; white-space: nowrap; text-overflow: ellipsis;
+  cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease;
+}
+.polish-floor-chip:hover { background: color-mix(in srgb, var(--text-title) 11%, transparent); color: var(--text-title); }
+.polish-floor-chip:focus { outline: none; }
+.polish-floor-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.polish-floor-chip[aria-pressed="true"] { background: var(--accent); box-shadow: none; color: var(--on-accent); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .polish-floor-chip { transition: none; } }
 .polish-floor-chip.is-static { cursor: default; background: transparent; box-shadow: none; padding: 0; color: var(--text-muted); }
 .polish-floor-chip.is-static:hover { background: transparent; color: var(--text-muted); }
 .polish-floor-note { display: inline-flex; align-items: center; gap: 4px; flex: 1; min-width: 0; font-size: 12px; color: var(--text-muted); white-space: nowrap; }

@@ -106,7 +106,7 @@ export function createGenerator(context, inputs = null, { worldInfo = false } = 
     const { api, sampling, jailbreak, prompt, rules: assistRules } = structuredClone(getAssistantSelection('polish'));
     const promptText = assistRules?.text ?? '';
     const inputsText = buildInputsText(structuredClone(inputs));
-    const { timeoutSeconds, retries } = getRequestSettings();
+    const { timeoutSeconds, retries, maxTokens } = getRequestSettings();
     const host = { ...context };
     let clientPromise;
     return async function generate(floors, previousTail, signal, onWait, limitBudget = { waitedSeconds: 0 }, references = []) {
@@ -140,8 +140,7 @@ export function createGenerator(context, inputs = null, { worldInfo = false } = 
             messages.push({ role: 'user', content: buildAssistantTask('polish', promptText, task) });
             return messages;
         };
-        // 每次请求使用固定输出上限，不随原文字数调整。
-        const maxTokens = 65535;
+        // 输出上限取「参数」里的设置，不随原文字数调整。
         for (let attempt = 0; attempt <= retries;) {
             checkCancelled(signal);
             const messages = buildMessages();
